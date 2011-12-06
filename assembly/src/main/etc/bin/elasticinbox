@@ -1,0 +1,26 @@
+#!/bin/bash
+
+curdir=`dirname $0`
+libdir="${curdir}/../lib"
+umask 066
+
+MEM=384
+TMP_DIR="/var/tmp"
+CONSOLE=""
+
+if [ "$1" == "console" ]; then
+  CONSOLE="-console -consoleLog"
+fi
+
+JVM_OPTS="-Xms${MEM}m -Xmx${MEM}m -Djava.io.tmpdir=${TMP_DIR}"
+
+# Uncomment to enable remote JMX access
+#JMX_OPTS="-Djava.net.preferIPv4Stack=true \
+#-Djava.rmi.server.hostname=10.0.0.1 \
+#-Dcom.sun.management.jmxremote \
+#-Dcom.sun.management.jmxremote.port=9099 \
+#-Dcom.sun.management.jmxremote.authenticate=false \
+#-Dcom.sun.management.jmxremote.ssl=false"
+
+cd ${libdir}
+exec /usr/bin/java ${JVM_OPTS} ${JMX_OPTS} -Dosgi.install.area=equinox -cp bundles/org.eclipse.osgi_3.6.2.R36x_v20110210.jar org.eclipse.core.runtime.adaptor.EclipseStarter ${CONSOLE} -configuration equinox

@@ -1,0 +1,10 @@
+#-----------------------------------------------------------------
+# Use this file to add customized Bnd instructions for the bundle
+#-----------------------------------------------------------------
+
+
+Export-Package: com.elasticinbox.config,\
+	com.elasticinbox.config.blob
+
+Embed-Dependency: snakeyaml;groupId=org.yaml;inline=false
+Embed-Directory: lib

@@ -1,0 +1,73 @@
+### ElasticInbox config file
+
+### Mailbox settings
+# Mailbox quota can be set by total bytes and/or message count.
+# To disable quota parameter set it to 0.
+mailbox_quota_bytes: 1073741824
+mailbox_quota_count: 50000
+
+### Monitoring settings
+# Enabling performance counters will allow monitoring of various stats
+# (e.g. LMTP, Hector) through the JMX interface.
+#
+# Stats are collected and aggregated for the given interval (in seconds).
+enable_performance_counters: true
+performance_counters_interval: 180
+
+### LMTP daemon settings
+# Set port number and maximum concurrent connections.
+lmtp_port: 2400
+lmtp_max_connections: 20
+
+### Metadata storage driver
+# currently only "cassandra" supported
+metadata_storage_driver: cassandra
+
+# If you want to store parsed HTML and/or PLAIN text of the message body
+# in the metadata storage, enable below.
+#
+# Note: When no HTML message body available in HTML store mode, ElasticInbox
+# will automatically fallback to PLAIN text mode and store available PLAIN text.  
+store_html_message: true
+store_plain_message: false
+
+### Cassandra settings
+# Specify Cassandra hosts (multiple for LB), cluster name, keyspace
+# and auto discovery
+cassandra_hosts:
+  - 127.0.0.1:9160
+#  - 127.0.0.2:9160
+#  - 127.0.0.3:9160
+cassandra_autodiscovery: false
+cassandra_cluster_name: 'TestCluster'
+cassandra_keyspace: 'ElasticInbox'
+
+### Blob storage settings
+#
+# Following public and private blob store providers are supported:
+#            aws-s3, cloudfiles-us, cloudfiles-uk, filesystem,
+#            azureblob, atmos (generic), synaptic-storage, scaleup-storage,
+#            cloudonestorage, walrus(generic), googlestorage, ninefold-storage,
+#            scality-rs2 (generic), hosteurope-storage, tiscali-storage,
+#            eucalyptus-partnercloud-s3, swift (generic)
+#
+# IMPORTANT: Blob store profile names should never be changed and should be
+#            identical on all ElasticInbox nodes. Profile names are stored in
+#            metadata. ElasticInbox does not verify profile configurations.
+#
+blobstore_profiles:
+  openstack-local:
+    provider: swift
+    endpoint: http://127.0.0.1:8080/auth/
+    container: elasticinbox
+    identity: elasticinbox:admin
+    credential: adm123
+    apiversion: 1.0
+  fs-local:
+    provider: filesystem
+    basedir: /u02/domains
+    container: elasticinbox
+
+# deafult profile to use for writing messages to blob storage
+# only one profile can be used for writing at the same time 
+blobstore_write_profile: fs-local

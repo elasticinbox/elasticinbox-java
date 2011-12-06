@@ -1,0 +1,6 @@
+/assembly/runner
+/runner
+target
+.settings
+.project
+.classpath

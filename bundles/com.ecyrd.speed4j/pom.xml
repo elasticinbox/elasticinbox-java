@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <parent>
+    <relativePath>../../poms/wrappers/</relativePath>
+    <groupId>com.elasticinbox.parent.build</groupId>
+    <artifactId>wrapper-bundle-settings</artifactId>
+    <version>0.2.0-SNAPSHOT</version>
+  </parent>
+
+  <properties>
+    <bundle.symbolicName>com.ecyrd.speed4j</bundle.symbolicName>
+    <wrapped.groupId>com.ecyrd.speed4j</wrapped.groupId>
+    <wrapped.artifactId>speed4j</wrapped.artifactId>
+    <wrapped.version>${bundle.speed4j.version}</wrapped.version>
+  </properties>
+
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.elasticinbox.bundles</groupId>
+  <artifactId>com.ecyrd.speed4j</artifactId>
+  <version>${bundle.speed4j.version}-1</version>
+
+  <name>ElasticInbox Bundles :: ${wrapped.artifactId}</name>
+
+  <packaging>bundle</packaging>
+
+  <dependencies>
+    <dependency>
+      <groupId>${wrapped.groupId}</groupId>
+      <artifactId>${wrapped.artifactId}</artifactId>
+      <version>${wrapped.version}</version>
+      <optional>true</optional>
+    </dependency>
+  </dependencies>
+
+</project>

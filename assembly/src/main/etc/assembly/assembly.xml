@@ -1,0 +1,43 @@
+<assembly
+	xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
+
+	<id>bin</id>
+
+	<formats>
+		<format>tar.gz</format>
+	</formats>
+
+	<includeBaseDirectory>false</includeBaseDirectory>
+
+	<fileSets>
+		<fileSet>
+			<directory>${project.parent.parent.parent.basedir}/runner/bundles</directory>
+			<outputDirectory>/elasticinbox-${project.version}/lib/bundles</outputDirectory>
+			<includes>
+				<include>*.jar</include>
+			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>${project.parent.parent.parent.basedir}/runner/equinox</directory>
+			<outputDirectory>/elasticinbox-${project.version}/lib/equinox</outputDirectory>
+			<includes>
+				<include>*.ini</include>
+			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>${project.parent.parent.parent.basedir}/config</directory>
+			<outputDirectory>/elasticinbox-${project.version}/config</outputDirectory>
+		</fileSet>
+	</fileSets>
+
+	<files>
+		<file>
+			<source>src/main/etc/bin/elasticinbox</source>
+			<outputDirectory>/elasticinbox-${project.version}/bin</outputDirectory>
+			<fileMode>0777</fileMode>
+		</file>
+	</files>
+
+</assembly>

@@ -1,0 +1,50 @@
+### ElasticInbox config file
+
+### Mailbox settings
+# Mailbox quota can be set by total bytes and/or message count.
+# To disable quota parameter set it to 0.
+mailbox_quota_bytes: 1073741824
+mailbox_quota_count: 50000
+
+### Monitoring settings
+# Enabling performance counters will allow monitoring of various stats
+# (e.g. LMTP, Hector) through the JMX interface.
+#
+# Stats are collected and aggregated for the given interval (in seconds).
+enable_performance_counters: true
+performance_counters_interval: 180
+
+### LMTP daemon settings
+# Set port number and maximum concurrent connections.
+lmtp_port: 2400
+lmtp_max_connections: 20
+
+### Metadata storage driver
+# currently only "cassandra" supported
+metadata_storage_driver: cassandra
+
+# If you want to store parsed html and/or plain text of the message body
+# in the metadata storage, enable below: 
+store_html_message: true
+store_plain_message: false
+
+### Cassandra settings
+# Specify Cassandra hosts (multiple for LB), cluster name, keyspace
+# and auto discovery
+cassandra_hosts:
+  - 127.0.0.1:9160
+cassandra_autodiscovery: true
+cassandra_cluster_name: TestCluster
+cassandra_keyspace: ElasticInbox
+
+### Blob storage settings
+blobstore_profiles:
+  itest:
+    provider: transient
+    container: elasticinbox
+    identity: itest
+    credential: itest
+
+# deafult profile to use for writing messages to blob storage
+# only one profile can be used for writing at the same time 
+blobstore_write_profile: itest

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://maven.apache.org/POM/4.0.0"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<parent>
+		<relativePath>../poms/compiled/</relativePath>
+		<groupId>com.elasticinbox.parent.build</groupId>
+		<artifactId>compiled-bundle-settings</artifactId>
+		<version>0.2.0-SNAPSHOT</version>
+	</parent>
+
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.elasticinbox</groupId>
+	<artifactId>elasticinbox-assembly</artifactId>
+
+	<name>ElasticInbox Project - Assembly</name>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.ops4j</groupId>
+				<artifactId>maven-pax-plugin</artifactId>
+				<configuration>
+					<provision>
+			            <param>--platform=${default.osgi.framework}</param>
+			            <param>--version=${default.osgi.framework.version}</param>
+			            <param>--profile=compendium,war</param>
+			            <param>--bootDelegation=${boot.delegation.packages}</param>
+						<param>--executor=noop</param>
+					</provision>
+				</configuration>
+				<executions>
+					<execution>
+						<id>package-provision</id>
+						<phase>package</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.2.1</version>
+				<executions>
+					<execution>
+						<id>package-assembly</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<appendAssemblyId>true</appendAssemblyId>
+							<finalName>elasticinbox-${project.version}</finalName>
+							<descriptors>
+								<descriptor>src/main/etc/assembly/assembly.xml</descriptor>
+							</descriptors>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

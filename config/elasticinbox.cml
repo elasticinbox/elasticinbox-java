@@ -1,0 +1,41 @@
+# ElasticInbox Schema v1.0
+# 
+# To create schema, first you will need to create keyspace:
+#
+# create keyspace ElasticInbox
+#    with placement_strategy = 'org.apache.cassandra.locator.SimpleStrategy'
+#    and strategy_options = [{replication_factor:3}];
+#
+# After keyspace created you can copy paste text below, or simply run:
+#
+#   % cassandra-cli --host 10.0.1.1 < elasticinbox.cml
+#
+
+use ElasticInbox;
+
+create column family Accounts with 
+	key_validation_class=UTF8Type and
+	rows_cached=100000 and
+	comment='Basic information about accounts';
+
+create column family MessageMetadata with 
+	column_type=Super and 
+	key_validation_class=UTF8Type and
+	comparator=TimeUUIDType and 
+	subcomparator=BytesType and
+	comment='Message metadata including headers, labels, markers, physical location, etc.';
+
+create column family IndexLabels with
+	key_validation_class=UTF8Type and
+	comparator=TimeUUIDType and 
+	rows_cached=100000 and
+	comment='Message ID indexes grouped by labels and ordered by time';
+
+create column family Counters with
+	column_type=Super and
+	default_validation_class=CounterColumnType and 
+	replicate_on_write=true and
+	key_validation_class=UTF8Type and
+	comparator=UTF8Type and
+	subcomparator=AsciiType and
+	comment='All counters for an account';

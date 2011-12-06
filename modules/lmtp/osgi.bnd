@@ -1,0 +1,11 @@
+#-----------------------------------------------------------------
+# Use this file to add customized Bnd instructions for the bundle
+#-----------------------------------------------------------------
+
+Bundle-Activator: com.elasticinbox.lmtp.Activator
+
+Import-Package: *
+
+Private-Package: \
+  com.elasticinbox.lmtp,\
+  com.elasticinbox.lmtp.* 

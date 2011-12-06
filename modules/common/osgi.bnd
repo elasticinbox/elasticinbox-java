@@ -1,0 +1,9 @@
+#-----------------------------------------------------------------
+# Use this file to add customized Bnd instructions for the bundle
+#-----------------------------------------------------------------
+
+
+Export-Package: com.elasticinbox.common,\
+	com.elasticinbox.common.utils
+Private-Package: com.elasticinbox.common.*
+Import-Package: *;resolution:=optional

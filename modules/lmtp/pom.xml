@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <parent>
+    <relativePath>../../poms/compiled/</relativePath>
+    <groupId>com.elasticinbox.parent.build</groupId>
+    <artifactId>compiled-bundle-settings</artifactId>
+    <version>0.2.0-SNAPSHOT</version>
+  </parent>
+
+  <properties>
+    <bundle.symbolicName>com.elasticinbox.lmtp</bundle.symbolicName>
+    <bundle.namespace>com.elasticinbox</bundle.namespace>
+  </properties>
+
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.elasticinbox</groupId>
+  <artifactId>elasticinbox-lmtp</artifactId>
+
+  <name>ElasticInbox LMTP Module</name>
+
+  <packaging>bundle</packaging>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
+        <configuration>
+          <source>1.6</source>
+          <target>1.6</target>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+    <!--
+     | uncomment to add all imported (non-local) bundles to your compilation classpath
+    <dependency>
+      <type>pom</type>
+      <groupId>${parent.groupId}</groupId>
+      <artifactId>provision</artifactId>
+      <optional>true</optional>
+    </dependency>
+    -->
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>osgi_R4_core</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>osgi_R4_compendium</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.mina</groupId>
+      <artifactId>mina-core</artifactId>
+      <version>${bundle.mina.version}</version>
+      <type>bundle</type>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${bundle.slf4j.version}</version>
+      <scope>provided</scope>
+    </dependency>
+ 	<dependency>
+		<groupId>com.elasticinbox.bundles</groupId>
+		<artifactId>com.ecyrd.speed4j</artifactId>
+		<version>${bundle.speed4j.version}-1</version>
+		<type>bundle</type>
+		<scope>provided</scope>
+	</dependency>
+    <dependency>
+    	<groupId>com.elasticinbox</groupId>
+    	<artifactId>elasticinbox-common</artifactId>
+    	<version>${project.version}</version>
+    	<type>bundle</type>
+    	<scope>provided</scope>
+    </dependency>
+    <dependency>
+    	<groupId>com.elasticinbox</groupId>
+    	<artifactId>elasticinbox-config</artifactId>
+    	<version>${project.version}</version>
+    	<type>bundle</type>
+    	<scope>provided</scope>
+    </dependency>
+    <dependency>
+    	<groupId>com.elasticinbox</groupId>
+    	<artifactId>elasticinbox-core</artifactId>
+    	<version>${project.version}</version>
+    	<type>bundle</type>
+    	<scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+</project>

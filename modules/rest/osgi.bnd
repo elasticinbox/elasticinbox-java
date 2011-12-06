@@ -1,0 +1,24 @@
+#-----------------------------------------------------------------
+# Use this file to add customized Bnd instructions for the bundle
+#-----------------------------------------------------------------
+
+Private-Package: com.elasticinbox.rest.*
+Export-Package: com.elasticinbox.rest
+
+Import-Package:\
+  javax.servlet,\
+  javax.servlet.http,\
+#  javax.servlet.*,\
+#  javax.servlet.jsp.*,\
+#  javax.servlet.jsp.jstl.*,\
+  *
+
+DynamicImport-Package: javax.*, org.xml.sax, org.xml.sax.*,org.w3c.*
+
+Bundle-ClassPath: .,WEB-INF/classes
+#Embed-Directory: WEB-INF/lib
+#Embed-Dependency: *;scope=compile|runtime
+#Embed-Transitive: true
+
+Web-ContextPath: rest
+Webapp-Context: rest

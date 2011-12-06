@@ -1,0 +1,28 @@
+#-----------------------------------------------------------------
+# Use this file to add customized Bnd instructions for the bundle
+#-----------------------------------------------------------------
+
+Export-Package: com.elasticinbox.core,\
+	com.elasticinbox.core.model,\
+	com.elasticinbox.core.utils,\
+	com.elasticinbox.core.message,\
+	com.elasticinbox.core.message.id,\
+	com.elasticinbox.core.log
+
+Private-Package: com.elasticinbox.core.cassandra.persistence,\
+	com.elasticinbox.core.blob,\
+	com.elasticinbox.core.blob.naming,\
+	com.elasticinbox.core.cassandra
+
+Import-Package: *;resolution:=optional
+
+Embed-Dependency: \
+  hector-core;groupId=me.prettyprint;inline=false,\
+  libthrift;groupId=org.apache.thrift;inline=false,\
+  cassandra-thrift;groupId=org.apache.cassandra;inline=false,\
+  uuid;groupId=com.github.stephenc.eaio-uuid;inline=false,\
+  mail;groupId=javax.mail;inline=false,\
+  activation;groupId=javax.activation;inline=false
+
+Embed-Directory: lib
+#Embed-Dependency: *;scope=compile|runtime

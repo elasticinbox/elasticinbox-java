@@ -1,0 +1,43 @@
+ElasticInbox is a scalable, distributed email store.
+See http://www.elasticinbox.com
+
+Description
+-----------
+Based on Apache Cassandra for metadata and Jclouds for blob store, ElasticInbox
+provides reliable, scalable and distributed email store without SPOF.
+
+Requirements
+------------
+ * Java >= 1.6
+ * Apache Cassandra >= 0.8.0 (see http://cassandra.apache.org/)
+
+Getting started
+---------------
+Download binary package. Make sure Cassandra is up and running.
+
+  % tar -zxf elasticinbox-0.2.0-SNAPSHOT-bin.tar.gz
+  % mkdir /var/log/elasticinbox
+
+Create keyspace ElasticInbox in your Cassandra cluster and load schema: 
+
+  % cassandra-cli --host localhost < elasticinbox.cml
+
+Configure ElasticInbox:
+
+  % vi elasticinbox-0.2.0-SNAPSHOT/config/elasticinbox.yaml
+
+Optionally you can also change configuration for HTTP server (jetty.xml) and 
+logger (logback.xml) in the same folder. By default, HTTP will be listening on
+port 8181.
+
+Run ElasticInbox:
+
+  % elasticinbox-0.2.0-SNAPSHOT/bin/elasticinbox
+
+Building from Source
+--------------------
+To build and run from source you will need Maven 3 and Git:
+
+ % git clone https://github.com/elasticinbox/elasticinbox elasticinbox
+ % cd elasticinbox
+ % mvn clean install pax:provision -DskipITs
