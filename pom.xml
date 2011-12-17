@@ -72,7 +72,6 @@
 	<bundle.gson.version>1.7.1</bundle.gson.version>
 	<bundle.guava.version>9.0.0</bundle.guava.version>
 	<bundle.aopalliance.version>1.0_5</bundle.aopalliance.version>
-	<bundle.netty.version>3.2.3.Final_2</bundle.netty.version>
 	<bundle.net.oauth.version>20100527_1</bundle.net.oauth.version>
 	<bundle.bcprov.version>1.46_1</bundle.bcprov.version>
 	<bundle.jersey.version>1.8</bundle.jersey.version>
@@ -89,6 +88,7 @@
 	<bundle.commons-lang.version>2.4_5</bundle.commons-lang.version>
 	<bundle.servlet-api.version>2.5-20110124</bundle.servlet-api.version>
 	<bundle.mina.version>2.0.4</bundle.mina.version>
+	<bundle.netty.version>3.2.7.Final</bundle.netty.version>
 
 	<!-- Profiling Configs -->
     <visualvm.root.folder>/System/Library/Java/Support/VisualVM.bundle/Contents/Home/</visualvm.root.folder>
