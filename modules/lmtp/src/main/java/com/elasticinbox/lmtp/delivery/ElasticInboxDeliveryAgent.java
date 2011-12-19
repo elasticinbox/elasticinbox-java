@@ -20,22 +20,24 @@
 package com.elasticinbox.lmtp.delivery;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
+import org.apache.james.protocols.smtp.MailEnvelope;
+import org.apache.mailet.MailAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ecyrd.speed4j.StopWatch;
 import com.elasticinbox.lmtp.Activator;
-import com.elasticinbox.lmtp.server.api.Blob;
 import com.elasticinbox.lmtp.server.api.DeliveryException;
-import com.elasticinbox.lmtp.server.api.LMTPAddress;
-import com.elasticinbox.lmtp.server.api.LMTPEnvelope;
 import com.elasticinbox.lmtp.server.api.LMTPReply;
+import com.elasticinbox.lmtp.utils.SharedStreamUtils;
 import com.elasticinbox.core.MessageDAO;
 import com.elasticinbox.core.OverQuotaException;
 import com.elasticinbox.core.message.MimeParser;
@@ -71,18 +73,17 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 	}
 
 	@Override
-	public void deliver(LMTPEnvelope env, Blob blob) throws IOException
+	public Map<MailAddress, LMTPReply> deliver(MailEnvelope env) throws IOException
 	{
 		// update delivery ID
 		newDeliveryId();
 
 		StopWatch stopWatch = Activator.getDefault().getStopWatch();
-		List<LMTPAddress> recipients = env.getRecipients();
 		Message message;
 
 		try {
 			MimeParser parser = new MimeParser();
-			parser.parse(blob.getInputStream());
+			parser.parse(env.getMessageInputStream());
 			message = parser.getMessage();
 		} catch (MimeParserException mpe) {
 			logger.error("DID" + deliveryId + ": unable to parse message: ", mpe);
@@ -92,18 +93,19 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 			throw new DeliveryException("Unable to read message stream: " + ioe.getMessage());
 		}
 
-		message.setSize(blob.getRawSize()); // update message size
+		message.setSize((long) env.getSize()); // update message size
 		message.addLabel(ReservedLabels.INBOX.getLabelId()); // default location
 
 		logEnvelope(env, message);
 
+		Map<MailAddress, LMTPReply> replies = new HashMap<MailAddress, LMTPReply>();
 		// Deliver to each recipient
-		for (LMTPAddress recipient : recipients)
+		for (MailAddress recipient : env.getRecipients())
 		{
 			LMTPReply reply = LMTPReply.TEMPORARY_FAILURE; // default LMTP reply
 			DeliveryAction deliveryAction = DeliveryAction.DELIVER; // default delivery action
 
-			Mailbox mailbox = new Mailbox(recipient.getEmailAddress());
+			Mailbox mailbox = new Mailbox(recipient.toString());
 			String logMsg = new StringBuilder(" ").append(mailbox.getId())
 								.append(" DID").append(deliveryId).toString();
 
@@ -116,7 +118,7 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 								setSentDate(message.getDate()).build();
 
 						// store message
-						messageDAO.put(mailbox, messageId, message, blob.getInputStream());
+						messageDAO.put(mailbox, messageId, message, SharedStreamUtils.getPrivateInputStream(env.getMessageInputStream()));
 						
 						// successfully delivered
 						stopWatch.stop("DELIVERY.success", logMsg);
@@ -153,12 +155,12 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 				logger.error("DID" + deliveryId + ": delivery failed (defered): ", e);
 			}
 
-			recipient.setDeliveryStatus(reply); // set delivery status for invoker
+			replies.put(recipient, reply); // set delivery status for invoker
 		}
-
+		return replies;
 	}
 
-	private void logEnvelope(final LMTPEnvelope env, final Message message)
+	private void logEnvelope(final MailEnvelope env, final Message message)
 	{
         logger.info("DID{}: size={}, nrcpts={}, from=<{}>, msgid={}",
             	new Object[] {

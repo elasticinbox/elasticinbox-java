@@ -19,14 +19,14 @@
 
 package com.elasticinbox.lmtp.delivery;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.apache.james.protocols.smtp.MailEnvelope;
+import org.apache.mailet.MailAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.elasticinbox.lmtp.server.api.Blob;
-import com.elasticinbox.lmtp.server.api.LMTPAddress;
-import com.elasticinbox.lmtp.server.api.LMTPEnvelope;
 import com.elasticinbox.lmtp.server.api.LMTPReply;
 
 /**
@@ -47,27 +47,24 @@ public class MulticastDeliveryAgent implements IDeliveryAgent
 	}
 
 	@Override
-	public void deliver(LMTPEnvelope env, Blob blob)
+	public Map<MailAddress, LMTPReply> deliver(MailEnvelope env)
 	{
-		logger.debug("deliver(" + env + ", blob: " + blob);
+		logger.debug("deliver(" + env +")");
 
+        Map<MailAddress, LMTPReply> map = new HashMap<MailAddress, LMTPReply>();
+        
 		for (IDeliveryAgent agent : agents) {
 			try {
-    			agent.deliver(env, blob);
+			    map.putAll(agent.deliver(env));
 	        } catch (Exception e) {
 	            logger.warn(agent.getClass().getName() + 
 	            		" delivery deferred: mail delivery failed: ", e);
-            	setDeliveryStatuses(env.getRecipients(), LMTPReply.TEMPORARY_FAILURE);
+            	for (MailAddress address: env.getRecipients()){
+            	     map.put(address,LMTPReply.TEMPORARY_FAILURE);
+            	}
 	        }
 		}
+		return map;
 	}
-
-
-	private void setDeliveryStatuses(List<LMTPAddress> recipients, LMTPReply reply)
-	{
-        for (LMTPAddress recipient : recipients) {
-            recipient.setDeliveryStatus(reply);
-        }
-    }
 
 }

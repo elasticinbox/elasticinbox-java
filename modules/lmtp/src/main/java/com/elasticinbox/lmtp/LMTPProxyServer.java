@@ -21,16 +21,18 @@ package com.elasticinbox.lmtp;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.james.protocols.lmtp.LMTPConfigurationImpl;
 import org.apache.james.protocols.lmtp.LMTPProtocolHandlerChain;
 import org.apache.james.protocols.netty.NettyServer;
+import org.apache.james.protocols.smtp.MailEnvelope;
 import org.apache.james.protocols.smtp.SMTPProtocol;
+import org.apache.mailet.MailAddress;
 
-import com.elasticinbox.config.Configurator;
 import com.elasticinbox.lmtp.delivery.IDeliveryAgent;
-import com.elasticinbox.lmtp.server.api.Blob;
-import com.elasticinbox.lmtp.server.api.LMTPEnvelope;
+import com.elasticinbox.lmtp.server.api.LMTPReply;
 import com.elasticinbox.lmtp.server.api.handler.ElasticInboxDeliveryHandler;
 
 /**
@@ -67,12 +69,17 @@ public class LMTPProxyServer {
 	
 	public static void main(String[] args) throws Exception {
 	    new LMTPProxyServer(new IDeliveryAgent() {
-            
+
             @Override
-            public void deliver(LMTPEnvelope env, Blob blob) throws IOException {
-                // TODO Auto-generated method stub
-                
+            public Map<MailAddress, LMTPReply> deliver(MailEnvelope env) throws IOException {
+                Map<MailAddress, LMTPReply> map = new HashMap<MailAddress, LMTPReply>();
+                for (MailAddress address: env.getRecipients()) {
+                    map.put(address, LMTPReply.OK);
+                }
+                return map;
             }
+
+            
         }).start();
 	}
 }

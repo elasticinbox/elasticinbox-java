@@ -7,6 +7,8 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.james.protocols.api.Response;
 import org.apache.james.protocols.lmtp.LMTPMultiResponse;
@@ -18,9 +20,7 @@ import org.apache.james.protocols.smtp.core.DataLineMessageHookHandler;
 import org.apache.mailet.MailAddress;
 
 import com.elasticinbox.lmtp.delivery.IDeliveryAgent;
-import com.elasticinbox.lmtp.server.api.Blob;
-import com.elasticinbox.lmtp.server.api.LMTPAddress;
-import com.elasticinbox.lmtp.server.api.LMTPEnvelope;
+import com.elasticinbox.lmtp.server.api.LMTPReply;
 import com.elasticinbox.lmtp.utils.MimeUtils;
 
 /**
@@ -75,8 +75,8 @@ public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler {
 	@Override
 	protected Response processExtensions(SMTPSession session, MailEnvelopeImpl env) {
 	    // build message blob
-        Blob blob = new Blob(env.getMessageInputStream(), env.getSize());
-        blob.prepend(getAdditionalHeaders(session, env));
+	    // TODO: add header is fron
+	    // getAdditionalHeaders(session, env)
 
         // tracing
         if (session.getLogger().isTraceEnabled()) {
@@ -84,7 +84,7 @@ public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler {
             Charset charset = Charset.forName("US-ASCII");
       
             try {
-                InputStream in = blob.getInputStream();
+                InputStream in = env.getMessageInputStream();
                 byte[] buf = new byte[16384];
                 CharsetDecoder decoder = charset.newDecoder();
                 int len = 0;
@@ -96,24 +96,22 @@ public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler {
             }
         }
 
-        LMTPEnvelope lmtpEnv = new LMTPEnvelope();
-        for (MailAddress rcpt: env.getRecipients()) {
-            lmtpEnv.addRecipient(new LMTPAddress(rcpt.toString(), new String[] {}, null));
-        }
-        MailAddress sender = env.getSender();
-        if (sender != null) {
-            lmtpEnv.setSender(new LMTPAddress(sender.toString(),  new String[]{"BODY", "SIZE"}, null));
-        }
+       
+        Map<MailAddress, LMTPReply> replies;
         // deliver message
         try {
-			backend.deliver(lmtpEnv, blob);
+			replies = backend.deliver(env);
 		} catch (IOException e) {
 			// TODO: Handle me
+            replies = new HashMap<MailAddress, LMTPReply>();
+	        for (MailAddress address: env.getRecipients()) {
+	            replies.put(address, LMTPReply.TEMPORARY_FAILURE);
+	        }
 		}
 
         LMTPMultiResponse lmtpResponse = null;
-        for (LMTPAddress address: lmtpEnv.getRecipients()) {
-            SMTPResponse response = new SMTPResponse(address.getDeliveryStatus().toString());
+        for (LMTPReply reply: replies.values()) {
+            SMTPResponse response = new SMTPResponse(reply.toString());
             if (lmtpResponse == null) {
                 lmtpResponse = new LMTPMultiResponse(response);
             } else {
