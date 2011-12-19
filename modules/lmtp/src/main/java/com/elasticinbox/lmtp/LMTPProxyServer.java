@@ -32,7 +32,7 @@ import org.apache.james.protocols.smtp.SMTPProtocol;
 import org.apache.mailet.MailAddress;
 
 import com.elasticinbox.lmtp.delivery.IDeliveryAgent;
-import com.elasticinbox.lmtp.server.api.LMTPReply;
+import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
 import com.elasticinbox.lmtp.server.api.handler.ElasticInboxDeliveryHandler;
 
 /**
@@ -71,10 +71,10 @@ public class LMTPProxyServer {
 	    new LMTPProxyServer(new IDeliveryAgent() {
 
             @Override
-            public Map<MailAddress, LMTPReply> deliver(MailEnvelope env) throws IOException {
-                Map<MailAddress, LMTPReply> map = new HashMap<MailAddress, LMTPReply>();
+            public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env) throws IOException {
+                Map<MailAddress, DeliveryReturnCode> map = new HashMap<MailAddress, DeliveryReturnCode>();
                 for (MailAddress address: env.getRecipients()) {
-                    map.put(address, LMTPReply.OK);
+                    map.put(address, DeliveryReturnCode.OK);
                 }
                 return map;
             }

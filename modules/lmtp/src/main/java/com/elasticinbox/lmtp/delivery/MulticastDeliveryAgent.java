@@ -27,7 +27,7 @@ import org.apache.mailet.MailAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.elasticinbox.lmtp.server.api.LMTPReply;
+import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
 
 /**
  * Delivery backend implementation
@@ -47,11 +47,11 @@ public class MulticastDeliveryAgent implements IDeliveryAgent
 	}
 
 	@Override
-	public Map<MailAddress, LMTPReply> deliver(MailEnvelope env)
+	public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env)
 	{
 		logger.debug("deliver(" + env +")");
 
-        Map<MailAddress, LMTPReply> map = new HashMap<MailAddress, LMTPReply>();
+        Map<MailAddress, DeliveryReturnCode> map = new HashMap<MailAddress, DeliveryReturnCode>();
         
 		for (IDeliveryAgent agent : agents) {
 			try {
@@ -60,7 +60,7 @@ public class MulticastDeliveryAgent implements IDeliveryAgent
 	            logger.warn(agent.getClass().getName() + 
 	            		" delivery deferred: mail delivery failed: ", e);
             	for (MailAddress address: env.getRecipients()){
-            	     map.put(address,LMTPReply.TEMPORARY_FAILURE);
+            	     map.put(address,DeliveryReturnCode.TEMPORARY_FAILURE);
             	}
 	        }
 		}

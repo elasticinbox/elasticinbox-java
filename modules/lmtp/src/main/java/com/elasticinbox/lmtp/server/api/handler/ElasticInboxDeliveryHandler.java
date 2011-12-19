@@ -15,12 +15,14 @@ import org.apache.james.protocols.lmtp.LMTPMultiResponse;
 import org.apache.james.protocols.smtp.MailEnvelope;
 import org.apache.james.protocols.smtp.MailEnvelopeImpl;
 import org.apache.james.protocols.smtp.SMTPResponse;
+import org.apache.james.protocols.smtp.SMTPRetCode;
 import org.apache.james.protocols.smtp.SMTPSession;
 import org.apache.james.protocols.smtp.core.DataLineMessageHookHandler;
+import org.apache.james.protocols.smtp.dsn.DSNStatus;
 import org.apache.mailet.MailAddress;
 
 import com.elasticinbox.lmtp.delivery.IDeliveryAgent;
-import com.elasticinbox.lmtp.server.api.LMTPReply;
+import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
 import com.elasticinbox.lmtp.utils.MimeUtils;
 
 /**
@@ -97,26 +99,48 @@ public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler {
         }
 
        
-        Map<MailAddress, LMTPReply> replies;
+        Map<MailAddress, DeliveryReturnCode> replies;
         // deliver message
         try {
 			replies = backend.deliver(env);
 		} catch (IOException e) {
 			// TODO: Handle me
-            replies = new HashMap<MailAddress, LMTPReply>();
+            replies = new HashMap<MailAddress, DeliveryReturnCode>();
 	        for (MailAddress address: env.getRecipients()) {
-	            replies.put(address, LMTPReply.TEMPORARY_FAILURE);
+	            replies.put(address, DeliveryReturnCode.TEMPORARY_FAILURE);
 	        }
 		}
 
         LMTPMultiResponse lmtpResponse = null;
-        for (LMTPReply reply: replies.values()) {
-            SMTPResponse response = new SMTPResponse(reply.toString());
+        for (MailAddress address: replies.keySet()) {
+            DeliveryReturnCode code = replies.get(address);
+            SMTPResponse response;
+            switch(code) {
+                case NO_SUCH_USER:
+                    response = new SMTPResponse(SMTPRetCode.MAILBOX_PERM_UNAVAILABLE, DSNStatus.getStatus(DSNStatus.PERMANENT,DSNStatus.ADDRESS_MAILBOX) + " Unknown user: " + address.toString());
+                    break;
+                case OK:
+                    response = new SMTPResponse(SMTPRetCode.MAIL_OK, DSNStatus.getStatus(DSNStatus.PERMANENT,DSNStatus.ADDRESS_MAILBOX) + " Unknown user: " + address.toString());
+                    break;
+                case OVER_QUOTA:
+                    response = new SMTPResponse(SMTPRetCode.LOCAL_ERROR, "User over quita");
+                    break;
+                case PERMANENT_FAILURE:
+                    response = new SMTPResponse(SMTPRetCode.TRANSACTION_FAILED, "Unable to deliver message");
+                    break;
+                case TEMPORARY_FAILURE:
+                    response = new SMTPResponse(SMTPRetCode.LOCAL_ERROR, "Unable to process request");
+                    break;
+                default:
+                    response = new SMTPResponse(SMTPRetCode.LOCAL_ERROR, "Unable to process request");
+                    break;
+            }
             if (lmtpResponse == null) {
                 lmtpResponse = new LMTPMultiResponse(response);
             } else {
                 lmtpResponse.addResponse(response);
             }
+            
         }
         return lmtpResponse;
 	}

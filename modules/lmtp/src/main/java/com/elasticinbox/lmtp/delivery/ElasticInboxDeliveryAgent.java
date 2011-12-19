@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 import com.ecyrd.speed4j.StopWatch;
 import com.elasticinbox.lmtp.Activator;
 import com.elasticinbox.lmtp.server.api.DeliveryException;
-import com.elasticinbox.lmtp.server.api.LMTPReply;
+import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
 import com.elasticinbox.lmtp.utils.SharedStreamUtils;
 import com.elasticinbox.core.MessageDAO;
 import com.elasticinbox.core.OverQuotaException;
@@ -73,7 +73,7 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 	}
 
 	@Override
-	public Map<MailAddress, LMTPReply> deliver(MailEnvelope env) throws IOException
+	public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env) throws IOException
 	{
 		// update delivery ID
 		newDeliveryId();
@@ -98,11 +98,11 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 
 		logEnvelope(env, message);
 
-		Map<MailAddress, LMTPReply> replies = new HashMap<MailAddress, LMTPReply>();
+		Map<MailAddress, DeliveryReturnCode> replies = new HashMap<MailAddress, DeliveryReturnCode>();
 		// Deliver to each recipient
 		for (MailAddress recipient : env.getRecipients())
 		{
-			LMTPReply reply = LMTPReply.TEMPORARY_FAILURE; // default LMTP reply
+			DeliveryReturnCode reply = DeliveryReturnCode.TEMPORARY_FAILURE; // default LMTP reply
 			DeliveryAction deliveryAction = DeliveryAction.DELIVER; // default delivery action
 
 			Mailbox mailbox = new Mailbox(recipient.toString());
@@ -122,36 +122,36 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 						
 						// successfully delivered
 						stopWatch.stop("DELIVERY.success", logMsg);
-						reply = LMTPReply.DELIVERY_OK;
+						reply = DeliveryReturnCode.OK;
 					} catch (OverQuotaException e) {
 						// account is over quota, reject
 						stopWatch.stop("DELIVERY.reject_overQuota", logMsg + " over quota");
-						reply = LMTPReply.PERMANENT_FAILURE_OVER_QUOTA;
+						reply = DeliveryReturnCode.OVER_QUOTA;
 					} catch (IOException e) {
 						// delivery error, defer
 						stopWatch.stop("DELIVERY.defer", logMsg);
 						logger.error("DID" + deliveryId + ": delivery error: ", e);
-						reply = LMTPReply.TEMPORARY_FAILURE;
+						reply = DeliveryReturnCode.TEMPORARY_FAILURE;
 					}
 					break;
 				case DISCARD:
 					// Local delivery is disabled.
 					stopWatch.stop("DELIVERY.discard", logMsg);
-					reply = LMTPReply.DELIVERY_OK;
+					reply = DeliveryReturnCode.OK;
 					break;
 				case DEFER:
 					// Delivery to mailbox skipped. Let MTA retry again later.
 					stopWatch.stop("DELIVERY.defer", logMsg);
-					reply = LMTPReply.TEMPORARY_FAILURE;
+					reply = DeliveryReturnCode.TEMPORARY_FAILURE;
 					break;
 				case REJECT:
 					// Reject delivery. Account or mailbox not found.
 					stopWatch.stop("DELIVERY.reject_nonExistent", logMsg + " unknown mailbox");
-					reply = LMTPReply.NO_SUCH_USER;
+					reply = DeliveryReturnCode.NO_SUCH_USER;
 				}
 			} catch (Exception e) {
 				stopWatch.stop("DELIVERY.defer_failure", logMsg);
-				reply = LMTPReply.TEMPORARY_FAILURE;
+				reply = DeliveryReturnCode.TEMPORARY_FAILURE;
 				logger.error("DID" + deliveryId + ": delivery failed (defered): ", e);
 			}
 

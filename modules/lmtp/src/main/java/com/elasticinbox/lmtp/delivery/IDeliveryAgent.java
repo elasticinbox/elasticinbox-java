@@ -6,7 +6,7 @@ import java.util.Map;
 import org.apache.james.protocols.smtp.MailEnvelope;
 import org.apache.mailet.MailAddress;
 
-import com.elasticinbox.lmtp.server.api.LMTPReply;
+import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
 
 /**
  * Delivery Agent Interface
@@ -21,6 +21,6 @@ public interface IDeliveryAgent
 	 * the delivery status on each recipient address.
 	 * @throws IOException 
 	 */
-	public Map<MailAddress, LMTPReply> deliver(MailEnvelope env) throws IOException;
+	public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env) throws IOException;
 
 }
