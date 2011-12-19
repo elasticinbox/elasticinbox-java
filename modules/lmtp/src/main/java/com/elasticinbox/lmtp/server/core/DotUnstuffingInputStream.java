@@ -15,7 +15,7 @@
  * permissions and limitations under the License.                      *
  ***********************************************************************/
 
-package com.elasticinbox.lmtp.server.core.mina;
+package com.elasticinbox.lmtp.server.core;
 
 import java.io.FilterInputStream;
 import java.io.IOException;

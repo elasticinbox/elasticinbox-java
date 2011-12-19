@@ -28,25 +28,21 @@ import com.elasticinbox.lmtp.server.api.Blob;
 import com.elasticinbox.lmtp.server.api.LMTPAddress;
 import com.elasticinbox.lmtp.server.api.LMTPEnvelope;
 import com.elasticinbox.lmtp.server.api.LMTPReply;
-import com.elasticinbox.lmtp.validator.IValidator;
 
 /**
  * Delivery backend implementation
  * 
  * @author Rustam Aliyev
  */
-public class ElasticInboxDeliveryBackend implements IDeliveryBackend
+public class MulticastDeliveryAgent implements IDeliveryAgent
 {
 	private static final Logger logger = LoggerFactory
-					.getLogger(ElasticInboxDeliveryBackend.class);
+					.getLogger(MulticastDeliveryAgent.class);
 
-	private List<IValidator> validator;
-	private List<IDeliveryAgent> agents;
+	private IDeliveryAgent[] agents;
 
-	public ElasticInboxDeliveryBackend(List<IValidator> validator,
-			List<IDeliveryAgent> agents)
+	public MulticastDeliveryAgent(IDeliveryAgent... agents)
 	{
-		this.validator = validator;
 		this.agents = agents;
 	}
 
@@ -66,22 +62,6 @@ public class ElasticInboxDeliveryBackend implements IDeliveryBackend
 		}
 	}
 
-	@Override
-	public LMTPReply getAddressStatus(LMTPAddress address)
-	{
-		LMTPReply reply = LMTPReply.INVALID_RECIPIENT_ADDRESS;
-
-		for (IValidator val : validator) {
-			LMTPReply tmp = val.getAddressStatus(address);
-
-			if (tmp == LMTPReply.RECIPIENT_OK) {
-				reply = tmp;
-				break;
-			}
-		}
-
-		return reply;
-	}
 
 	private void setDeliveryStatuses(List<LMTPAddress> recipients, LMTPReply reply)
 	{

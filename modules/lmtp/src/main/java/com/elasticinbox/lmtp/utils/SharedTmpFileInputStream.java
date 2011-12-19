@@ -46,6 +46,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 
+import javax.mail.internet.SharedInputStream;
+
 
 /**
  * A <code>SharedFileInputStream</code> is a

@@ -56,17 +56,30 @@
       <optional>true</optional>
     </dependency>
 	<dependency>
+		<groupId>org.apache.james.protocols</groupId>
+		<artifactId>protocols-netty</artifactId>
+		<version>1.6-beta3</version>
+	</dependency>
+	<dependency>
+		<groupId>org.apache.james.protocols</groupId>
+		<artifactId>protocols-api</artifactId>
+		<version>1.6-beta3</version>
+	</dependency>
+	<dependency>
+		<groupId>org.apache.james.protocols</groupId>
+		<artifactId>protocols-smtp</artifactId>
+		<version>1.6-beta3</version>
+	</dependency>
+	<dependency>
+		<groupId>org.apache.james.protocols</groupId>
+		<artifactId>protocols-lmtp</artifactId>
+		<version>1.6-beta3</version>
+	</dependency>
+	<dependency>
 		<groupId>org.jboss.netty</groupId>
 		<artifactId>netty</artifactId>
 		<version>${bundle.netty.version}</version>
 	</dependency>
-    <dependency>
-      <groupId>org.apache.mina</groupId>
-      <artifactId>mina-core</artifactId>
-      <version>${bundle.mina.version}</version>
-      <type>bundle</type>
-      <scope>provided</scope>
-    </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>

@@ -4,13 +4,15 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 
+import org.apache.james.protocols.lmtp.LMTPConfigurationImpl;
+
 /**
  * This class holds the configuration options of the {@link LMTPServer}.
  * 
  * @author De Oliveira Edouard &lt;doe_wanted@yahoo.fr&gt;
  * @author Rustam Aliyev
  */
-public class LMTPServerConfig
+public class LMTPServerConfig extends LMTPConfigurationImpl
 {
 	/**
 	 * Server name.

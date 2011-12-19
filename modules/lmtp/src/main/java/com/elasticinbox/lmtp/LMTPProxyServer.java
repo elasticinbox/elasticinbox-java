@@ -19,8 +19,18 @@
 
 package com.elasticinbox.lmtp;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+
+import org.apache.james.protocols.lmtp.LMTPConfigurationImpl;
+import org.apache.james.protocols.lmtp.LMTPProtocolHandlerChain;
+import org.apache.james.protocols.netty.NettyServer;
+import org.apache.james.protocols.smtp.SMTPProtocol;
+
 import com.elasticinbox.config.Configurator;
-import com.elasticinbox.lmtp.server.LMTPServer;
+import com.elasticinbox.lmtp.delivery.IDeliveryAgent;
+import com.elasticinbox.lmtp.server.api.Blob;
+import com.elasticinbox.lmtp.server.api.LMTPEnvelope;
 import com.elasticinbox.lmtp.server.api.handler.ElasticInboxDeliveryHandler;
 
 /**
@@ -28,29 +38,32 @@ import com.elasticinbox.lmtp.server.api.handler.ElasticInboxDeliveryHandler;
  * 
  * @author Rustam Aliyev
  */
-public class LMTPProxyServer
-{
-	private LMTPServer server;
+public class LMTPProxyServer {
+	private NettyServer server;
+	private IDeliveryAgent backend;
 
-	protected LMTPProxyServer() {
+	protected LMTPProxyServer(IDeliveryAgent backend) {
+	    this.backend = backend;
 	}
 
-	public void start() {
-		server = new LMTPServer(Activator.getDefault().getBackend());
+	public void start() throws Exception {
+		LMTPProtocolHandlerChain chain = new LMTPProtocolHandlerChain();
+		chain.add(0,
+				new ElasticInboxDeliveryHandler(backend));
+		server = new NettyServer(new SMTPProtocol(chain,
+				new LMTPConfigurationImpl()));
 
-		server.getDeliveryHandlerFactory().setDeliveryHandlerImplClass(
-				ElasticInboxDeliveryHandler.class);
-
-		server.setPort(Configurator.getLmtpPort());
-		server.getConfig().setMaxConnections(Configurator.getLmtpMaxConnections());
+		server.setListenAddresses(new InetSocketAddress(Configurator
+				.getLmtpPort()));
+		// server.set().setMaxConnections(Configurator.getLmtpMaxConnections());
 		// flush to tmp file if data > 32K
-		server.getConfig().setDataDeferredSize(32 * 1024);
-
-		server.start();
+		// server.getConfig().setDataDeferredSize(32 * 1024);
+		server.setUseExecutionHandler(true, 16);
+		server.bind();
 	}
 
 	public void stop() {
-		server.stop();
+		server.unbind();
 	}
-
+	
 }
