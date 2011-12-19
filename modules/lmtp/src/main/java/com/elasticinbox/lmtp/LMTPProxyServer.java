@@ -48,13 +48,12 @@ public class LMTPProxyServer {
 
 	public void start() throws Exception {
 		LMTPProtocolHandlerChain chain = new LMTPProtocolHandlerChain();
-		chain.add(0,
-				new ElasticInboxDeliveryHandler(backend));
+		chain.add(0, new ElasticInboxDeliveryHandler(backend));
+		chain.wireExtensibleHandlers();
 		server = new NettyServer(new SMTPProtocol(chain,
 				new LMTPConfigurationImpl()));
 
-		server.setListenAddresses(new InetSocketAddress(Configurator
-				.getLmtpPort()));
+		server.setListenAddresses(new InetSocketAddress(2400));
 		// server.set().setMaxConnections(Configurator.getLmtpMaxConnections());
 		// flush to tmp file if data > 32K
 		// server.getConfig().setDataDeferredSize(32 * 1024);
@@ -66,4 +65,14 @@ public class LMTPProxyServer {
 		server.unbind();
 	}
 	
+	public static void main(String[] args) throws Exception {
+	    new LMTPProxyServer(new IDeliveryAgent() {
+            
+            @Override
+            public void deliver(LMTPEnvelope env, Blob blob) throws IOException {
+                // TODO Auto-generated method stub
+                
+            }
+        }).start();
+	}
 }
