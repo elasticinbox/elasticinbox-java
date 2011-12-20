@@ -13,7 +13,7 @@ import java.util.Map;
 import org.apache.james.protocols.api.Response;
 import org.apache.james.protocols.api.handler.WiringException;
 import org.apache.james.protocols.lmtp.LMTPMultiResponse;
-import org.apache.james.protocols.lmtp.core.LMTPDataLineMessageHookHandler;
+import org.apache.james.protocols.lmtp.core.DataLineMessageHookHandler;
 import org.apache.james.protocols.smtp.MailAddress;
 import org.apache.james.protocols.smtp.MailEnvelopeImpl;
 import org.apache.james.protocols.smtp.SMTPResponse;
@@ -31,7 +31,7 @@ import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
  * @author De Oliveira Edouard &lt;doe_wanted@yahoo.fr&gt;
  * @author Rustam Aliyev
  */
-public class ElasticInboxDeliveryHandler extends LMTPDataLineMessageHookHandler {
+public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler {
 
 	
     private final IDeliveryAgent backend;
