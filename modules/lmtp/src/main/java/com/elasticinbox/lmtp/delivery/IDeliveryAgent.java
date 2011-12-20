@@ -13,14 +13,14 @@ import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
  * 
  * @author Rustam Aliyev
  */
-public interface IDeliveryAgent
-{
+public interface IDeliveryAgent {
 
-	/**
-	 * Delivers this message to the list of recipients in the message, and sets
-	 * the delivery status on each recipient address.
-	 * @throws IOException 
-	 */
-	public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env) throws IOException;
+    /**
+     * Delivers this message to the list of recipients in the message, and sets
+     * the delivery status on each recipient address.
+     * 
+     * @throws IOException
+     */
+    public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env) throws IOException;
 
 }
