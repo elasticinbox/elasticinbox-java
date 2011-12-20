@@ -80,7 +80,7 @@ public class LMTPServerConfig extends LMTPConfigurationImpl
 	 */
 	private int connectionTimeout = 1000 * 60;
 
-	protected LMTPServerConfig() {
+	public LMTPServerConfig() {
 		try {
 			this.hostName = InetAddress.getLocalHost().getCanonicalHostName();
 		} catch (UnknownHostException e) {

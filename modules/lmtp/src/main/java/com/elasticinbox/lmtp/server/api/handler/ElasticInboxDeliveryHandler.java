@@ -5,17 +5,20 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.james.protocols.api.Response;
+import org.apache.james.protocols.api.handler.WiringException;
 import org.apache.james.protocols.lmtp.LMTPMultiResponse;
+import org.apache.james.protocols.lmtp.core.LMTPDataLineMessageHookHandler;
 import org.apache.james.protocols.smtp.MailAddress;
 import org.apache.james.protocols.smtp.MailEnvelopeImpl;
 import org.apache.james.protocols.smtp.SMTPResponse;
 import org.apache.james.protocols.smtp.SMTPRetCode;
 import org.apache.james.protocols.smtp.SMTPSession;
-import org.apache.james.protocols.smtp.core.DataLineMessageHookHandler;
 import org.apache.james.protocols.smtp.dsn.DSNStatus;
 
 import com.elasticinbox.lmtp.delivery.IDeliveryAgent;
@@ -28,7 +31,7 @@ import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
  * @author De Oliveira Edouard &lt;doe_wanted@yahoo.fr&gt;
  * @author Rustam Aliyev
  */
-public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler {
+public class ElasticInboxDeliveryHandler extends LMTPDataLineMessageHookHandler {
 
 	
     private final IDeliveryAgent backend;
@@ -37,14 +40,14 @@ public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler {
 	public ElasticInboxDeliveryHandler(IDeliveryAgent backend) {
         this.backend = backend;
     }
-    
-	@Override
-	protected Response processExtensions(SMTPSession session, MailEnvelopeImpl env) {
+
+    @Override
+    protected Response processExtensions(SMTPSession session, MailEnvelopeImpl env) {
         // tracing
         if (session.getLogger().isTraceEnabled()) {
             // TODO: Fix me
             Charset charset = Charset.forName("US-ASCII");
-      
+
             try {
                 InputStream in = env.getMessageInputStream();
                 byte[] buf = new byte[16384];
@@ -82,7 +85,7 @@ public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler {
                     response = new SMTPResponse(SMTPRetCode.MAIL_OK, DSNStatus.getStatus(DSNStatus.PERMANENT,DSNStatus.ADDRESS_MAILBOX) + " Unknown user: " + address.toString());
                     break;
                 case OVER_QUOTA:
-                    response = new SMTPResponse(SMTPRetCode.LOCAL_ERROR, "User over quita");
+                    response = new SMTPResponse(SMTPRetCode.LOCAL_ERROR, "User over quota");
                     break;
                 case PERMANENT_FAILURE:
                     response = new SMTPResponse(SMTPRetCode.TRANSACTION_FAILED, "Unable to deliver message");
@@ -103,6 +106,22 @@ public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler {
         }
         return lmtpResponse;
 	}
+
+    @SuppressWarnings("rawtypes")
+    @Override
+    public void wireExtensions(Class interfaceName, List extension) throws WiringException {
+        // do nothing
+    }
+
+    @Override
+    protected void checkMessageHookCount(List<?> messageHandlers) throws WiringException {
+        // do noting
+    }
+
+    @Override
+    public List<Class<?>> getMarkerInterfaces() {
+        return Collections.emptyList();
+    }
 
 
 }

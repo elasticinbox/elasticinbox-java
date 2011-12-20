@@ -24,14 +24,15 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.james.protocols.lmtp.LMTPConfigurationImpl;
 import org.apache.james.protocols.lmtp.LMTPProtocolHandlerChain;
 import org.apache.james.protocols.netty.NettyServer;
 import org.apache.james.protocols.smtp.MailEnvelope;
 import org.apache.james.protocols.smtp.SMTPProtocol;
 import org.apache.james.protocols.smtp.MailAddress;
 
+import com.elasticinbox.config.Configurator;
 import com.elasticinbox.lmtp.delivery.IDeliveryAgent;
+import com.elasticinbox.lmtp.server.LMTPServerConfig;
 import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
 import com.elasticinbox.lmtp.server.api.handler.ElasticInboxDeliveryHandler;
 
@@ -53,10 +54,10 @@ public class LMTPProxyServer {
 		chain.add(0, new ElasticInboxDeliveryHandler(backend));
 		chain.wireExtensibleHandlers();
 		server = new NettyServer(new SMTPProtocol(chain,
-				new LMTPConfigurationImpl()));
+				new LMTPServerConfig()));
 
 		server.setListenAddresses(new InetSocketAddress(2400));
-		// server.set().setMaxConnections(Configurator.getLmtpMaxConnections());
+		server.setMaxConcurrentConnections(Configurator.getLmtpMaxConnections());
 		// flush to tmp file if data > 32K
 		// server.getConfig().setDataDeferredSize(32 * 1024);
 		server.setUseExecutionHandler(true, 16);
