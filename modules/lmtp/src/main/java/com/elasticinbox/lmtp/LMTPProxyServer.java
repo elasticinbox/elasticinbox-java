@@ -29,7 +29,7 @@ import org.apache.james.protocols.lmtp.LMTPProtocolHandlerChain;
 import org.apache.james.protocols.netty.NettyServer;
 import org.apache.james.protocols.smtp.MailEnvelope;
 import org.apache.james.protocols.smtp.SMTPProtocol;
-import org.apache.mailet.MailAddress;
+import org.apache.james.protocols.smtp.MailAddress;
 
 import com.elasticinbox.lmtp.delivery.IDeliveryAgent;
 import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;

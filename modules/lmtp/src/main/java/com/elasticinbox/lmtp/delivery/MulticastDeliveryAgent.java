@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.james.protocols.smtp.MailEnvelope;
-import org.apache.mailet.MailAddress;
+import org.apache.james.protocols.smtp.MailAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

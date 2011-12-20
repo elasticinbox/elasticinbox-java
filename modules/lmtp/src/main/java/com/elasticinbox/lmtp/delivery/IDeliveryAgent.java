@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.james.protocols.smtp.MailEnvelope;
-import org.apache.mailet.MailAddress;
+import org.apache.james.protocols.smtp.MailAddress;
 
 import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
 

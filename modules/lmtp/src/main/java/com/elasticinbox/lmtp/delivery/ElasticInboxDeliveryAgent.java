@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 import org.apache.james.protocols.smtp.MailEnvelope;
-import org.apache.mailet.MailAddress;
+import org.apache.james.protocols.smtp.MailAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,7 +118,7 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 								setSentDate(message.getDate()).build();
 
 						// store message
-						messageDAO.put(mailbox, messageId, message, SharedStreamUtils.getPrivateInputStream(env.getMessageInputStream()));
+						messageDAO.put(mailbox, messageId, message, SharedStreamUtils.getPrivateInputStream(false, env.getMessageInputStream()));
 						
 						// successfully delivered
 						stopWatch.stop("DELIVERY.success", logMsg);

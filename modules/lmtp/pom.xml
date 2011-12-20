@@ -58,27 +58,32 @@
 	<dependency>
 		<groupId>org.apache.james.protocols</groupId>
 		<artifactId>protocols-netty</artifactId>
-		<version>1.6-beta3</version>
+      <version>${bundle.protocols.version}</version>
 	</dependency>
 	<dependency>
 		<groupId>org.apache.james.protocols</groupId>
 		<artifactId>protocols-api</artifactId>
-		<version>1.6-beta3</version>
+      <version>${bundle.protocols.version}</version>
 	</dependency>
 	<dependency>
 		<groupId>org.apache.james.protocols</groupId>
 		<artifactId>protocols-smtp</artifactId>
-		<version>1.6-beta3</version>
+      <version>${bundle.protocols.version}</version>
 	</dependency>
 	<dependency>
 		<groupId>org.apache.james.protocols</groupId>
 		<artifactId>protocols-lmtp</artifactId>
-		<version>1.6-beta3</version>
+      <version>${bundle.protocols.version}</version>
 	</dependency>
 	<dependency>
 		<groupId>org.jboss.netty</groupId>
 		<artifactId>netty</artifactId>
 		<version>${bundle.netty.version}</version>
+	</dependency>
+ 	<dependency>
+	    <groupId>org.apache.geronimo.javamail</groupId>
+        <artifactId>geronimo-javamail_1.4_mail</artifactId>
+        <version>1.6</version>
 	</dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
