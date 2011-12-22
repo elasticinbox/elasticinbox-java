@@ -89,7 +89,7 @@
 	<bundle.servlet-api.version>2.5-20110124</bundle.servlet-api.version>
 	<bundle.mina.version>2.0.4</bundle.mina.version>
 	<bundle.netty.version>3.2.7.Final</bundle.netty.version>
-	<bundle.protocols.version>1.6-beta4-SNAPSHOT</bundle.protocols.version>
+	<bundle.protocols.version>1.6.0-RC2-SNAPSHOT</bundle.protocols.version>
 
 	<!-- Profiling Configs -->
     <visualvm.root.folder>/System/Library/Java/Support/VisualVM.bundle/Contents/Home/</visualvm.root.folder>
