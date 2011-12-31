@@ -65,7 +65,7 @@ blobstore_profiles:
     apiversion: 1.0
   fs-local:
     provider: filesystem
-    basedir: /u02/domains
+    endpoint: /u02/domains
     container: elasticinbox
 
 # deafult profile to use for writing messages to blob storage

@@ -144,9 +144,9 @@ public final class BlobProxy
 			// Following part is added as a replacement for jClouds delete due to
 			// performance issues with jClouds
 
-			String fileName = new StringBuilder(profile.getBasedir())
-					.append("/").append(profile.getContainer()).append("/")
-					.append(path).toString();
+			String fileName = new StringBuilder(profile.getEndpoint())
+					.append(File.separator).append(profile.getContainer())
+					.append(File.separator).append(path).toString();
 			
 			File f = new File(fileName);
 
@@ -191,8 +191,8 @@ public final class BlobProxy
 				BlobStoreProfile profile = Configurator.getBlobStoreProfile(profileName);
 
 				if (profile.getProvider().equals(PROVIDER_FILESYSTEM)) {
-					// setup where the provider must store the files
-					properties.setProperty(FilesystemConstants.PROPERTY_BASEDIR, profile.getBasedir());
+					// use endpoint as fs basedir, see: http://code.google.com/p/jclouds/issues/detail?id=776
+					properties.setProperty(FilesystemConstants.PROPERTY_BASEDIR, profile.getEndpoint());
 					properties.setProperty(Constants.PROPERTY_CREDENTIAL, "dummy");
 				} else if (profile.getProvider().equals(PROVIDER_SWIFT)) {
 					properties.setProperty("swift.endpoint", profile.getEndpoint());

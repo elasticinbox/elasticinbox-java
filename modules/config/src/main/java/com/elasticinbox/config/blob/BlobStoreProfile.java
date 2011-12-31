@@ -35,7 +35,6 @@ public class BlobStoreProfile
 	private String identity;
 	private String credential;
 	private String container;
-	private String basedir;
 	private String apiversion;
 
 	public String getApiversion() {
@@ -86,11 +85,4 @@ public class BlobStoreProfile
 		this.container = container;
 	}
 
-	public String getBasedir() {
-		return basedir;
-	}
-
-	public void setBasedir(String basedir) {
-		this.basedir = basedir;
-	}
 }
