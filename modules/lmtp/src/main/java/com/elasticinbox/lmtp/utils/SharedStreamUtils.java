@@ -4,9 +4,6 @@ import java.io.InputStream;
 
 import javax.mail.util.SharedByteArrayInputStream;
 
-import com.elasticinbox.lmtp.server.core.CharTerminatedInputStream;
-import com.elasticinbox.lmtp.server.core.DotUnstuffingInputStream;
-
 /**
  * Shared streams utility methods.
  * 
@@ -47,10 +44,6 @@ public class SharedStreamUtils
 						"Unexpected data stream type: "
 								+ data.getClass().getName());
 		}
-
-		in = new CharTerminatedInputStream(in, LMTP_TERMINATOR);
-		in = new DotUnstuffingInputStream(in);
-
 		return in;
 	}
 }
