@@ -26,6 +26,7 @@ import java.net.URISyntaxException;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.jclouds.Constants;
 import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.BlobStoreContextFactory;
@@ -192,6 +193,7 @@ public final class BlobProxy
 				if (profile.getProvider().equals(PROVIDER_FILESYSTEM)) {
 					// setup where the provider must store the files
 					properties.setProperty(FilesystemConstants.PROPERTY_BASEDIR, profile.getBasedir());
+					properties.setProperty(Constants.PROPERTY_CREDENTIAL, "dummy");
 				} else if (profile.getProvider().equals(PROVIDER_SWIFT)) {
 					properties.setProperty("swift.endpoint", profile.getEndpoint());
 					properties.setProperty("swift.apiversion", profile.getApiversion());

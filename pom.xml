@@ -66,18 +66,18 @@
 	<bundle.logback.version>1.0.0</bundle.logback.version>
 	<bundle.slf4j.version>1.6.4</bundle.slf4j.version>
 	<bundle.speed4j.version>0.12</bundle.speed4j.version>
-	<bundle.jclouds.version>1.1.1</bundle.jclouds.version>
+	<bundle.jclouds.version>1.2.2</bundle.jclouds.version>
 	<bundle.javax-inject.version>1_1</bundle.javax-inject.version>
 	<bundle.guice.version>3.0</bundle.guice.version>
-	<bundle.gson.version>1.7.1</bundle.gson.version>
-	<bundle.guava.version>9.0.0</bundle.guava.version>
+	<bundle.gson.version>1.7.2</bundle.gson.version>
+	<bundle.guava.version>10.0.1</bundle.guava.version>
 	<bundle.aopalliance.version>1.0_5</bundle.aopalliance.version>
-	<bundle.netty.version>3.2.3.Final_2</bundle.netty.version>
+	<bundle.netty.version>3.2.7.Final</bundle.netty.version>
 	<bundle.net.oauth.version>20100527_1</bundle.net.oauth.version>
 	<bundle.bcprov.version>1.46_1</bundle.bcprov.version>
 	<bundle.jersey.version>1.8</bundle.jersey.version>
 	<bundle.jackson.version>1.8.5</bundle.jackson.version>
-	<bundle.compress-lzf.version>0.8.6</bundle.compress-lzf.version>
+	<bundle.compress-lzf.version>0.9.1</bundle.compress-lzf.version>
 	<bundle.htmlcompressor.version>1.3.1</bundle.htmlcompressor.version>
 	<bundle.javamail.version>1.4.4</bundle.javamail.version>
 	<bundle.java-xmlbuilder.version>0.3_1</bundle.java-xmlbuilder.version>
