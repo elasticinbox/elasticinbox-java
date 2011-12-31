@@ -19,9 +19,6 @@
 
 package com.elasticinbox.lmtp;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
