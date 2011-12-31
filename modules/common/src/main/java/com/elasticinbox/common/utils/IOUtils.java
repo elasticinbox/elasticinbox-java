@@ -40,6 +40,10 @@ public class IOUtils
 		return LZFEncoder.encode(in);
 	}
 
+	public static byte[] compress(String in) throws IOException {
+		return LZFEncoder.encode(in.getBytes("UTF-8"));
+	}
+
 	public static void compress(InputStream in, OutputStream out)
 			throws IOException
 	{

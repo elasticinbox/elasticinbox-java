@@ -199,18 +199,15 @@ public final class Marshaller
 		if (Configurator.isStoreHtmlWithMetadata())
 		{
 			if (m.getHtmlBody() != null) {
-				columns.put(CN_HTML_BODY, 
-						IOUtils.compress(m.getHtmlBody().getBytes()));
+				columns.put(CN_HTML_BODY, IOUtils.compress(m.getHtmlBody()));
 			} else if (!Configurator.isStorePlainWithMetadata() && (m.getPlainBody() != null)) {
-				columns.put(CN_PLAIN_BODY,
-						IOUtils.compress(m.getPlainBody().getBytes()));
+				columns.put(CN_PLAIN_BODY, IOUtils.compress(m.getPlainBody()));
 			}
 		}
 
 		// add PLAIN message text
 		if (Configurator.isStorePlainWithMetadata() && (m.getPlainBody() != null)) {
-			columns.put(CN_PLAIN_BODY,
-					IOUtils.compress(m.getPlainBody().getBytes()));
+			columns.put(CN_PLAIN_BODY, IOUtils.compress(m.getPlainBody()));
 		}
 
 		return mapToHColumns(columns);
