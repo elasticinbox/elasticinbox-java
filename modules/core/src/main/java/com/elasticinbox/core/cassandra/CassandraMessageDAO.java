@@ -130,7 +130,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 						.setMessageSize(message.getSize()).build();
 
 				// store message in blobstore
-				uri = BlobProxy.write(blobName, in);
+				uri = BlobProxy.write(blobName, in, message.getSize());
 				
 				// update location in metadata
 				message.setLocation(uri);

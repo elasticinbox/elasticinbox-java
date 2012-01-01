@@ -20,10 +20,12 @@
 package com.elasticinbox.core.blob;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.jclouds.Constants;
@@ -36,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.common.utils.Assert;
+import com.elasticinbox.common.utils.IOUtils;
 import com.elasticinbox.config.Configurator;
 import com.elasticinbox.config.blob.BlobStoreProfile;
 import com.elasticinbox.core.log.JcloudsSlf4JLoggingModule;
@@ -61,8 +64,20 @@ public final class BlobProxy
 			LoggerFactory.getLogger(BlobProxy.class);
 
 	public static final String BLOB_URI_SCHEMA = "blob";
+
+	/**
+	 * Providers that are independently configurable. Currently invisible form jClouds.
+	 * 
+	 * @see <a href="http://code.google.com/p/jclouds/issues/detail?id=657" />
+	 */
+	public static final Set<String> BLOBSTORE_PROVIDERS = ImmutableSet.of("aws-s3",
+			"cloudfiles-us", "cloudfiles-uk", "azureblob", "atmos",
+			"synaptic-storage", "scaleup-storage", "cloudonestorage", "walrus",
+			"googlestorage", "ninefold-storage", "scality-rs2",
+			"hosteurope-storage", "tiscali-storage", "swift", "transient",
+			"filesystem", "eucalyptus-partnercloud-s3");
+
 	private static final String PROVIDER_FILESYSTEM = "filesystem";
-	private static final String PROVIDER_SWIFT = "swift";
 	private static final String PROVIDER_TRANSIENT = "transient";
 
 	private static ConcurrentHashMap<String, BlobStoreContext> blobStoreContexts = 
@@ -75,9 +90,11 @@ public final class BlobProxy
 	 *            Blob filename including relative path
 	 * @param in
 	 *            Payload
+	 * @param size
+	 *            Payload size in bytes
 	 * @return
 	 */
-	public static URI write(final String blobName, InputStream in)
+	public static URI write(final String blobName, InputStream in, final Long size)
 	{
 		Assert.notNull(in, "No data to store");
 
@@ -91,7 +108,7 @@ public final class BlobProxy
 		BlobStore blobStore = context.getBlobStore();
 
 		// add blob
-		Blob blob = blobStore.blobBuilder(blobName).payload(in).build();
+		Blob blob = blobStore.blobBuilder(blobName).payload(in).contentLength(size).build();
 		blobStore.putBlob(container, blob);
 
 		uri = buildURI(profileName, blobName);
@@ -194,9 +211,18 @@ public final class BlobProxy
 					// use endpoint as fs basedir, see: http://code.google.com/p/jclouds/issues/detail?id=776
 					properties.setProperty(FilesystemConstants.PROPERTY_BASEDIR, profile.getEndpoint());
 					properties.setProperty(Constants.PROPERTY_CREDENTIAL, "dummy");
-				} else if (profile.getProvider().equals(PROVIDER_SWIFT)) {
-					properties.setProperty("swift.endpoint", profile.getEndpoint());
-					properties.setProperty("swift.apiversion", profile.getApiversion());
+				} else if (BLOBSTORE_PROVIDERS.contains(profile.getProvider())) {
+					if (profile.getEndpoint() != null) {
+						properties.setProperty(
+								profile.getProvider() + ".endpoint", profile.getEndpoint());
+					}
+					if (profile.getApiversion() != null) {
+						properties.setProperty(
+								profile.getProvider() + ".apiversion", profile.getApiversion());
+					}
+				} else {
+					throw new UnsupportedOperationException(
+							"Unsupported Blobstore provider: " + profile.getProvider());
 				}
 
 				// get a context with filesystem that offers the portable BlobStore api

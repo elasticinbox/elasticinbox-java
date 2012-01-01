@@ -20,6 +20,7 @@
 package com.elasticinbox.lmtp.delivery;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -36,6 +37,7 @@ import com.elasticinbox.lmtp.server.api.DeliveryException;
 import com.elasticinbox.lmtp.server.api.LMTPAddress;
 import com.elasticinbox.lmtp.server.api.LMTPEnvelope;
 import com.elasticinbox.lmtp.server.api.LMTPReply;
+import com.elasticinbox.common.utils.IOUtils;
 import com.elasticinbox.core.MessageDAO;
 import com.elasticinbox.core.OverQuotaException;
 import com.elasticinbox.core.message.MimeParser;
@@ -92,8 +94,15 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 			throw new DeliveryException("Unable to read message stream: " + ioe.getMessage());
 		}
 
-		message.setSize(blob.getRawSize()); // update message size
-		message.addLabel(ReservedLabels.INBOX.getLabelId()); // default location
+		// update message size
+		// recalculate stream size, current lmtp handler calculates size before
+		// filters applied. will wait for new netty based lmtp implementation
+		InputStream in = blob.getInputStream();
+		message.setSize(IOUtils.getInputStreamSize(in));
+		in.close();
+
+		// add default label
+		message.addLabel(ReservedLabels.INBOX.getLabelId());
 
 		logEnvelope(env, message);
 

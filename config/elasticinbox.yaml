@@ -56,13 +56,19 @@ cassandra_keyspace: 'ElasticInbox'
 #            metadata. ElasticInbox does not verify profile configurations.
 #
 blobstore_profiles:
-  openstack-local:
+  openstack-example:
     provider: swift
-    endpoint: http://127.0.0.1:8080/auth/
+    endpoint: http://10.0.0.1:8066/auth/
     container: elasticinbox
-    identity: elasticinbox:admin
-    credential: adm123
+    identity: admin:admin
+    credential: secret
     apiversion: 1.0
+  aws-example:
+    provider: aws-s3
+    endpoint: https://s3-eu-west-1.amazonaws.com
+    container: mybucket.myaws.tld
+    identity: AWSGENERATEDID
+    credential: myverylongawssecret
   fs-local:
     provider: filesystem
     endpoint: /u02/domains

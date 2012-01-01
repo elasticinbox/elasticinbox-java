@@ -153,23 +153,15 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.jclouds.api</groupId>
-			<artifactId>swift</artifactId>
-			<version>${bundle.jclouds.version}</version>
-			<type>bundle</type>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.jclouds.common</groupId>
 			<artifactId>openstack-common</artifactId>
 			<version>${bundle.jclouds.version}</version>
 			<type>bundle</type>
 			<scope>provided</scope>
 		</dependency>
-		<!-- AWS S3
 		<dependency>
 			<groupId>org.jclouds.api</groupId>
-			<artifactId>s3</artifactId>
+			<artifactId>swift</artifactId>
 			<version>${bundle.jclouds.version}</version>
 			<type>bundle</type>
 			<scope>provided</scope>
@@ -181,7 +173,20 @@
 			<type>bundle</type>
 			<scope>provided</scope>
 		</dependency>
-		 -->
+		<dependency>
+			<groupId>org.jclouds.provider</groupId>
+			<artifactId>aws-s3</artifactId>
+			<version>${bundle.jclouds.version}</version>
+			<type>bundle</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.jclouds.api</groupId>
+			<artifactId>s3</artifactId>
+			<version>${bundle.jclouds.version}</version>
+			<type>bundle</type>
+			<scope>provided</scope>
+		</dependency>
 
 		<!-- Logging Dependencies -->
 		<dependency>
@@ -190,41 +195,6 @@
 			<version>${bundle.slf4j.version}</version>
 			<scope>provided</scope>
 		</dependency>
-
-		<!-- Guice Dependencies -->
-		<!-- 
-		<dependency>
-			<groupId>org.apache.servicemix.bundles</groupId>
-			<artifactId>org.apache.servicemix.bundles.netty</artifactId>
-			<version>${bundle.netty.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.servicemix.bundles</groupId>
-			<artifactId>org.apache.servicemix.bundles.bcprov-jdk15</artifactId>
-			<version>${bundle.bcprov.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>joda-time</groupId>
-			<artifactId>joda-time</artifactId>
-			<version>${bundle.joda.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpcore-osgi</artifactId>
-			<version>${bundle.httpcore.version}</version>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpclient-osgi</artifactId>
-			<version>${bundle.httpclient.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.servicemix.bundles</groupId>
-			<artifactId>org.apache.servicemix.bundles.jsch</artifactId>
-			<version>${bundle.jsch.version}</version>
-		</dependency>
-		-->
 
 		<dependency>
 			<groupId>org.apache.servicemix.bundles</groupId>
