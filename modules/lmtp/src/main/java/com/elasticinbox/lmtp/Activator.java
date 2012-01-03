@@ -19,9 +19,6 @@
 
 package com.elasticinbox.lmtp;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
@@ -33,10 +30,8 @@ import com.ecyrd.speed4j.log.Slf4jLog;
 import com.elasticinbox.config.Configurator;
 import com.elasticinbox.lmtp.delivery.IDeliveryAgent;
 import com.elasticinbox.lmtp.delivery.DeliveryAgentFactory;
-import com.elasticinbox.lmtp.delivery.ElasticInboxDeliveryBackend;
+import com.elasticinbox.lmtp.delivery.MulticastDeliveryAgent;
 import com.elasticinbox.lmtp.utils.LoggingPeriodicalLog;
-import com.elasticinbox.lmtp.validator.IValidator;
-import com.elasticinbox.lmtp.validator.ValidatorFactory;
 
 public class Activator implements BundleActivator
 {
@@ -45,7 +40,7 @@ public class Activator implements BundleActivator
 
 	private static final String SPEED4J_LOG_NAME = "ElasticInbox-LMTP"; 
 	private StopWatchFactory stopWatchFactory;
-	private ElasticInboxDeliveryBackend backend;
+	private IDeliveryAgent backend;
 	private LMTPProxyServer server;
 
 	// The shared instance
@@ -72,19 +67,12 @@ public class Activator implements BundleActivator
 			stopWatchFactory = StopWatchFactory.getInstance(pLog);
 		}
 
-		List<IValidator> validators = new LinkedList<IValidator>();
-		List<IDeliveryAgent> agents = new LinkedList<IDeliveryAgent>();
-
-		ValidatorFactory vf = new ValidatorFactory();
-		validators.add(vf.getValidator());
-
 		DeliveryAgentFactory mdf = new DeliveryAgentFactory();
-		agents.add(mdf.getDeliveryAgent());
 
-		backend = new ElasticInboxDeliveryBackend(validators, agents);
+		backend = new MulticastDeliveryAgent(mdf.getDeliveryAgent());
 
 		logger.debug("Starting LMTP daemon...");
-		server = new LMTPProxyServer();
+		server = new LMTPProxyServer(backend);
 		server.start();
 		logger.info("LMTP daemon started.");
 	}
@@ -102,7 +90,7 @@ public class Activator implements BundleActivator
 		return plugin;
 	}
 
-	public ElasticInboxDeliveryBackend getBackend() {
+	public IDeliveryAgent getBackend() {
 		return backend;
 	}
 

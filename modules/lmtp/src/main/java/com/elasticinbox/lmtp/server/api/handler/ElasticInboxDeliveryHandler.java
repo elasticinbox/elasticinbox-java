@@ -2,21 +2,27 @@ package com.elasticinbox.lmtp.server.api.handler;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
-import java.util.Date;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.james.protocols.api.Response;
+import org.apache.james.protocols.api.handler.WiringException;
+import org.apache.james.protocols.lmtp.LMTPMultiResponse;
+import org.apache.james.protocols.lmtp.core.DataLineMessageHookHandler;
+import org.apache.james.protocols.smtp.MailAddress;
+import org.apache.james.protocols.smtp.MailEnvelopeImpl;
+import org.apache.james.protocols.smtp.SMTPResponse;
+import org.apache.james.protocols.smtp.SMTPRetCode;
+import org.apache.james.protocols.smtp.SMTPSession;
+import org.apache.james.protocols.smtp.dsn.DSNStatus;
 
-import com.elasticinbox.lmtp.server.api.Blob;
-import com.elasticinbox.lmtp.server.api.LMTPAddress;
-import com.elasticinbox.lmtp.server.api.LMTPEnvelope;
-import com.elasticinbox.lmtp.server.api.RejectException;
-import com.elasticinbox.lmtp.server.api.TooMuchDataException;
-import com.elasticinbox.lmtp.utils.MimeUtils;
+import com.elasticinbox.lmtp.delivery.IDeliveryAgent;
+import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
 
 /**
  * Default class that extends the {@link AbstractDeliveryHandler} class.
@@ -25,107 +31,97 @@ import com.elasticinbox.lmtp.utils.MimeUtils;
  * @author De Oliveira Edouard &lt;doe_wanted@yahoo.fr&gt;
  * @author Rustam Aliyev
  */
-public class ElasticInboxDeliveryHandler extends AbstractDeliveryHandler
-{
-	private static final Logger logger = 
-			LoggerFactory.getLogger(ElasticInboxDeliveryHandler.class);
+public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler {
 
-	private LMTPEnvelope envelope;
+	
+    private final IDeliveryAgent backend;
 
-	public ElasticInboxDeliveryHandler(DeliveryContext ctx) {
-		super(ctx);
-		envelope = new LMTPEnvelope();
+
+	public ElasticInboxDeliveryHandler(IDeliveryAgent backend) {
+        this.backend = backend;
+    }
+
+    @Override
+    protected Response processExtensions(SMTPSession session, MailEnvelopeImpl env) {
+        // tracing
+        if (session.getLogger().isTraceEnabled()) {
+            // TODO: Fix me
+            Charset charset = Charset.forName("US-ASCII");
+
+            try {
+                InputStream in = env.getMessageInputStream();
+                byte[] buf = new byte[16384];
+                CharsetDecoder decoder = charset.newDecoder();
+                int len = 0;
+                while ((len = in.read(buf)) >= 0) {
+                    session.getLogger().trace(decoder.decode(ByteBuffer.wrap(buf, 0, len)).toString());
+                }
+            } catch (IOException ioex) {
+                session.getLogger().debug("Mail data logging failed", ioex);
+            }
+        }
+
+        Map<MailAddress, DeliveryReturnCode> replies;
+        // deliver message
+        try {
+            replies = backend.deliver(env);
+        } catch (IOException e) {
+            // TODO: Handle me
+            replies = new HashMap<MailAddress, DeliveryReturnCode>();
+            for (MailAddress address : env.getRecipients()) {
+                replies.put(address, DeliveryReturnCode.TEMPORARY_FAILURE);
+            }
+        }
+
+        LMTPMultiResponse lmtpResponse = null;
+        for (MailAddress address: replies.keySet()) {
+            DeliveryReturnCode code = replies.get(address);
+            SMTPResponse response;
+            switch(code) {
+                case NO_SUCH_USER:
+                    response = new SMTPResponse(SMTPRetCode.MAILBOX_PERM_UNAVAILABLE, DSNStatus.getStatus(DSNStatus.PERMANENT,DSNStatus.ADDRESS_MAILBOX) + " Unknown user: " + address.toString());
+                    break;
+                case OK:
+                    response = new SMTPResponse(SMTPRetCode.MAIL_OK, DSNStatus.getStatus(DSNStatus.PERMANENT,DSNStatus.ADDRESS_MAILBOX) + " Unknown user: " + address.toString());
+                    break;
+                case OVER_QUOTA:
+                    response = new SMTPResponse(SMTPRetCode.LOCAL_ERROR, "User over quota");
+                    break;
+                case PERMANENT_FAILURE:
+                    response = new SMTPResponse(SMTPRetCode.TRANSACTION_FAILED, "Unable to deliver message");
+                    break;
+                case TEMPORARY_FAILURE:
+                    response = new SMTPResponse(SMTPRetCode.LOCAL_ERROR, "Unable to process request");
+                    break;
+                default:
+                    response = new SMTPResponse(SMTPRetCode.LOCAL_ERROR, "Unable to process request");
+                    break;
+            }
+            if (lmtpResponse == null) {
+                lmtpResponse = new LMTPMultiResponse(response);
+            } else {
+                lmtpResponse.addResponse(response);
+            }
+            
+        }
+        return lmtpResponse;
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
-	public void from(LMTPAddress from) throws RejectException {
-		envelope.setSender(from);
-	}
+    @SuppressWarnings("rawtypes")
+    @Override
+    public void wireExtensions(Class interfaceName, List extension) throws WiringException {
+        // do nothing
+    }
 
-	/** 
-	 * {@inheritDoc}
-	 */	
-	public void recipient(LMTPAddress recipient) throws RejectException {
-		envelope.addRecipient(recipient);
-	}
+    @Override
+    protected void checkMessageHookCount(List<?> messageHandlers) throws WiringException {
+        // do noting
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	public void resetMessageState() {
-		this.envelope = new LMTPEnvelope();
-	}
+    @Override
+    public List<Class<?>> getMarkerInterfaces() {
+        return Collections.emptyList();
+    }
 
-	/**
-	 * Implementation of the data receiving portion of things. By default
-	 * deliver a copy of the stream to each recipient of the message(the first 
-	 * recipient is provided the original stream to save memory space). If
-	 * you would like to change this behaviour, then you should implement
-	 * the MessageHandler interface yourself.
-	 */
-	public LMTPEnvelope data(InputStream data, long size) throws IOException,
-			TooMuchDataException
-	{
-		// build message blob
-		Blob blob = new Blob(data, size);
-		blob.prepend(getAdditionalHeaders());
-
-		// tracing
-		if (logger.isTraceEnabled()) {
-			Charset charset = getDeliveryContext().getLMTPServerConfig().getCharset();
-			InputStream in = blob.getInputStream();
-			byte[] buf = new byte[16384];
-
-			try {
-				CharsetDecoder decoder = charset.newDecoder();
-				int len = 0;
-				while ((len = in.read(buf)) >= 0) {
-					logger.trace(decoder.decode(ByteBuffer.wrap(buf, 0, len)).toString());
-				}
-			} catch (IOException ioex) {
-				logger.debug("Mail data logging failed", ioex);
-			}
-		}
-
-		// deliver message
-		getDeliveryBackend().deliver(envelope, blob);
-
-		// return delivery statuses 
-		return envelope;
-	}
-
-	/**
-	 * Generates the <tt>Return-Path</tt> and <tt>Received</tt> headers for the
-	 * current incoming message.
-	 */
-	protected String getAdditionalHeaders()
-	{
-		StringBuilder headers = new StringBuilder();
-
-		// assemble Return-Path header
-		if (envelope.hasSender()) {
-			String sender = envelope.getSender().getEmailAddress();
-			if (sender != null && sender.trim().length() > 0) {
-				headers.append(String.format("Return-Path: %s\r\n", sender));
-			}
-		}
-
-		// assemble Received header
-		headers.append("Received: ");
-
-		String timestamp = MimeUtils.getDateAsRFC822String(new Date());
-		String localHost = getDeliveryContext().getLMTPServerConfig().getHostName();
-		InetSocketAddress remoteHost = (InetSocketAddress) getSessionContext().getRemoteAddress();
-
-		String value = String.format("from %s ([%s])\r\n\tby %s with LMTP; %s",
-				remoteHost.getHostName(), remoteHost.getAddress().getHostAddress(), 
-				localHost, timestamp);
-		//headers.append(MimeUtils.fold(value));
-		headers.append(value).append("\r\n");
-
-		return headers.toString();
-	}
 
 }

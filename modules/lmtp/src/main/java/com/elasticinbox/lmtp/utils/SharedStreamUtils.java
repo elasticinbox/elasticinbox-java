@@ -2,8 +2,7 @@ package com.elasticinbox.lmtp.utils;
 
 import java.io.InputStream;
 
-import com.elasticinbox.lmtp.server.core.mina.CharTerminatedInputStream;
-import com.elasticinbox.lmtp.server.core.mina.DotUnstuffingInputStream;
+import javax.mail.util.SharedByteArrayInputStream;
 
 /**
  * Shared streams utility methods.
@@ -28,8 +27,8 @@ public class SharedStreamUtils
 	 * is unstuffed and returned. Unstuffing is made by encapsulating the stream within
 	 * special streams.
 	 * 
-	 * @see com.elasticinbox.lmtp.server.core.mina.CharTerminatedInputStream
-	 * @see com.elasticinbox.lmtp.server.core.mina.DotUnstuffingInputStream
+	 * @see com.elasticinbox.lmtp.server.core.CharTerminatedInputStream
+	 * @see com.elasticinbox.lmtp.server.core.DotUnstuffingInputStream
 	 */
 	public static InputStream getPrivateInputStream(boolean useCopy, InputStream data)
 	{
@@ -45,10 +44,6 @@ public class SharedStreamUtils
 						"Unexpected data stream type: "
 								+ data.getClass().getName());
 		}
-
-		in = new CharTerminatedInputStream(in, LMTP_TERMINATOR);
-		in = new DotUnstuffingInputStream(in);
-
 		return in;
 	}
 }
