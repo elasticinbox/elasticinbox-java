@@ -19,8 +19,21 @@
 
 package com.elasticinbox.lmtp;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.james.protocols.lmtp.LMTPProtocolHandlerChain;
+import org.apache.james.protocols.netty.NettyServer;
+import org.apache.james.protocols.smtp.MailEnvelope;
+import org.apache.james.protocols.smtp.SMTPProtocol;
+import org.apache.james.protocols.smtp.MailAddress;
+
 import com.elasticinbox.config.Configurator;
-import com.elasticinbox.lmtp.server.LMTPServer;
+import com.elasticinbox.lmtp.delivery.IDeliveryAgent;
+import com.elasticinbox.lmtp.server.LMTPServerConfig;
+import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
 import com.elasticinbox.lmtp.server.api.handler.ElasticInboxDeliveryHandler;
 
 /**
@@ -28,29 +41,46 @@ import com.elasticinbox.lmtp.server.api.handler.ElasticInboxDeliveryHandler;
  * 
  * @author Rustam Aliyev
  */
-public class LMTPProxyServer
-{
-	private LMTPServer server;
+public class LMTPProxyServer {
+	private NettyServer server;
+	private IDeliveryAgent backend;
 
-	protected LMTPProxyServer() {
+	protected LMTPProxyServer(IDeliveryAgent backend) {
+	    this.backend = backend;
 	}
 
-	public void start() {
-		server = new LMTPServer(Activator.getDefault().getBackend());
+	public void start() throws Exception {
+		LMTPProtocolHandlerChain chain = new LMTPProtocolHandlerChain();
+		chain.add(0, new ElasticInboxDeliveryHandler(backend));
+		chain.wireExtensibleHandlers();
+		server = new NettyServer(new SMTPProtocol(chain,
+				new LMTPServerConfig()));
 
-		server.getDeliveryHandlerFactory().setDeliveryHandlerImplClass(
-				ElasticInboxDeliveryHandler.class);
-
-		server.setPort(Configurator.getLmtpPort());
-		server.getConfig().setMaxConnections(Configurator.getLmtpMaxConnections());
+		server.setListenAddresses(new InetSocketAddress(2400));
+		server.setMaxConcurrentConnections(Configurator.getLmtpMaxConnections());
 		// flush to tmp file if data > 32K
-		server.getConfig().setDataDeferredSize(32 * 1024);
-
-		server.start();
+		// server.getConfig().setDataDeferredSize(32 * 1024);
+		server.setUseExecutionHandler(true, 16);
+		server.bind();
 	}
 
 	public void stop() {
-		server.stop();
+		server.unbind();
 	}
+	
+	public static void main(String[] args) throws Exception {
+	    new LMTPProxyServer(new IDeliveryAgent() {
 
+            @Override
+            public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env) throws IOException {
+                Map<MailAddress, DeliveryReturnCode> map = new HashMap<MailAddress, DeliveryReturnCode>();
+                for (MailAddress address: env.getRecipients()) {
+                    map.put(address, DeliveryReturnCode.OK);
+                }
+                return map;
+            }
+
+            
+        }).start();
+	}
 }
