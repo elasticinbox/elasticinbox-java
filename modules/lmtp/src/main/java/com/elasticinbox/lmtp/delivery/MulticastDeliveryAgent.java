@@ -34,32 +34,35 @@ import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
  * 
  * @author Rustam Aliyev
  */
-public class MulticastDeliveryAgent implements IDeliveryAgent {
-    private static final Logger logger = LoggerFactory.getLogger(MulticastDeliveryAgent.class);
+public class MulticastDeliveryAgent implements IDeliveryAgent
+{
+	private static final Logger logger = LoggerFactory
+			.getLogger(MulticastDeliveryAgent.class);
+	private IDeliveryAgent[] agents;
 
-    private IDeliveryAgent[] agents;
+	public MulticastDeliveryAgent(IDeliveryAgent... agents) {
+		this.agents = agents;
+	}
 
-    public MulticastDeliveryAgent(IDeliveryAgent... agents) {
-        this.agents = agents;
-    }
+	@Override
+	public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env)
+	{
+		logger.debug("deliver(" + env + ")");
 
-    @Override
-    public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env) {
-        logger.debug("deliver(" + env + ")");
+		Map<MailAddress, DeliveryReturnCode> map = new HashMap<MailAddress, DeliveryReturnCode>();
 
-        Map<MailAddress, DeliveryReturnCode> map = new HashMap<MailAddress, DeliveryReturnCode>();
-
-        for (IDeliveryAgent agent : agents) {
-            try {
-                map.putAll(agent.deliver(env));
-            } catch (Exception e) {
-                logger.warn(agent.getClass().getName() + " delivery deferred: mail delivery failed: ", e);
-                for (MailAddress address : env.getRecipients()) {
-                    map.put(address, DeliveryReturnCode.TEMPORARY_FAILURE);
-                }
-            }
-        }
-        return map;
-    }
+		for (IDeliveryAgent agent : agents) {
+			try {
+				map.putAll(agent.deliver(env));
+			} catch (Exception e) {
+				logger.warn(agent.getClass().getName()
+						+ " delivery deferred: mail delivery failed: ", e);
+				for (MailAddress address : env.getRecipients()) {
+					map.put(address, DeliveryReturnCode.TEMPORARY_FAILURE);
+				}
+			}
+		}
+		return map;
+	}
 
 }

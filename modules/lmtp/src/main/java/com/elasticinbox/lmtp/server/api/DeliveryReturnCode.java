@@ -32,5 +32,4 @@ public enum DeliveryReturnCode
 	PERMANENT_FAILURE,
 	NO_SUCH_USER,
 	OVER_QUOTA
-	
 }

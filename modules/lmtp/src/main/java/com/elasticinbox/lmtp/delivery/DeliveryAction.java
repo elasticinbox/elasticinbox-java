@@ -25,7 +25,8 @@ package com.elasticinbox.lmtp.delivery;
  * @author rustam
  *
  */
-public enum DeliveryAction {
+public enum DeliveryAction
+{
 	/**
 	 * Accept and deliver
 	 */
@@ -35,12 +36,12 @@ public enum DeliveryAction {
 	 * Accept and drop silently
 	 */
 	DISCARD,
-	
+
 	/**
 	 * Reject message permanently (permanently unavailable)
 	 */
 	REJECT,
-	
+
 	/**
 	 * Defer delivery (temporary unavailable)
 	 */

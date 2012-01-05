@@ -41,7 +41,8 @@ import com.elasticinbox.lmtp.server.api.handler.ElasticInboxDeliveryHandler;
  * 
  * @author Rustam Aliyev
  */
-public class LMTPProxyServer {
+public class LMTPProxyServer
+{
 	private NettyServer server;
 	private IDeliveryAgent backend;
 
@@ -49,17 +50,15 @@ public class LMTPProxyServer {
 	    this.backend = backend;
 	}
 
-	public void start() throws Exception {
+	public void start() throws Exception
+	{
 		LMTPProtocolHandlerChain chain = new LMTPProtocolHandlerChain();
 		chain.add(0, new ElasticInboxDeliveryHandler(backend));
 		chain.wireExtensibleHandlers();
-		server = new NettyServer(new SMTPProtocol(chain,
-				new LMTPServerConfig()));
-
-		server.setListenAddresses(new InetSocketAddress(2400));
+		server = new NettyServer(new SMTPProtocol(chain, new LMTPServerConfig()));
+		server.setListenAddresses(new InetSocketAddress(Configurator.getLmtpPort()));
 		server.setMaxConcurrentConnections(Configurator.getLmtpMaxConnections());
-		// flush to tmp file if data > 32K
-		// server.getConfig().setDataDeferredSize(32 * 1024);
+		server.setTimeout(LMTPServerConfig.CONNECTION_TIMEOUT);
 		server.setUseExecutionHandler(true, 16);
 		server.bind();
 	}
@@ -67,20 +66,21 @@ public class LMTPProxyServer {
 	public void stop() {
 		server.unbind();
 	}
-	
-	public static void main(String[] args) throws Exception {
-	    new LMTPProxyServer(new IDeliveryAgent() {
 
-            @Override
-            public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env) throws IOException {
-                Map<MailAddress, DeliveryReturnCode> map = new HashMap<MailAddress, DeliveryReturnCode>();
-                for (MailAddress address: env.getRecipients()) {
-                    map.put(address, DeliveryReturnCode.OK);
-                }
-                return map;
-            }
+	public static void main(String[] args) throws Exception
+	{
+		new LMTPProxyServer(new IDeliveryAgent() {
 
-            
-        }).start();
+			@Override
+			public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env) throws IOException
+			{
+				Map<MailAddress, DeliveryReturnCode> map = new HashMap<MailAddress, DeliveryReturnCode>();
+				for (MailAddress address : env.getRecipients()) {
+					map.put(address, DeliveryReturnCode.OK);
+				}
+				return map;
+			}
+
+		}).start();
 	}
 }

@@ -97,7 +97,7 @@ public class Activator implements BundleActivator
 	public static BundleContext getContext() {
 		return bundleContext;
 	}
-	
+
 	public StopWatch getStopWatch() {
 		return stopWatchFactory.getStopWatch();
 	}

@@ -21,12 +21,10 @@ package com.elasticinbox.lmtp.delivery;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-
 
 import org.apache.james.protocols.smtp.MailEnvelope;
 import org.apache.james.protocols.smtp.MailAddress;
@@ -37,7 +35,6 @@ import com.ecyrd.speed4j.StopWatch;
 import com.elasticinbox.lmtp.Activator;
 import com.elasticinbox.lmtp.server.api.DeliveryException;
 import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
-import com.elasticinbox.lmtp.utils.SharedStreamUtils;
 import com.elasticinbox.core.MessageDAO;
 import com.elasticinbox.core.OverQuotaException;
 import com.elasticinbox.core.message.MimeParser;
@@ -114,12 +111,11 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 				case DELIVER:
 					try {
 						// generate new UUID
-						UUID messageId = new MessageIdBuilder().
-								setSentDate(message.getDate()).build();
+						UUID messageId = new MessageIdBuilder().setSentDate(message.getDate()).build();
 
 						// store message
-						messageDAO.put(mailbox, messageId, message, SharedStreamUtils.getPrivateInputStream(false, env.getMessageInputStream()));
-						
+						messageDAO.put(mailbox, messageId, message, env.getMessageInputStream());
+
 						// successfully delivered
 						stopWatch.stop("DELIVERY.success", logMsg);
 						reply = DeliveryReturnCode.OK;
