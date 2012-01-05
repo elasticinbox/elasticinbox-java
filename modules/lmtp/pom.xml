@@ -90,10 +90,12 @@
 		<type>bundle</type>
 		<scope>provided</scope>
 	</dependency>
-	<dependency>
-		<groupId>org.apache.geronimo.javamail</groupId>
-		<artifactId>geronimo-javamail_1.4_mail</artifactId>
-		<version>1.8.3</version>
+ 	<dependency>
+		<groupId>javax.mail</groupId>
+		<artifactId>mail</artifactId>
+		<version>${bundle.javamail.version}</version>
+		<type>bundle</type>
+		<scope>provided</scope>
 	</dependency>
 	<dependency>
 		<groupId>org.slf4j</groupId>
