@@ -194,36 +194,6 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.jclouds.api</groupId>
-			<artifactId>swift</artifactId>
-			<version>${bundle.jclouds.version}</version>
-			<type>bundle</type>
-			<scope>provided</scope>
-		</dependency>
-		<!-- AWS S3
-		<dependency>
-			<groupId>org.jclouds.api</groupId>
-			<artifactId>s3</artifactId>
-			<version>${bundle.jclouds.version}</version>
-			<type>bundle</type>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.jclouds.common</groupId>
-			<artifactId>aws-common</artifactId>
-			<version>${bundle.jclouds.version}</version>
-			<type>bundle</type>
-			<scope>provided</scope>
-		</dependency>
-		 -->
-		<dependency>
-			<groupId>org.jclouds.common</groupId>
-			<artifactId>openstack-common</artifactId>
-			<version>${bundle.jclouds.version}</version>
-			<type>bundle</type>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.apache.servicemix.bundles</groupId>
 			<artifactId>org.apache.servicemix.bundles.aopalliance</artifactId>
 			<version>${bundle.aopalliance.version}</version>

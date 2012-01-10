@@ -93,10 +93,10 @@ public class RestIT
 
 				// PAX Exam Bundles
 				mavenBundle().groupId("org.mortbay.jetty").artifactId("servlet-api").version("2.5-20110124"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-api"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-spi"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-jetty-bundle"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-extender-war"),
+				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-api").version("1.0.7"),
+				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-spi").version("1.0.7"),
+				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-jetty-bundle").version("1.0.7"),
+				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-extender-war").version("1.0.7"),
 
 				// REST-Assured Bundles
 				wrappedBundle(mavenBundle().groupId("com.jayway.restassured").artifactId("rest-assured").versionAsInProject()),
@@ -118,11 +118,7 @@ public class RestIT
 				mavenBundle().groupId("com.google.inject").artifactId("guice").versionAsInProject(),
 				mavenBundle().groupId("org.jclouds").artifactId("jclouds-core").versionAsInProject(),
 				mavenBundle().groupId("org.jclouds").artifactId("jclouds-blobstore").versionAsInProject(),
-				mavenBundle().groupId("org.jclouds.api").artifactId("filesystem").versionAsInProject(),
-				mavenBundle().groupId("org.jclouds.api").artifactId("swift").versionAsInProject(),
-				mavenBundle().groupId("org.jclouds.common").artifactId("openstack-common").versionAsInProject(),
-				//mavenBundle().groupId("org.jclouds.api").artifactId("s3").versionAsInProject(),
-				//mavenBundle().groupId("org.jclouds.common").artifactId("aws-common").versionAsInProject(),
+				//mavenBundle().groupId("org.jclouds.api").artifactId("filesystem").versionAsInProject(),
 				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.aopalliance").versionAsInProject(),
 				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.commons-io").versionAsInProject(),
 				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.commons-lang").versionAsInProject(),
