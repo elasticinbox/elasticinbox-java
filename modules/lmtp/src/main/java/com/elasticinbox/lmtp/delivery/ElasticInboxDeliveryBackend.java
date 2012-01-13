@@ -28,7 +28,9 @@ import com.elasticinbox.lmtp.server.api.Blob;
 import com.elasticinbox.lmtp.server.api.LMTPAddress;
 import com.elasticinbox.lmtp.server.api.LMTPEnvelope;
 import com.elasticinbox.lmtp.server.api.LMTPReply;
-import com.elasticinbox.lmtp.validator.IValidator;
+import com.elasticinbox.core.account.validator.IValidator;
+import com.elasticinbox.core.account.validator.IValidator.AccountStatus;
+import com.elasticinbox.core.model.Mailbox;
 
 /**
  * Delivery backend implementation
@@ -69,13 +71,13 @@ public class ElasticInboxDeliveryBackend implements IDeliveryBackend
 	@Override
 	public LMTPReply getAddressStatus(LMTPAddress address)
 	{
-		LMTPReply reply = LMTPReply.INVALID_RECIPIENT_ADDRESS;
+		LMTPReply reply = LMTPReply.NO_SUCH_USER;
 
 		for (IValidator val : validator) {
-			LMTPReply tmp = val.getAddressStatus(address);
+			 AccountStatus tmp = val.getAccountStatus(new Mailbox(address.getEmailAddress()));
 
-			if (tmp == LMTPReply.RECIPIENT_OK) {
-				reply = tmp;
+			if (tmp == AccountStatus.ACTIVE) {
+				reply = LMTPReply.RECIPIENT_OK;
 				break;
 			}
 		}

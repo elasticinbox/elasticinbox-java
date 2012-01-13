@@ -5,6 +5,7 @@
 Export-Package: com.elasticinbox.core,\
 	com.elasticinbox.core.model,\
 	com.elasticinbox.core.utils,\
+	com.elasticinbox.core.account.validator,\
 	com.elasticinbox.core.message,\
 	com.elasticinbox.core.message.id,\
 	com.elasticinbox.core.log

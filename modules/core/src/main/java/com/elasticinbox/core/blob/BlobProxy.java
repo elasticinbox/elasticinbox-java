@@ -20,7 +20,6 @@
 package com.elasticinbox.core.blob;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -38,7 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.common.utils.Assert;
-import com.elasticinbox.common.utils.IOUtils;
 import com.elasticinbox.config.Configurator;
 import com.elasticinbox.config.blob.BlobStoreProfile;
 import com.elasticinbox.core.log.JcloudsSlf4JLoggingModule;

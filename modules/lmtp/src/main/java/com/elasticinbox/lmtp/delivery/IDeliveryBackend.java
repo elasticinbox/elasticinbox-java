@@ -4,14 +4,13 @@ import com.elasticinbox.lmtp.server.api.Blob;
 import com.elasticinbox.lmtp.server.api.LMTPAddress;
 import com.elasticinbox.lmtp.server.api.LMTPEnvelope;
 import com.elasticinbox.lmtp.server.api.LMTPReply;
-import com.elasticinbox.lmtp.validator.IValidator;
 
 /**
  * Delivery Backend Interface
  * 
  * @author Rustam Aliyev
  */
-public interface IDeliveryBackend extends IDeliveryAgent, IValidator
+public interface IDeliveryBackend extends IDeliveryAgent
 {
 	/**
 	 * Gets account status.

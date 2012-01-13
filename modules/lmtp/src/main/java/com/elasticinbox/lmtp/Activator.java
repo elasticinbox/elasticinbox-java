@@ -35,8 +35,8 @@ import com.elasticinbox.lmtp.delivery.IDeliveryAgent;
 import com.elasticinbox.lmtp.delivery.DeliveryAgentFactory;
 import com.elasticinbox.lmtp.delivery.ElasticInboxDeliveryBackend;
 import com.elasticinbox.lmtp.utils.LoggingPeriodicalLog;
-import com.elasticinbox.lmtp.validator.IValidator;
-import com.elasticinbox.lmtp.validator.ValidatorFactory;
+import com.elasticinbox.core.account.validator.IValidator;
+import com.elasticinbox.core.account.validator.ValidatorFactory;
 
 public class Activator implements BundleActivator
 {
@@ -75,8 +75,7 @@ public class Activator implements BundleActivator
 		List<IValidator> validators = new LinkedList<IValidator>();
 		List<IDeliveryAgent> agents = new LinkedList<IDeliveryAgent>();
 
-		ValidatorFactory vf = new ValidatorFactory();
-		validators.add(vf.getValidator());
+		validators.add(ValidatorFactory.getValidator());
 
 		DeliveryAgentFactory mdf = new DeliveryAgentFactory();
 		agents.add(mdf.getDeliveryAgent());
