@@ -29,24 +29,27 @@ import com.elasticinbox.core.cassandra.CassandraDAOFactory;
 public abstract class DAOFactory
 {
 	// List of metadata DAO types supported by ElasticInbox
-	public static final int CASSANDRA = 1;
-	public static final int HBASE = 2;
+	public static final String CASSANDRA = "cassandra";
+	public static final String HBASE = "hbase";
 
 	// Data Access decomposed into the following DAOs:
 	public abstract AccountDAO getAccountDAO();
 	public abstract MessageDAO getMessageDAO();
 	public abstract LabelDAO getLabelDAO();
 
-	public static DAOFactory getDAOFactory(int whichFactory)
+	public static DAOFactory getDAOFactory()
 	{
-		switch (whichFactory) {
-		case CASSANDRA:
+		// Currently only Cassandra supported, ignore config
+		return new CassandraDAOFactory();
+
+		/*
+		String driver = Configurator.getMetadataStorageDriver();
+
+		if (driver.equalsIgnoreCase(CASSANDRA)) {
 			return new CassandraDAOFactory();
-		case HBASE:
-			// some day...
-			return null;
-		default:
+		} else {
 			return null;
 		}
+		*/
 	}
 }

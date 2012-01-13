@@ -58,7 +58,7 @@ public final class MailboxResource
 
 	public MailboxResource()
 	{
-		DAOFactory dao = DAOFactory.getDAOFactory(DAOFactory.CASSANDRA);
+		DAOFactory dao = DAOFactory.getDAOFactory();
 		labelDAO = dao.getLabelDAO();
 		messageDAO = dao.getMessageDAO();
 	}

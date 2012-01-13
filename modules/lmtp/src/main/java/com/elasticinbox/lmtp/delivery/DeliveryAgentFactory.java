@@ -34,7 +34,7 @@ public class DeliveryAgentFactory
 
 	public DeliveryAgentFactory()
 	{
-		DAOFactory dao = DAOFactory.getDAOFactory(DAOFactory.CASSANDRA);
+		DAOFactory dao = DAOFactory.getDAOFactory();
 		messageDAO = dao.getMessageDAO();
 	}
 

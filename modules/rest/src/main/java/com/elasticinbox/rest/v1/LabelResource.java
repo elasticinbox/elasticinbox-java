@@ -65,7 +65,7 @@ public final class LabelResource
 	@Context UriInfo uriInfo;
 
 	public LabelResource() {
-		DAOFactory dao = DAOFactory.getDAOFactory(DAOFactory.CASSANDRA);
+		DAOFactory dao = DAOFactory.getDAOFactory();
 		messageDAO = dao.getMessageDAO();
 		labelDAO = dao.getLabelDAO();
 	}

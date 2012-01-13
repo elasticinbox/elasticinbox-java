@@ -84,7 +84,7 @@ public final class SingleMessageResource
 	@Context UriInfo uriInfo;
 
 	public SingleMessageResource() {
-		DAOFactory dao = DAOFactory.getDAOFactory(DAOFactory.CASSANDRA);
+		DAOFactory dao = DAOFactory.getDAOFactory();
 		messageDAO = dao.getMessageDAO();
 	}
 

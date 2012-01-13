@@ -59,7 +59,7 @@ public final class AccountResource
 	@Context UriInfo uriInfo;
 
 	public AccountResource() {
-		DAOFactory dao = DAOFactory.getDAOFactory(DAOFactory.CASSANDRA);
+		DAOFactory dao = DAOFactory.getDAOFactory();
 		accountDAO = dao.getAccountDAO();
 	}
 
