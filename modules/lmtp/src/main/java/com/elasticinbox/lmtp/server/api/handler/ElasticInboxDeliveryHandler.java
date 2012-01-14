@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.elasticinbox.lmtp.server.api.Blob;
 import com.elasticinbox.lmtp.server.api.LMTPAddress;
 import com.elasticinbox.lmtp.server.api.LMTPEnvelope;
+import com.elasticinbox.lmtp.server.api.LMTPReply;
 import com.elasticinbox.lmtp.server.api.RejectException;
 import com.elasticinbox.lmtp.server.api.TooMuchDataException;
 import com.elasticinbox.lmtp.utils.MimeUtils;
@@ -47,8 +48,15 @@ public class ElasticInboxDeliveryHandler extends AbstractDeliveryHandler
 	/** 
 	 * {@inheritDoc}
 	 */	
-	public void recipient(LMTPAddress recipient) throws RejectException {
-		envelope.addRecipient(recipient);
+	public void recipient(LMTPAddress recipient) throws RejectException
+	{
+		LMTPReply status = getDeliveryBackend().getAddressStatus(recipient);
+
+		if (status == LMTPReply.RECIPIENT_OK) {
+			envelope.addRecipient(recipient);
+		} else {
+			throw new RejectException(550, "No such user");
+		}
 	}
 
 	/**
