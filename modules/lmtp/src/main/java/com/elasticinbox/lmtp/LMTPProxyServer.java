@@ -19,9 +19,24 @@
 
 package com.elasticinbox.lmtp;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.james.protocols.api.logger.Logger;
+import org.apache.james.protocols.lmtp.LMTPProtocolHandlerChain;
+import org.apache.james.protocols.netty.NettyServer;
+import org.apache.james.protocols.smtp.MailEnvelope;
+import org.apache.james.protocols.smtp.SMTPProtocol;
+import org.apache.james.protocols.smtp.MailAddress;
+
 import com.elasticinbox.config.Configurator;
-import com.elasticinbox.lmtp.server.LMTPServer;
+import com.elasticinbox.lmtp.delivery.IDeliveryAgent;
+import com.elasticinbox.lmtp.server.LMTPServerConfig;
+import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
 import com.elasticinbox.lmtp.server.api.handler.ElasticInboxDeliveryHandler;
+import com.elasticinbox.lmtp.utils.JamesProtocolsLogger;
 
 /**
  * LMTP proxy main class which sends traffic to multiple registered handlers
@@ -30,27 +45,47 @@ import com.elasticinbox.lmtp.server.api.handler.ElasticInboxDeliveryHandler;
  */
 public class LMTPProxyServer
 {
-	private LMTPServer server;
+	private NettyServer server;
+	private IDeliveryAgent backend;
 
-	protected LMTPProxyServer() {
+	protected LMTPProxyServer(IDeliveryAgent backend) {
+	    this.backend = backend;
 	}
 
-	public void start() {
-		server = new LMTPServer(Activator.getDefault().getBackend());
+	public void start() throws Exception
+	{
+		Logger logger = new JamesProtocolsLogger();
 
-		server.getDeliveryHandlerFactory().setDeliveryHandlerImplClass(
-				ElasticInboxDeliveryHandler.class);
+		LMTPProtocolHandlerChain chain = new LMTPProtocolHandlerChain();
+		chain.add(0, new ElasticInboxDeliveryHandler(backend));
+		chain.wireExtensibleHandlers();
 
-		server.setPort(Configurator.getLmtpPort());
-		server.getConfig().setMaxConnections(Configurator.getLmtpMaxConnections());
-		// flush to tmp file if data > 32K
-		server.getConfig().setDataDeferredSize(32 * 1024);
-
-		server.start();
+		server = new NettyServer(new SMTPProtocol(chain, new LMTPServerConfig(), logger));
+		server.setListenAddresses(new InetSocketAddress(Configurator.getLmtpPort()));
+		server.setMaxConcurrentConnections(Configurator.getLmtpMaxConnections());
+		server.setTimeout(LMTPServerConfig.CONNECTION_TIMEOUT);
+		server.setUseExecutionHandler(true, 16);
+		server.bind();
 	}
 
 	public void stop() {
-		server.stop();
+		server.unbind();
 	}
 
+	public static void main(String[] args) throws Exception
+	{
+		new LMTPProxyServer(new IDeliveryAgent() {
+
+			@Override
+			public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env) throws IOException
+			{
+				Map<MailAddress, DeliveryReturnCode> map = new HashMap<MailAddress, DeliveryReturnCode>();
+				for (MailAddress address : env.getRecipients()) {
+					map.put(address, DeliveryReturnCode.OK);
+				}
+				return map;
+			}
+
+		}).start();
+	}
 }

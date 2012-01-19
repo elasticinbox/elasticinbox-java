@@ -20,33 +20,16 @@
 package com.elasticinbox.lmtp.server.api;
 
 /**
- * RFC 1652 based SMTP/LMTP Service Extension for 8bit-MIMEtransport
+ * Standard and extended LMTP status codes
  * 
  * @author Rustam Aliyev
+ * @see <a href="http://tools.ietf.org/html/rfc3463">RFC3463</a>
  */
-public final class LMTPBodyType
+public enum DeliveryReturnCode
 {
-	private String mType;
-
-	private LMTPBodyType(String type) {
-		mType = type;
-	}
-
-	public String toString() {
-		return mType;
-	}
-
-	public static final LMTPBodyType BODY_7BIT = new LMTPBodyType("7BIT");
-	public static final LMTPBodyType BODY_8BITMIME = new LMTPBodyType("8BITMIME");
-
-	public static LMTPBodyType getInstance(String type)
-	{
-		if (type.equalsIgnoreCase(BODY_7BIT.toString())) {
-			return BODY_7BIT;
-		}
-		if (type.equalsIgnoreCase(BODY_8BITMIME.toString())) {
-			return BODY_8BITMIME;
-		}
-		return null;
-	}
+	OK,
+	TEMPORARY_FAILURE,
+	PERMANENT_FAILURE,
+	NO_SUCH_USER,
+	OVER_QUOTA
 }

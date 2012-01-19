@@ -45,57 +45,92 @@
       <optional>true</optional>
     </dependency>
     -->
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>osgi_R4_core</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>osgi_R4_compendium</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.mina</groupId>
-      <artifactId>mina-core</artifactId>
-      <version>${bundle.mina.version}</version>
-      <type>bundle</type>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>${bundle.slf4j.version}</version>
-      <scope>provided</scope>
-    </dependency>
+	<dependency>
+		<groupId>org.osgi</groupId>
+		<artifactId>osgi_R4_core</artifactId>
+		<optional>true</optional>
+	</dependency>
+	<dependency>
+		<groupId>org.osgi</groupId>
+		<artifactId>osgi_R4_compendium</artifactId>
+		<optional>true</optional>
+	</dependency>
+	<dependency>
+		<groupId>org.apache.james.protocols</groupId>
+		<artifactId>protocols-netty</artifactId>
+		<version>${bundle.james-protocols.version}</version>
+		<type>bundle</type>
+		<scope>provided</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.apache.james.protocols</groupId>
+		<artifactId>protocols-api</artifactId>
+		<version>${bundle.james-protocols.version}</version>
+		<type>bundle</type>
+		<scope>provided</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.apache.james.protocols</groupId>
+		<artifactId>protocols-smtp</artifactId>
+		<version>${bundle.james-protocols.version}</version>
+		<type>bundle</type>
+		<scope>provided</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.apache.james.protocols</groupId>
+		<artifactId>protocols-lmtp</artifactId>
+		<version>${bundle.james-protocols.version}</version>
+		<type>bundle</type>
+		<scope>provided</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.jboss.netty</groupId>
+		<artifactId>netty</artifactId>
+		<version>${bundle.netty.version}</version>
+		<type>bundle</type>
+		<scope>provided</scope>
+	</dependency>
  	<dependency>
+		<groupId>javax.mail</groupId>
+		<artifactId>mail</artifactId>
+		<version>${bundle.javamail.version}</version>
+		<type>bundle</type>
+		<scope>provided</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.slf4j</groupId>
+		<artifactId>slf4j-api</artifactId>
+		<version>${bundle.slf4j.version}</version>
+		<scope>provided</scope>
+	</dependency>
+	<dependency>
 		<groupId>com.elasticinbox.bundles</groupId>
 		<artifactId>com.ecyrd.speed4j</artifactId>
 		<version>${bundle.speed4j.version}-1</version>
 		<type>bundle</type>
 		<scope>provided</scope>
 	</dependency>
-    <dependency>
-    	<groupId>com.elasticinbox</groupId>
-    	<artifactId>elasticinbox-common</artifactId>
-    	<version>${project.version}</version>
-    	<type>bundle</type>
-    	<scope>provided</scope>
-    </dependency>
-    <dependency>
-    	<groupId>com.elasticinbox</groupId>
-    	<artifactId>elasticinbox-config</artifactId>
-    	<version>${project.version}</version>
-    	<type>bundle</type>
-    	<scope>provided</scope>
-    </dependency>
-    <dependency>
-    	<groupId>com.elasticinbox</groupId>
-    	<artifactId>elasticinbox-core</artifactId>
-    	<version>${project.version}</version>
-    	<type>bundle</type>
-    	<scope>provided</scope>
-    </dependency>
+	<dependency>
+		<groupId>com.elasticinbox</groupId>
+		<artifactId>elasticinbox-common</artifactId>
+		<version>${project.version}</version>
+		<type>bundle</type>
+		<scope>provided</scope>
+	</dependency>
+	<dependency>
+		<groupId>com.elasticinbox</groupId>
+		<artifactId>elasticinbox-config</artifactId>
+		<version>${project.version}</version>
+		<type>bundle</type>
+		<scope>provided</scope>
+	</dependency>
+	<dependency>
+		<groupId>com.elasticinbox</groupId>
+		<artifactId>elasticinbox-core</artifactId>
+		<version>${project.version}</version>
+		<type>bundle</type>
+		<scope>provided</scope>
+	</dependency>
   </dependencies>
 
 </project>

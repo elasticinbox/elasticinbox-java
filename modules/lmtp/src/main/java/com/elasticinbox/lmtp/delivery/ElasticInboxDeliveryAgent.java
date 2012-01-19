@@ -20,24 +20,21 @@
 package com.elasticinbox.lmtp.delivery;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
+import org.apache.james.protocols.smtp.MailEnvelope;
+import org.apache.james.protocols.smtp.MailAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ecyrd.speed4j.StopWatch;
 import com.elasticinbox.lmtp.Activator;
-import com.elasticinbox.lmtp.server.api.Blob;
 import com.elasticinbox.lmtp.server.api.DeliveryException;
-import com.elasticinbox.lmtp.server.api.LMTPAddress;
-import com.elasticinbox.lmtp.server.api.LMTPEnvelope;
-import com.elasticinbox.lmtp.server.api.LMTPReply;
-import com.elasticinbox.common.utils.IOUtils;
+import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
 import com.elasticinbox.core.MessageDAO;
 import com.elasticinbox.core.OverQuotaException;
 import com.elasticinbox.core.message.MimeParser;
@@ -73,18 +70,17 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 	}
 
 	@Override
-	public void deliver(LMTPEnvelope env, Blob blob) throws IOException
+	public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env) throws IOException
 	{
 		// update delivery ID
 		newDeliveryId();
 
 		StopWatch stopWatch = Activator.getDefault().getStopWatch();
-		List<LMTPAddress> recipients = env.getRecipients();
 		Message message;
 
 		try {
 			MimeParser parser = new MimeParser();
-			parser.parse(blob.getInputStream());
+			parser.parse(env.getMessageInputStream());
 			message = parser.getMessage();
 		} catch (MimeParserException mpe) {
 			logger.error("DID" + deliveryId + ": unable to parse message: ", mpe);
@@ -94,25 +90,19 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 			throw new DeliveryException("Unable to read message stream: " + ioe.getMessage());
 		}
 
-		// update message size
-		// recalculate stream size, current lmtp handler calculates size before
-		// filters applied. will wait for new netty based lmtp implementation
-		InputStream in = blob.getInputStream();
-		message.setSize(IOUtils.getInputStreamSize(in));
-		in.close();
-
-		// add default label
-		message.addLabel(ReservedLabels.INBOX.getLabelId());
+		message.setSize((long) env.getSize()); // update message size
+		message.addLabel(ReservedLabels.INBOX.getLabelId()); // default location
 
 		logEnvelope(env, message);
 
+		Map<MailAddress, DeliveryReturnCode> replies = new HashMap<MailAddress, DeliveryReturnCode>();
 		// Deliver to each recipient
-		for (LMTPAddress recipient : recipients)
+		for (MailAddress recipient : env.getRecipients())
 		{
-			LMTPReply reply = LMTPReply.TEMPORARY_FAILURE; // default LMTP reply
+			DeliveryReturnCode reply = DeliveryReturnCode.TEMPORARY_FAILURE; // default LMTP reply
 			DeliveryAction deliveryAction = DeliveryAction.DELIVER; // default delivery action
 
-			Mailbox mailbox = new Mailbox(recipient.getEmailAddress());
+			Mailbox mailbox = new Mailbox(recipient.toString());
 			String logMsg = new StringBuilder(" ").append(mailbox.getId())
 								.append(" DID").append(deliveryId).toString();
 
@@ -121,53 +111,52 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 				case DELIVER:
 					try {
 						// generate new UUID
-						UUID messageId = new MessageIdBuilder().
-								setSentDate(message.getDate()).build();
+						UUID messageId = new MessageIdBuilder().setSentDate(message.getDate()).build();
 
 						// store message
-						messageDAO.put(mailbox, messageId, message, blob.getInputStream());
-						
+						messageDAO.put(mailbox, messageId, message, env.getMessageInputStream());
+
 						// successfully delivered
 						stopWatch.stop("DELIVERY.success", logMsg);
-						reply = LMTPReply.DELIVERY_OK;
+						reply = DeliveryReturnCode.OK;
 					} catch (OverQuotaException e) {
 						// account is over quota, reject
 						stopWatch.stop("DELIVERY.reject_overQuota", logMsg + " over quota");
-						reply = LMTPReply.PERMANENT_FAILURE_OVER_QUOTA;
+						reply = DeliveryReturnCode.OVER_QUOTA;
 					} catch (IOException e) {
 						// delivery error, defer
 						stopWatch.stop("DELIVERY.defer", logMsg);
 						logger.error("DID" + deliveryId + ": delivery error: ", e);
-						reply = LMTPReply.TEMPORARY_FAILURE;
+						reply = DeliveryReturnCode.TEMPORARY_FAILURE;
 					}
 					break;
 				case DISCARD:
 					// Local delivery is disabled.
 					stopWatch.stop("DELIVERY.discard", logMsg);
-					reply = LMTPReply.DELIVERY_OK;
+					reply = DeliveryReturnCode.OK;
 					break;
 				case DEFER:
 					// Delivery to mailbox skipped. Let MTA retry again later.
 					stopWatch.stop("DELIVERY.defer", logMsg);
-					reply = LMTPReply.TEMPORARY_FAILURE;
+					reply = DeliveryReturnCode.TEMPORARY_FAILURE;
 					break;
 				case REJECT:
 					// Reject delivery. Account or mailbox not found.
 					stopWatch.stop("DELIVERY.reject_nonExistent", logMsg + " unknown mailbox");
-					reply = LMTPReply.NO_SUCH_USER;
+					reply = DeliveryReturnCode.NO_SUCH_USER;
 				}
 			} catch (Exception e) {
 				stopWatch.stop("DELIVERY.defer_failure", logMsg);
-				reply = LMTPReply.TEMPORARY_FAILURE;
+				reply = DeliveryReturnCode.TEMPORARY_FAILURE;
 				logger.error("DID" + deliveryId + ": delivery failed (defered): ", e);
 			}
 
-			recipient.setDeliveryStatus(reply); // set delivery status for invoker
+			replies.put(recipient, reply); // set delivery status for invoker
 		}
-
+		return replies;
 	}
 
-	private void logEnvelope(final LMTPEnvelope env, final Message message)
+	private void logEnvelope(final MailEnvelope env, final Message message)
 	{
         logger.info("DID{}: size={}, nrcpts={}, from=<{}>, msgid={}",
             	new Object[] {
