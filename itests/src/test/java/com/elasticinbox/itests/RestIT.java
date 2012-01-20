@@ -109,7 +109,7 @@ public class RestIT
 
 				// REST-Assured Bundles
 				wrappedBundle(mavenBundle().groupId("com.jayway.restassured").artifactId("rest-assured").versionAsInProject()),
-				wrappedBundle(mavenBundle().groupId("org.codehaus.groovy.modules.http-builder").artifactId("http-builder").version("0.5.1")),
+				wrappedBundle(mavenBundle().groupId("org.codehaus.groovy.modules.http-builder").artifactId("http-builder").version("0.5.2")),
 				wrappedBundle(mavenBundle().groupId("org.hamcrest").artifactId("hamcrest-all").version("1.1")),
 				wrappedBundle(mavenBundle().groupId("xml-resolver").artifactId("xml-resolver").version("1.2")),
 				wrappedBundle(mavenBundle().groupId("net.sf.ezmorph").artifactId("ezmorph").version("1.0.6")),
@@ -120,8 +120,8 @@ public class RestIT
 				//mavenBundle().groupId("commons-lang").artifactId("commons-lang").version("2.6"),
 				mavenBundle().groupId("commons-beanutils").artifactId("commons-beanutils").version("1.8.3"),
 				mavenBundle().groupId("commons-collections").artifactId("commons-collections").version("3.2.1"),
-				mavenBundle().groupId("org.apache.httpcomponents").artifactId("httpcore-osgi").version("4.1.1"),
-				mavenBundle().groupId("org.apache.httpcomponents").artifactId("httpclient-osgi").version("4.1.1"),
+				mavenBundle().groupId("org.apache.httpcomponents").artifactId("httpcore-osgi").version("4.1.2"),
+				mavenBundle().groupId("org.apache.httpcomponents").artifactId("httpclient-osgi").version("4.1.2"),
 
 				// jClouds and dependencies
 				mavenBundle().groupId("com.google.inject").artifactId("guice").versionAsInProject(),
@@ -141,9 +141,11 @@ public class RestIT
 				mavenBundle().groupId("com.googlecode.guava-osgi").artifactId("guava-osgi").versionAsInProject(),
 				mavenBundle().groupId("org.codehaus.jackson").artifactId("jackson-core-asl").versionAsInProject(),
 				mavenBundle().groupId("org.codehaus.jackson").artifactId("jackson-mapper-asl").versionAsInProject(),
+				mavenBundle().groupId("org.codehaus.jackson").artifactId("jackson-jaxrs").versionAsInProject(),
 				mavenBundle().groupId("com.ning").artifactId("compress-lzf").versionAsInProject(),
 				mavenBundle().groupId("com.sun.jersey").artifactId("jersey-core").versionAsInProject(),
 				mavenBundle().groupId("com.sun.jersey").artifactId("jersey-server").versionAsInProject(),
+				mavenBundle().groupId("com.sun.jersey").artifactId("jersey-servlet").versionAsInProject(),
 				mavenBundle().groupId("javax.mail").artifactId("mail").versionAsInProject(),
 				scanDir("../bundles/com.ecyrd.speed4j/target/"),
 				scanDir("../modules/common/target/"),
@@ -746,7 +748,7 @@ public class RestIT
 
 		// add message B to SPAM
 		long fileSizeB = getResourceSize(EMAIL_LARGE_ATT);
-		UUID messageIdB = addMessage(EMAIL_LARGE_ATT, ReservedLabels.SPAM.getLabelId());
+		addMessage(EMAIL_LARGE_ATT, ReservedLabels.SPAM.getLabelId());
 
 		// check label counters
 		response = 
@@ -804,6 +806,8 @@ public class RestIT
 						equalTo((int) (spamCounters.getNewMessages().longValue()))).
 			when().
 				get(REST_PATH + "/mailbox?metadata=true");
+		
+		logger.info("Counters Test OK");
 	}
 
 	/**
