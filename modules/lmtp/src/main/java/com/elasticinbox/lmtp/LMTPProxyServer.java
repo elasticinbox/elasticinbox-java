@@ -45,6 +45,7 @@ import com.elasticinbox.lmtp.delivery.IDeliveryAgent;
 import com.elasticinbox.lmtp.server.LMTPServerConfig;
 import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
 import com.elasticinbox.lmtp.server.api.handler.ElasticInboxDeliveryHandler;
+import com.elasticinbox.lmtp.server.api.handler.ValidRcptHandler;
 import com.elasticinbox.lmtp.utils.JamesProtocolsLogger;
 
 /**
@@ -67,6 +68,7 @@ public class LMTPProxyServer
 
 		LMTPProtocolHandlerChain chain = new LMTPProtocolHandlerChain();
 		chain.add(0, new ElasticInboxDeliveryHandler(backend));
+		chain.add(0, new ValidRcptHandler());
 		chain.wireExtensibleHandlers();
 
 		server = new NettyServer(new SMTPProtocol(chain, new LMTPServerConfig(), logger));

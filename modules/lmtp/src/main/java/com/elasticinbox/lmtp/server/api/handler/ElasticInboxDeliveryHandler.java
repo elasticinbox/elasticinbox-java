@@ -56,7 +56,6 @@ import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
  * Default class that extends the {@link AbstractDeliveryHandler} class.
  * Provides a default implementation for mail delivery.
  * 
- * @author De Oliveira Edouard &lt;doe_wanted@yahoo.fr&gt;
  * @author Rustam Aliyev
  */
 public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler
@@ -72,20 +71,7 @@ public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler
 	{
 		// tracing
 		if (session.getLogger().isTraceEnabled()) {
-			// TODO: Fix me
-			Charset charset = Charset.forName("US-ASCII");
-
-			try {
-				InputStream in = env.getMessageInputStream();
-				byte[] buf = new byte[16384];
-				CharsetDecoder decoder = charset.newDecoder();
-				int len = 0;
-				while ((len = in.read(buf)) >= 0) {
-					session.getLogger().trace(decoder.decode(ByteBuffer.wrap(buf, 0, len)).toString());
-				}
-			} catch (IOException ioex) {
-				session.getLogger().debug("Mail data logging failed", ioex);
-			}
+			logMessage(session, env);
 		}
 
 		Map<MailAddress, DeliveryReturnCode> replies;
@@ -107,27 +93,35 @@ public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler
 			SMTPResponse response;
 
 			switch (code) {
+			case OK:
+				response = new SMTPResponse(SMTPRetCode.MAIL_OK,
+						DSNStatus.getStatus(DSNStatus.SUCCESS, DSNStatus.UNDEFINED_STATUS)
+						+ " Ok");
+				break;
 			case NO_SUCH_USER:
 				response = new SMTPResponse(SMTPRetCode.MAILBOX_PERM_UNAVAILABLE,
 						DSNStatus.getStatus(DSNStatus.PERMANENT, DSNStatus.ADDRESS_MAILBOX)
-								+ " Unknown user: " + address.toString());
-				break;
-			case OK:
-				response = new SMTPResponse(SMTPRetCode.MAIL_OK,
-						DSNStatus.getStatus(DSNStatus.PERMANENT, DSNStatus.ADDRESS_MAILBOX)
-								+ " Unknown user: " + address.toString());
+						+ " Unknown user " + address.toString());
 				break;
 			case OVER_QUOTA:
-				response = new SMTPResponse(SMTPRetCode.LOCAL_ERROR, "User over quota");
+				response = new SMTPResponse(SMTPRetCode.QUOTA_EXCEEDED,
+						DSNStatus.getStatus(DSNStatus.PERMANENT, DSNStatus.MAILBOX_FULL)
+						+ " User over quota");
 				break;
 			case PERMANENT_FAILURE:
-				response = new SMTPResponse(SMTPRetCode.TRANSACTION_FAILED, "Unable to deliver message");
+				response = new SMTPResponse(SMTPRetCode.TRANSACTION_FAILED,
+						DSNStatus.getStatus(DSNStatus.PERMANENT, DSNStatus.SYSTEM_OTHER) 
+						+ " Unable to deliver message");
 				break;
 			case TEMPORARY_FAILURE:
-				response = new SMTPResponse(SMTPRetCode.LOCAL_ERROR, "Unable to process request");
+				response = new SMTPResponse(SMTPRetCode.LOCAL_ERROR,
+						DSNStatus.getStatus(DSNStatus.TRANSIENT, DSNStatus.SYSTEM_OTHER) 
+						+ " Unable to process request");
 				break;
 			default:
-				response = new SMTPResponse(SMTPRetCode.LOCAL_ERROR, "Unable to process request");
+				response = new SMTPResponse(SMTPRetCode.LOCAL_ERROR,
+						DSNStatus.getStatus(DSNStatus.TRANSIENT, DSNStatus.SYSTEM_OTHER)
+						+ " Unable to process request");
 				break;
 			}
 
@@ -138,6 +132,7 @@ public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler
 			}
 
 		}
+
 		return lmtpResponse;
 	}
 
@@ -155,6 +150,29 @@ public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler
     @Override
     public List<Class<?>> getMarkerInterfaces() {
         return Collections.emptyList();
+    }
+    
+    /**
+     * Log message contents
+     * 
+     * @param env
+     */
+    private void logMessage(SMTPSession session, MailEnvelopeImpl env)
+    {
+		// TODO: Fix me
+		Charset charset = Charset.forName("US-ASCII");
+
+		try {
+			InputStream in = env.getMessageInputStream();
+			byte[] buf = new byte[16384];
+			CharsetDecoder decoder = charset.newDecoder();
+			int len = 0;
+			while ((len = in.read(buf)) >= 0) {
+				session.getLogger().trace(decoder.decode(ByteBuffer.wrap(buf, 0, len)).toString());
+			}
+		} catch (IOException ioex) {
+			session.getLogger().debug("Mail data logging failed", ioex);
+		}
     }
 
 }

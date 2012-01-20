@@ -31,7 +31,7 @@ package com.elasticinbox.lmtp.delivery;
 /**
  * Delivery actions
  * 
- * @author rustam
+ * @author Rustam Aliyev
  *
  */
 public enum DeliveryAction

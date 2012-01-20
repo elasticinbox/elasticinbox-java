@@ -216,14 +216,6 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- Logging Dependencies -->
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<version>${bundle.slf4j.version}</version>
-			<scope>provided</scope>
-		</dependency>
-
 		<dependency>
 			<groupId>org.apache.servicemix.bundles</groupId>
 			<artifactId>org.apache.servicemix.bundles.aopalliance</artifactId>
@@ -273,11 +265,20 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<!-- Logging Dependencies -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>${bundle.slf4j.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
 		<!-- Gson -->
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
 			<version>${bundle.gson.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<!-- Guava -->
@@ -285,6 +286,7 @@
 			<groupId>com.googlecode.guava-osgi</groupId>
 			<artifactId>guava-osgi</artifactId>
 			<version>${bundle.guava.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 	</dependencies>
