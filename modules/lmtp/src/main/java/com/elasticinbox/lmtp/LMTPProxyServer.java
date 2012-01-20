@@ -46,7 +46,7 @@ import com.elasticinbox.lmtp.server.LMTPServerConfig;
 import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
 import com.elasticinbox.lmtp.server.api.handler.ElasticInboxDeliveryHandler;
 import com.elasticinbox.lmtp.server.api.handler.ValidRcptHandler;
-import com.elasticinbox.lmtp.utils.JamesProtocolsLogger;
+import com.elasticinbox.lmtp.utils.LMTPProtocolLogger;
 
 /**
  * LMTP proxy main class which sends traffic to multiple registered handlers
@@ -64,7 +64,7 @@ public class LMTPProxyServer
 
 	public void start() throws Exception
 	{
-		Logger logger = new JamesProtocolsLogger();
+		Logger logger = new LMTPProtocolLogger();
 
 		LMTPProtocolHandlerChain chain = new LMTPProtocolHandlerChain();
 		chain.add(0, new ElasticInboxDeliveryHandler(backend));
@@ -88,7 +88,7 @@ public class LMTPProxyServer
 		new LMTPProxyServer(new IDeliveryAgent() {
 
 			@Override
-			public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env) throws IOException
+			public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env, final String sessionId) throws IOException
 			{
 				Map<MailAddress, DeliveryReturnCode> map = new HashMap<MailAddress, DeliveryReturnCode>();
 				for (MailAddress address : env.getRecipients()) {

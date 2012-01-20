@@ -77,7 +77,7 @@ public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler
 		Map<MailAddress, DeliveryReturnCode> replies;
 		// deliver message
 		try {
-			replies = backend.deliver(env);
+			replies = backend.deliver(env, session.getSessionID());
 		} catch (IOException e) {
 			// TODO: Handle me
 			replies = new HashMap<MailAddress, DeliveryReturnCode>();
@@ -159,7 +159,6 @@ public class ElasticInboxDeliveryHandler extends DataLineMessageHookHandler
      */
     private void logMessage(SMTPSession session, MailEnvelopeImpl env)
     {
-		// TODO: Fix me
 		Charset charset = Charset.forName("US-ASCII");
 
 		try {

@@ -49,6 +49,6 @@ public interface IDeliveryAgent
 	 * 
 	 * @throws IOException
 	 */
-	public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env)
+	public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env, String sessionId)
 			throws IOException;
 }

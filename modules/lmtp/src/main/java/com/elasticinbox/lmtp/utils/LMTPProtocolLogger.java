@@ -31,10 +31,10 @@ package com.elasticinbox.lmtp.utils;
 import org.apache.james.protocols.api.logger.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JamesProtocolsLogger implements Logger
+public class LMTPProtocolLogger implements Logger
 {
 	private static final org.slf4j.Logger logger = 
-			LoggerFactory.getLogger(JamesProtocolsLogger.class);
+			LoggerFactory.getLogger(LMTPProtocolLogger.class);
 
 	@Override
 	public boolean isDebugEnabled() {

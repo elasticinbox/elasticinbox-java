@@ -31,9 +31,7 @@ package com.elasticinbox.lmtp.delivery;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.james.protocols.smtp.MailEnvelope;
 import org.apache.james.protocols.smtp.MailAddress;
@@ -60,30 +58,20 @@ import com.elasticinbox.core.model.ReservedLabels;
  */
 public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 {
-	// (not so) unique delivery id, used only for identifying delivery thread in the logs
-	private AtomicInteger deliveryId;
-
 	private static final Logger logger = LoggerFactory
 			.getLogger(ElasticInboxDeliveryAgent.class);
-
-	private static Random random = new Random();
 
 	private final MessageDAO messageDAO;
 
 	public ElasticInboxDeliveryAgent(MessageDAO messageDAO)
 	{
 		this.messageDAO = messageDAO;
-
-		// set initial deliveryId randomly
-		deliveryId = new AtomicInteger(random.nextInt(100000));
 	}
 
 	@Override
-	public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env) throws IOException
+	public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env, final String deliveryId)
+			throws IOException
 	{
-		// update delivery ID
-		newDeliveryId();
-
 		StopWatch stopWatch = Activator.getDefault().getStopWatch();
 		Message message;
 
@@ -102,7 +90,7 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 		message.setSize((long) env.getSize()); // update message size
 		message.addLabel(ReservedLabels.INBOX.getLabelId()); // default location
 
-		logEnvelope(env, message);
+		logEnvelope(env, message, deliveryId);
 
 		Map<MailAddress, DeliveryReturnCode> replies = new HashMap<MailAddress, DeliveryReturnCode>();
 		// Deliver to each recipient
@@ -165,7 +153,7 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 		return replies;
 	}
 
-	private void logEnvelope(final MailEnvelope env, final Message message)
+	private void logEnvelope(final MailEnvelope env, final Message message, final String deliveryId)
 	{
         logger.info("DID{}: size={}, nrcpts={}, from=<{}>, msgid={}",
             	new Object[] {
@@ -175,13 +163,6 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 	                env.getSender(),
 	                message.getMessageId() == null ? "" : message.getMessageId()
             	});
-	}
-
-	private void newDeliveryId() {
-		deliveryId.incrementAndGet();
-		if (deliveryId.intValue() > 99999) {
-			deliveryId.set(100);
-		}
 	}
 
 }

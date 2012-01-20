@@ -54,15 +54,13 @@ public class MulticastDeliveryAgent implements IDeliveryAgent
 	}
 
 	@Override
-	public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env)
+	public Map<MailAddress, DeliveryReturnCode> deliver(MailEnvelope env, final String sessionId)
 	{
-		logger.debug("deliver(" + env + ")");
-
 		Map<MailAddress, DeliveryReturnCode> map = new HashMap<MailAddress, DeliveryReturnCode>();
 
 		for (IDeliveryAgent agent : agents) {
 			try {
-				map.putAll(agent.deliver(env));
+				map.putAll(agent.deliver(env, sessionId));
 			} catch (Exception e) {
 				logger.warn(agent.getClass().getName()
 						+ " delivery deferred: mail delivery failed: ", e);
