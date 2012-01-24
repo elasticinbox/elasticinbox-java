@@ -30,8 +30,8 @@ package com.elasticinbox.itests;
 
 import static org.ops4j.pax.exam.CoreOptions.*;
 import static org.ops4j.pax.exam.OptionUtils.combine;
-import static org.ops4j.pax.exam.spi.container.PaxExamRuntime.createTestSystem;
-import static org.ops4j.pax.exam.spi.container.PaxExamRuntime.createContainer;
+import static org.ops4j.pax.exam.spi.PaxExamRuntime.createTestSystem;
+import static org.ops4j.pax.exam.spi.PaxExamRuntime.createContainer;
 
 import static org.hamcrest.Matchers.*;
 import static com.jayway.restassured.RestAssured.*;
@@ -51,7 +51,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Suite.SuiteClasses;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.TimeoutException;
 import org.ops4j.pax.exam.junit.Configuration;
@@ -75,11 +74,11 @@ import com.jayway.restassured.response.Response;
  * @author Rustam Aliyev
  */
 @RunWith(JUnit4TestRunner.class)
-@SuiteClasses({ RestIT.class })
 @ExamReactorStrategy(EagerSingleStagedReactorFactory.class)
 public class RestIT
 {
-	private static final String REST_PATH = "/rest/v1/test@elasticinbox.com";
+	private static final String TEST_ACCOUNT = "test@elasticinbox.com";
+	private static final String REST_PATH = "/rest/v1/" + TEST_ACCOUNT;
 	private static final String EMAIL_LARGE_ATT = "/01-attach-utf8.eml";
 	private static final String EMAIL_REGULAR = "/01-headers-utf8.eml";
 
@@ -93,7 +92,6 @@ public class RestIT
 				//junitBundles(),
 				felix(),
 				workingDirectory("target/paxrunner/"),
-				waitForFrameworkStartup(),
 				repository("https://repository.apache.org/snapshots/").allowSnapshots(),
 
 				// Configs
@@ -106,6 +104,10 @@ public class RestIT
 				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-spi").version("1.0.7"),
 				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-jetty-bundle").version("1.0.7"),
 				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-extender-war").version("1.0.7"),
+				
+				// Logging
+				mavenBundle().groupId("ch.qos.logback").artifactId("logback-core").versionAsInProject(),
+				mavenBundle().groupId("ch.qos.logback").artifactId("logback-classic").versionAsInProject(),
 
 				// REST-Assured Bundles
 				wrappedBundle(mavenBundle().groupId("com.jayway.restassured").artifactId("rest-assured").versionAsInProject()),
@@ -127,7 +129,6 @@ public class RestIT
 				mavenBundle().groupId("com.google.inject").artifactId("guice").versionAsInProject(),
 				mavenBundle().groupId("org.jclouds").artifactId("jclouds-core").versionAsInProject(),
 				mavenBundle().groupId("org.jclouds").artifactId("jclouds-blobstore").versionAsInProject(),
-				//mavenBundle().groupId("org.jclouds.api").artifactId("filesystem").versionAsInProject(),
 				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.aopalliance").versionAsInProject(),
 				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.commons-io").versionAsInProject(),
 				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.commons-lang").versionAsInProject(),
@@ -571,7 +572,7 @@ public class RestIT
 		when().
 			get(REST_PATH + "/mailbox/message/{messageId}/raw");
 	}
-	
+
 	@Test
 	public void messageUpdateTest() throws IOException
 	{
@@ -625,17 +626,17 @@ public class RestIT
 		LabelCounters spamCounters = new LabelCounters();
 
 		// check label counter before message added
-		Response response = expect().statusCode(200).when().get(REST_PATH + "/mailbox?metadata=true");
-		allCounters = getCounters(response, ReservedLabels.ALL_MAILS.getLabelId());
-		inboxCounters = getCounters(response, ReservedLabels.INBOX.getLabelId());
-		spamCounters = getCounters(response, ReservedLabels.SPAM.getLabelId());
+		String jsonResponse = expect().statusCode(200).when().get(REST_PATH + "/mailbox?metadata=true").asString();
+		allCounters = getCounters(jsonResponse, ReservedLabels.ALL_MAILS.getLabelId());
+		inboxCounters = getCounters(jsonResponse, ReservedLabels.INBOX.getLabelId());
+		spamCounters = getCounters(jsonResponse, ReservedLabels.SPAM.getLabelId());
 
 		// add message A
 		long fileSizeA = getResourceSize(EMAIL_REGULAR);
 		UUID messageIdA = addMessage(EMAIL_REGULAR, ReservedLabels.INBOX.getLabelId());
 
 		// check label counters
-		response = 
+		jsonResponse = 
 			expect().
 				statusCode(200).and().
 				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".size", 
@@ -651,7 +652,7 @@ public class RestIT
 				body("\"" + ReservedLabels.INBOX.getLabelId() + "\".new", 
 						equalTo((int) (inboxCounters.getNewMessages().longValue() + 1))).
 			when().
-				get(REST_PATH + "/mailbox?metadata=true");
+				get(REST_PATH + "/mailbox?metadata=true").asString();
 
 		// add label SPAM to message A
 		given().
@@ -663,7 +664,7 @@ public class RestIT
 			put(REST_PATH + "/mailbox/message/{messageId}?addlabel={labelId}");
 
 		// check label counters
-		response = 
+		jsonResponse = 
 			expect().
 				statusCode(200).and().
 				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".size", 
@@ -673,12 +674,12 @@ public class RestIT
 				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".new", 
 						equalTo((int) (spamCounters.getNewMessages().longValue() + 1))).
 			when().
-				get(REST_PATH + "/mailbox?metadata=true");
+				get(REST_PATH + "/mailbox?metadata=true").asString();
 
 		// update counters
-		allCounters = getCounters(response, ReservedLabels.ALL_MAILS.getLabelId());
-		inboxCounters = getCounters(response, ReservedLabels.INBOX.getLabelId());
-		spamCounters = getCounters(response, ReservedLabels.SPAM.getLabelId());
+		allCounters = getCounters(jsonResponse, ReservedLabels.ALL_MAILS.getLabelId());
+		inboxCounters = getCounters(jsonResponse, ReservedLabels.INBOX.getLabelId());
+		spamCounters = getCounters(jsonResponse, ReservedLabels.SPAM.getLabelId());
 
 		// mark message as read
 		given().
@@ -690,7 +691,7 @@ public class RestIT
 			put(REST_PATH + "/mailbox/message/{messageId}?addmarker={marker}");
 
 		// check label counters
-		response = 
+		jsonResponse = 
 			expect().
 				statusCode(200).and().
 				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".new", 
@@ -700,12 +701,12 @@ public class RestIT
 				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".new", 
 						equalTo((int) (spamCounters.getNewMessages().longValue() - 1))).
 			when().
-				get(REST_PATH + "/mailbox?metadata=true");
+				get(REST_PATH + "/mailbox?metadata=true").asString();
 
 		// update counters
-		allCounters = getCounters(response, ReservedLabels.ALL_MAILS.getLabelId());
-		inboxCounters = getCounters(response, ReservedLabels.INBOX.getLabelId());
-		spamCounters = getCounters(response, ReservedLabels.SPAM.getLabelId());
+		allCounters = getCounters(jsonResponse, ReservedLabels.ALL_MAILS.getLabelId());
+		inboxCounters = getCounters(jsonResponse, ReservedLabels.INBOX.getLabelId());
+		spamCounters = getCounters(jsonResponse, ReservedLabels.SPAM.getLabelId());
 
 		// remove label INBOX from message A
 		given().
@@ -717,7 +718,7 @@ public class RestIT
 			put(REST_PATH + "/mailbox/message/{messageId}?removelabel={labelId}");
 
 		// check label counters
-		response = 
+		jsonResponse = 
 			expect().
 				statusCode(200).and().
 				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".size", 
@@ -739,19 +740,19 @@ public class RestIT
 				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".new", 
 						equalTo((int) (spamCounters.getNewMessages().longValue()))).
 			when().
-				get(REST_PATH + "/mailbox?metadata=true");
+				get(REST_PATH + "/mailbox?metadata=true").asString();
 
 		// update counters
-		allCounters = getCounters(response, ReservedLabels.ALL_MAILS.getLabelId());
-		inboxCounters = getCounters(response, ReservedLabels.INBOX.getLabelId());
-		spamCounters = getCounters(response, ReservedLabels.SPAM.getLabelId());
+		allCounters = getCounters(jsonResponse, ReservedLabels.ALL_MAILS.getLabelId());
+		inboxCounters = getCounters(jsonResponse, ReservedLabels.INBOX.getLabelId());
+		spamCounters = getCounters(jsonResponse, ReservedLabels.SPAM.getLabelId());
 
 		// add message B to SPAM
 		long fileSizeB = getResourceSize(EMAIL_LARGE_ATT);
 		addMessage(EMAIL_LARGE_ATT, ReservedLabels.SPAM.getLabelId());
 
 		// check label counters
-		response = 
+		jsonResponse = 
 			expect().
 				statusCode(200).and().
 				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".size", 
@@ -773,12 +774,12 @@ public class RestIT
 				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".new", 
 						equalTo((int) (spamCounters.getNewMessages().longValue() + 1))).
 			when().
-				get(REST_PATH + "/mailbox?metadata=true");
+				get(REST_PATH + "/mailbox?metadata=true").asString();
 
 		// update counters
-		allCounters = getCounters(response, ReservedLabels.ALL_MAILS.getLabelId());
-		inboxCounters = getCounters(response, ReservedLabels.INBOX.getLabelId());
-		spamCounters = getCounters(response, ReservedLabels.SPAM.getLabelId());
+		allCounters = getCounters(jsonResponse, ReservedLabels.ALL_MAILS.getLabelId());
+		inboxCounters = getCounters(jsonResponse, ReservedLabels.INBOX.getLabelId());
+		spamCounters = getCounters(jsonResponse, ReservedLabels.SPAM.getLabelId());
 
 		// remove message A
 		given().
@@ -789,7 +790,7 @@ public class RestIT
 			delete(REST_PATH + "/mailbox/message/{messageId}");
 
 		// check label counters
-		response = 
+		jsonResponse = 
 			expect().
 				statusCode(200).and().
 				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".size", 
@@ -805,8 +806,8 @@ public class RestIT
 				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".new", 
 						equalTo((int) (spamCounters.getNewMessages().longValue()))).
 			when().
-				get(REST_PATH + "/mailbox?metadata=true");
-		
+				get(REST_PATH + "/mailbox?metadata=true").asString();
+
 		logger.info("Counters Test OK");
 	}
 
@@ -864,22 +865,22 @@ public class RestIT
 	/**
 	 * Parses json response and returns {@link LabelCounters} for Label
 	 * 
-	 * @param r
+	 * @param json
 	 * @param labelId
 	 * @return
 	 */
-	private LabelCounters getCounters(Response r, Integer labelId)
+	private LabelCounters getCounters(String json, Integer labelId)
 	{
 		LabelCounters lc = new LabelCounters();
 		String l = Integer.toString(labelId);
 
-		lc.setTotalBytes( (long) with(r.asString()).getInt("\"" + l + "\".size") );
-		lc.setNewMessages( (long) with(r.asString()).getInt("\"" + l + "\".new") );
-		lc.setTotalMessages( (long) with(r.asString()).getInt("\"" + l + "\".total") );
+		lc.setTotalBytes( (long) from(json).getInt("\"" + l + "\".size") );
+		lc.setNewMessages( (long) from(json).getInt("\"" + l + "\".new") );
+		lc.setTotalMessages( (long) from(json).getInt("\"" + l + "\".total") );
 
 		return lc;
 	}
-	
+
 	/**
 	 * Returns resource size
 	 *  

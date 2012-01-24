@@ -90,6 +90,16 @@
 	</build>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.osgi</groupId>
+			<artifactId>osgi_R4_core</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.osgi</groupId>
+			<artifactId>osgi_R4_compendium</artifactId>
+			<optional>true</optional>
+		</dependency>
 
 		<dependency>
 		    <groupId>com.elasticinbox</groupId>
@@ -125,7 +135,7 @@
 		<dependency>
 		    <groupId>com.jayway.restassured</groupId>
 		    <artifactId>rest-assured</artifactId>
-		    <version>1.3.1</version>
+		    <version>1.4</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -133,6 +143,12 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.10</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest-all</artifactId>
+			<version>1.1</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -188,22 +204,6 @@
 			<type>bundle</type>
 			<scope>provided</scope>
 		</dependency>
-		<!-- 
-		<dependency>
-			<groupId>org.apache.james</groupId>
-			<artifactId>apache-mime4j-dom</artifactId>
-			<version>${bundle.mime4j.version}</version>
-			<type>bundle</type>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.james</groupId>
-			<artifactId>apache-mime4j-core</artifactId>
-			<version>${bundle.mime4j.version}</version>
-			<type>bundle</type>
-			<scope>provided</scope>
-		</dependency>
-		 -->
 		<dependency>
 		    <groupId>javax.mail</groupId>
 		    <artifactId>mail</artifactId>
@@ -222,13 +222,6 @@
 		<dependency>
 			<groupId>org.jclouds</groupId>
 			<artifactId>jclouds-blobstore</artifactId>
-			<version>${bundle.jclouds.version}</version>
-			<type>bundle</type>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.jclouds.api</groupId>
-			<artifactId>filesystem</artifactId>
 			<version>${bundle.jclouds.version}</version>
 			<type>bundle</type>
 			<scope>provided</scope>
@@ -294,35 +287,121 @@
 			<version>${bundle.paxexam.version}</version>
 			<scope>test</scope>
 		</dependency>
-
+		<dependency>
+			<groupId>org.ops4j.pax.runner</groupId>
+			<artifactId>pax-runner-no-jcl</artifactId>
+			<version>1.7.6</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.ops4j.pax.exam</groupId>
+			<artifactId>pax-exam-spi</artifactId>
+			<version>${bundle.paxexam.version}</version>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.ops4j.pax.exam</groupId>
 			<artifactId>pax-exam-container-paxrunner</artifactId>
 			<version>${bundle.paxexam.version}</version>
 			<scope>test</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>org.ops4j.pax.exam</groupId>
 			<artifactId>pax-exam-link-assembly</artifactId>
 			<version>${bundle.paxexam.version}</version>
 			<scope>test</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>org.ops4j.pax.exam</groupId>
 			<artifactId>pax-exam-testforge</artifactId>
 			<version>${bundle.paxexam.version}</version>
 			<scope>test</scope>
 		</dependency>
-
 		<dependency>
-			<groupId>org.ops4j.pax.runner</groupId>
-			<artifactId>pax-runner-no-jcl</artifactId>
-			<version>1.7.4</version>
+			<groupId>org.ops4j.pax.exam</groupId>
+			<artifactId>pax-exam-link-mvn</artifactId>
+			<version>${bundle.paxexam.version}</version>
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Logging -->
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-core</artifactId>
+			<version>${bundle.logback.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>${bundle.logback.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>jcl-over-slf4j</artifactId>
+			<version>${bundle.slf4j.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>${bundle.slf4j.version}</version>
+			<scope>test</scope>
+		</dependency>
+		
+		<!-- LMTP -->
+		<dependency>
+			<groupId>org.apache.james.protocols</groupId>
+			<artifactId>protocols-netty</artifactId>
+			<version>${bundle.james-protocols.version}</version>
+			<type>bundle</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.james.protocols</groupId>
+			<artifactId>protocols-api</artifactId>
+			<version>${bundle.james-protocols.version}</version>
+			<type>bundle</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.james.protocols</groupId>
+			<artifactId>protocols-smtp</artifactId>
+			<version>${bundle.james-protocols.version}</version>
+			<type>bundle</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.james.protocols</groupId>
+			<artifactId>protocols-lmtp</artifactId>
+			<version>${bundle.james-protocols.version}</version>
+			<type>bundle</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.jboss.netty</groupId>
+			<artifactId>netty</artifactId>
+			<version>${bundle.netty.version}</version>
+			<type>bundle</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>me.normanmaurer</groupId>
+			<artifactId>niosmtp</artifactId>
+			<version>0.1-SNAPSHOT</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
+
+	<repositories>
+		<repository>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<id>niosmtp.snapshots</id>
+			<url>http://repository-niosmtp.forge.cloudbees.com/snapshot/</url>
+		</repository>
+	</repositories>
 
 </project>
