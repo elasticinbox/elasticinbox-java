@@ -108,7 +108,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			throws IOException, OverQuotaException
 	{
 		URI uri = null;
-		logger.info("Storing message: key={}", messageId.toString());
+		logger.debug("Storing message: key={}", messageId.toString());
 
 		// Check quota
 		LabelCounters mailboxCounters = LabelCounterPersistence.get(

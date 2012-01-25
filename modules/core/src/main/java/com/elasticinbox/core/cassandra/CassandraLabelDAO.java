@@ -40,6 +40,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.elasticinbox.core.ExistingLabelException;
 import com.elasticinbox.core.IllegalLabelException;
 import com.elasticinbox.core.LabelDAO;
 import com.elasticinbox.core.MessageDAO;
@@ -85,28 +86,25 @@ public final class CassandraLabelDAO implements LabelDAO
 	}
 
 	@Override
-	public int add(final Mailbox mailbox, final String label)
+	public int add(final Mailbox mailbox, String label)
 	{
-		// get labels
+		// enforce lowercase
+		label = label.toLowerCase();
+
+		// get all existing labels
 		Labels existingLabels = new Labels();
 		existingLabels.add(AccountPersistence.getLabels(mailbox.getId()));
 
-		// check if label already exists or reserved
-		if(existingLabels.containsName(label))
-			throw new IllegalLabelException("Label already exists");
-
-		//TODO: add check for hierarchical lables starting with reserved labels
-		//		e.g. disallow "inbox/folder"
+		LabelUtils.validateLabelName(label, existingLabels);
 
 		// generate new unique label id
 		int labelId = LabelUtils.getNewLabelId();
-		int maxAttempts = 1;
-		while (true)
+		int attempts = 1;
+		while(existingLabels.containsId(labelId))
 		{
-			if (!existingLabels.containsId(labelId))
-				break;
+			logger.debug("Generating new label ID");
 	
-			if (maxAttempts > MAX_NEW_LABEL_ID_ATTEMPTS) {
+			if (attempts > MAX_NEW_LABEL_ID_ATTEMPTS) {
 				// too many attempts to get new random id! too many labels?
 				logger.info("{} reached max random label id attempts with {} labels",
 						mailbox, existingLabels.getIds().size());
@@ -114,7 +112,7 @@ public final class CassandraLabelDAO implements LabelDAO
 			}
 
 			labelId = LabelUtils.getNewLabelId();
-			maxAttempts++;
+			attempts++;
 		}
 
 		// add new label
@@ -124,17 +122,22 @@ public final class CassandraLabelDAO implements LabelDAO
 	}
 
 	@Override
-	public void rename(final Mailbox mailbox, final Integer labelId,
-			final String label) throws IOException
+	public void rename(final Mailbox mailbox, final Integer labelId, String label)
+			throws IOException
 	{
-		// check if label reserved
-		if(ReservedLabels.contains(labelId)) {
-			throw new IllegalLabelException("This is reserved label and can't be modified");
-		}
+		// enforce lowercase
+		label = label.toLowerCase();
 
-		// get labels
+		// get all existing labels
 		Labels existingLabels = new Labels();
 		existingLabels.add(AccountPersistence.getLabels(mailbox.getId()));
+
+		LabelUtils.validateLabelName(label, existingLabels);
+
+		// check if label id reserved
+		if(ReservedLabels.contains(labelId)) {
+			throw new ExistingLabelException("This is reserved label and can't be modified");
+		}
 
 		// check if label id exists
 		if(!existingLabels.containsId(labelId)) {

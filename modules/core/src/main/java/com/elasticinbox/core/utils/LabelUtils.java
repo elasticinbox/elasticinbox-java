@@ -30,6 +30,9 @@ package com.elasticinbox.core.utils;
 
 import java.util.Random;
 
+import com.elasticinbox.core.ExistingLabelException;
+import com.elasticinbox.core.IllegalLabelException;
+import com.elasticinbox.core.model.Label;
 import com.elasticinbox.core.model.Labels;
 import com.elasticinbox.core.model.ReservedLabels;
 
@@ -49,5 +52,32 @@ public final class LabelUtils
 		int labelId = ReservedLabels.MAX_RESERVED_LABEL_ID
 				+ random.nextInt(Labels.MAX_LABEL_ID - ReservedLabels.MAX_RESERVED_LABEL_ID);
 		return labelId;
+	}
+
+	/**
+	 * Validate label name and check within existing labels
+	 * 
+	 * @param label
+	 */
+	public static void validateLabelName(final String label, final Labels existingLabels)
+	{
+		// check total length of label
+		if (label.length() > Labels.MAX_LABEL_NAME_LENGTH)
+			throw new IllegalLabelException("Label name exceeds maximum allowed length");
+
+		// check if label already exists
+		if(existingLabels.containsName(label))
+			throw new ExistingLabelException("Label with this name already exists");
+
+		// check if starts with reserved label
+		for (Label l : ReservedLabels.getAll()) {
+			if (label.startsWith(l.getLabelName() + Labels.NESTED_LABEL_SEPARATOR))
+				throw new IllegalLabelException("Netsted labels are not allowed under reserved labels");
+		}
+
+		if (label.contains(Labels.NESTED_LABEL_SEPARATOR + Labels.NESTED_LABEL_SEPARATOR))
+			throw new IllegalLabelException("Illegal use of nested label separator");
+
+		// check special symbols? for now we allow any symbol
 	}
 }

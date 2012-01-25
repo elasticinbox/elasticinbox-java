@@ -63,6 +63,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.core.model.LabelCounters;
+import com.elasticinbox.core.model.Labels;
 import com.elasticinbox.core.model.Marker;
 import com.elasticinbox.core.model.ReservedLabels;
 import com.google.common.io.ByteStreams;
@@ -192,16 +193,16 @@ public class RestIT
 		// check reserved labels
 		expect().
 			statusCode(200).and().
-			body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\"",	equalTo(ReservedLabels.ALL_MAILS.getLabelName())).
-			body("\"" + ReservedLabels.INBOX.getLabelId() + "\"",		equalTo(ReservedLabels.INBOX.getLabelName())).
-			body("\"" + ReservedLabels.DRAFTS.getLabelId() + "\"",		equalTo(ReservedLabels.DRAFTS.getLabelName())).
-			body("\"" + ReservedLabels.SENT.getLabelId() + "\"",		equalTo(ReservedLabels.SENT.getLabelName())).
-			body("\"" + ReservedLabels.TRASH.getLabelId() + "\"",		equalTo(ReservedLabels.TRASH.getLabelName())).
-			body("\"" + ReservedLabels.SPAM.getLabelId() + "\"",		equalTo(ReservedLabels.SPAM.getLabelName())).
-			body("\"" + ReservedLabels.STARRED.getLabelId() + "\"",		equalTo(ReservedLabels.STARRED.getLabelName())).
-			body("\"" + ReservedLabels.IMPORTANT.getLabelId() + "\"",	equalTo(ReservedLabels.IMPORTANT.getLabelName())).
-			body("\"" + ReservedLabels.NOTIFICATIONS.getLabelId() + "\"",equalTo(ReservedLabels.NOTIFICATIONS.getLabelName())).
-			body("\"" + ReservedLabels.ATTACHMENTS.getLabelId() + "\"",	equalTo(ReservedLabels.ATTACHMENTS.getLabelName())).
+			body("'" + ReservedLabels.ALL_MAILS.getLabelId() + "'",		equalTo(ReservedLabels.ALL_MAILS.getLabelName())).
+			body("'" + ReservedLabels.INBOX.getLabelId() + "'",			equalTo(ReservedLabels.INBOX.getLabelName())).
+			body("'" + ReservedLabels.DRAFTS.getLabelId() + "'",		equalTo(ReservedLabels.DRAFTS.getLabelName())).
+			body("'" + ReservedLabels.SENT.getLabelId() + "'",			equalTo(ReservedLabels.SENT.getLabelName())).
+			body("'" + ReservedLabels.TRASH.getLabelId() + "'",			equalTo(ReservedLabels.TRASH.getLabelName())).
+			body("'" + ReservedLabels.SPAM.getLabelId() + "'",			equalTo(ReservedLabels.SPAM.getLabelName())).
+			body("'" + ReservedLabels.STARRED.getLabelId() + "'",		equalTo(ReservedLabels.STARRED.getLabelName())).
+			body("'" + ReservedLabels.IMPORTANT.getLabelId() + "'",		equalTo(ReservedLabels.IMPORTANT.getLabelName())).
+			body("'" + ReservedLabels.NOTIFICATIONS.getLabelId() + "'",	equalTo(ReservedLabels.NOTIFICATIONS.getLabelName())).
+			body("'" + ReservedLabels.ATTACHMENTS.getLabelId() + "'",	equalTo(ReservedLabels.ATTACHMENTS.getLabelName())).
 		when().
 			get(REST_PATH + "/mailbox");
 	}
@@ -212,10 +213,10 @@ public class RestIT
 		// check labels metadata
 		expect().
 			statusCode(200).and().
-			body("\"" + ReservedLabels.INBOX.getLabelId() + "\".name",	equalTo(ReservedLabels.INBOX.getLabelName())).
-			body("\"" + ReservedLabels.INBOX.getLabelId() + "\".size",	greaterThanOrEqualTo(0)).
-			body("\"" + ReservedLabels.INBOX.getLabelId() + "\".new",	greaterThanOrEqualTo(0)).
-			body("\"" + ReservedLabels.INBOX.getLabelId() + "\".total",	greaterThanOrEqualTo(0)).
+			body("'" + ReservedLabels.INBOX.getLabelId() + "'.name",	equalTo(ReservedLabels.INBOX.getLabelName())).
+			body("'" + ReservedLabels.INBOX.getLabelId() + "'.size",	greaterThanOrEqualTo(0)).
+			body("'" + ReservedLabels.INBOX.getLabelId() + "'.new",		greaterThanOrEqualTo(0)).
+			body("'" + ReservedLabels.INBOX.getLabelId() + "'.total",	greaterThanOrEqualTo(0)).
 		when().
 			get(REST_PATH + "/mailbox?metadata=true");
 	}
@@ -233,7 +234,7 @@ public class RestIT
 		// check added label
 		expect().
 			statusCode(200).and().
-			body("\"" + labelId + "\"", equalTo(labelName)).
+			body("'" + labelId + "'", equalTo(labelName.toLowerCase())).
 		when().
 			get(REST_PATH + "/mailbox");
 
@@ -250,27 +251,28 @@ public class RestIT
 		// check renamed label
 		expect().
 			statusCode(200).and().
-			body("\"" + labelId + "\"", equalTo(labelRename)).
+			body("'" + labelId + "'", equalTo(labelRename.toLowerCase())).
 		when().
 			get(REST_PATH + "/mailbox");
 		
 		logger.info("Rename label test OK");
-		
+
 		// adding existing label, should fail
 		given().
 			pathParam("labelName", labelRename).
 		expect().
+			statusCode(409).
+		when().
+			post(REST_PATH + "/mailbox/label?name={labelName}");
+
+		// adding nested label for reserved label should fail
+		given().
+			pathParam("labelName", ReservedLabels.INBOX.getLabelName() + 
+					Labels.NESTED_LABEL_SEPARATOR + "nestedLabel").
+		expect().
 			statusCode(400).
 		when().
 			post(REST_PATH + "/mailbox/label?name={labelName}");
-		
-		// adding label under existing label hierarchically, should fail
-//		given().
-//			pathParam("labelName", labelRename + "/subLabel").
-//		expect().
-//			statusCode(400).
-//		when().
-//			post(REST_PATH + "/mailbox/label?name={labelName}");
 
 		// delete label
 		given().
@@ -283,7 +285,7 @@ public class RestIT
 		// check deleted label
 		expect().
 			statusCode(200).and().
-			body("\"" + labelId + "\"", is(nullValue())).
+			body("'" + labelId + "'", is(nullValue())).
 		when().
 			get(REST_PATH + "/mailbox").asString();
 
@@ -639,17 +641,17 @@ public class RestIT
 		jsonResponse = 
 			expect().
 				statusCode(200).and().
-				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".size", 
+				body("'" + ReservedLabels.ALL_MAILS.getLabelId() + "'.size", 
 						equalTo((int) (allCounters.getTotalBytes().longValue() + fileSizeA))).
-				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".total", 
+				body("'" + ReservedLabels.ALL_MAILS.getLabelId() + "'.total", 
 						equalTo((int) (allCounters.getTotalMessages().longValue() + 1))).
-				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".new", 
+				body("'" + ReservedLabels.ALL_MAILS.getLabelId() + "'.new", 
 						equalTo((int) (allCounters.getNewMessages().longValue() + 1))).
-				body("\"" + ReservedLabels.INBOX.getLabelId() + "\".size", 
+				body("'" + ReservedLabels.INBOX.getLabelId() + "'.size", 
 						equalTo((int) (inboxCounters.getTotalBytes().longValue() + fileSizeA))).
-				body("\"" + ReservedLabels.INBOX.getLabelId() + "\".total", 
+				body("'" + ReservedLabels.INBOX.getLabelId() + "'.total", 
 						equalTo((int) (inboxCounters.getTotalMessages().longValue() + 1))).
-				body("\"" + ReservedLabels.INBOX.getLabelId() + "\".new", 
+				body("'" + ReservedLabels.INBOX.getLabelId() + "'.new", 
 						equalTo((int) (inboxCounters.getNewMessages().longValue() + 1))).
 			when().
 				get(REST_PATH + "/mailbox?metadata=true").asString();
@@ -667,11 +669,11 @@ public class RestIT
 		jsonResponse = 
 			expect().
 				statusCode(200).and().
-				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".size", 
+				body("'" + ReservedLabels.SPAM.getLabelId() + "'.size", 
 						equalTo((int) (spamCounters.getTotalBytes().longValue() + fileSizeA))).
-				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".total", 
+				body("'" + ReservedLabels.SPAM.getLabelId() + "'.total", 
 						equalTo((int) (spamCounters.getTotalMessages().longValue() + 1))).
-				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".new", 
+				body("'" + ReservedLabels.SPAM.getLabelId() + "'.new", 
 						equalTo((int) (spamCounters.getNewMessages().longValue() + 1))).
 			when().
 				get(REST_PATH + "/mailbox?metadata=true").asString();
@@ -694,11 +696,11 @@ public class RestIT
 		jsonResponse = 
 			expect().
 				statusCode(200).and().
-				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".new", 
+				body("'" + ReservedLabels.ALL_MAILS.getLabelId() + "'.new", 
 						equalTo((int) (allCounters.getNewMessages().longValue() - 1))).
-				body("\"" + ReservedLabels.INBOX.getLabelId() + "\".new", 
+				body("'" + ReservedLabels.INBOX.getLabelId() + "'.new", 
 						equalTo((int) (inboxCounters.getNewMessages().longValue() - 1))).
-				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".new", 
+				body("'" + ReservedLabels.SPAM.getLabelId() + "'.new", 
 						equalTo((int) (spamCounters.getNewMessages().longValue() - 1))).
 			when().
 				get(REST_PATH + "/mailbox?metadata=true").asString();
@@ -721,23 +723,23 @@ public class RestIT
 		jsonResponse = 
 			expect().
 				statusCode(200).and().
-				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".size", 
+				body("'" + ReservedLabels.ALL_MAILS.getLabelId() + "'.size", 
 						equalTo((int) (allCounters.getTotalBytes().longValue()))).
-				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".total", 
+				body("'" + ReservedLabels.ALL_MAILS.getLabelId() + "'.total", 
 						equalTo((int) (allCounters.getTotalMessages().longValue()))).
-				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".new", 
+				body("'" + ReservedLabels.ALL_MAILS.getLabelId() + "'.new", 
 						equalTo((int) (allCounters.getNewMessages().longValue()))).
-				body("\"" + ReservedLabels.INBOX.getLabelId() + "\".size", 
+				body("'" + ReservedLabels.INBOX.getLabelId() + "'.size", 
 						equalTo((int) (inboxCounters.getTotalBytes().longValue() - fileSizeA))).
-				body("\"" + ReservedLabels.INBOX.getLabelId() + "\".total", 
+				body("'" + ReservedLabels.INBOX.getLabelId() + "'.total", 
 						equalTo((int) (inboxCounters.getTotalMessages().longValue() - 1))).
-				body("\"" + ReservedLabels.INBOX.getLabelId() + "\".new", 
+				body("'" + ReservedLabels.INBOX.getLabelId() + "'.new", 
 						equalTo((int) (inboxCounters.getNewMessages().longValue()))).
-				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".size", 
+				body("'" + ReservedLabels.SPAM.getLabelId() + "'.size", 
 						equalTo((int) (spamCounters.getTotalBytes().longValue()))).
-				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".total", 
+				body("'" + ReservedLabels.SPAM.getLabelId() + "'.total", 
 						equalTo((int) (spamCounters.getTotalMessages().longValue()))).
-				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".new", 
+				body("'" + ReservedLabels.SPAM.getLabelId() + "'.new", 
 						equalTo((int) (spamCounters.getNewMessages().longValue()))).
 			when().
 				get(REST_PATH + "/mailbox?metadata=true").asString();
@@ -755,23 +757,23 @@ public class RestIT
 		jsonResponse = 
 			expect().
 				statusCode(200).and().
-				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".size", 
+				body("'" + ReservedLabels.ALL_MAILS.getLabelId() + "'.size", 
 						equalTo((int) (allCounters.getTotalBytes().longValue() + fileSizeB))).
-				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".total", 
+				body("'" + ReservedLabels.ALL_MAILS.getLabelId() + "'.total", 
 						equalTo((int) (allCounters.getTotalMessages().longValue() + 1))).
-				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".new", 
+				body("'" + ReservedLabels.ALL_MAILS.getLabelId() + "'.new", 
 						equalTo((int) (allCounters.getNewMessages().longValue() + 1))).
-				body("\"" + ReservedLabels.INBOX.getLabelId() + "\".size", 
+				body("'" + ReservedLabels.INBOX.getLabelId() + "'.size", 
 						equalTo((int) (inboxCounters.getTotalBytes().longValue()))).
-				body("\"" + ReservedLabels.INBOX.getLabelId() + "\".total", 
+				body("'" + ReservedLabels.INBOX.getLabelId() + "'.total", 
 						equalTo((int) (inboxCounters.getTotalMessages().longValue()))).
-				body("\"" + ReservedLabels.INBOX.getLabelId() + "\".new", 
+				body("'" + ReservedLabels.INBOX.getLabelId() + "'.new", 
 						equalTo((int) (inboxCounters.getNewMessages().longValue()))).
-				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".size", 
+				body("'" + ReservedLabels.SPAM.getLabelId() + "'.size", 
 						equalTo((int) (spamCounters.getTotalBytes().longValue() + fileSizeB))).
-				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".total", 
+				body("'" + ReservedLabels.SPAM.getLabelId() + "'.total", 
 						equalTo((int) (spamCounters.getTotalMessages().longValue() + 1))).
-				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".new", 
+				body("'" + ReservedLabels.SPAM.getLabelId() + "'.new", 
 						equalTo((int) (spamCounters.getNewMessages().longValue() + 1))).
 			when().
 				get(REST_PATH + "/mailbox?metadata=true").asString();
@@ -793,17 +795,17 @@ public class RestIT
 		jsonResponse = 
 			expect().
 				statusCode(200).and().
-				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".size", 
+				body("'" + ReservedLabels.ALL_MAILS.getLabelId() + "'.size", 
 						equalTo((int) (allCounters.getTotalBytes().longValue() - fileSizeA))).
-				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".total", 
+				body("'" + ReservedLabels.ALL_MAILS.getLabelId() + "'.total", 
 						equalTo((int) (allCounters.getTotalMessages().longValue() - 1))).
-				body("\"" + ReservedLabels.ALL_MAILS.getLabelId() + "\".new", 
+				body("'" + ReservedLabels.ALL_MAILS.getLabelId() + "'.new", 
 						equalTo((int) (allCounters.getNewMessages().longValue()))).
-				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".size", 
+				body("'" + ReservedLabels.SPAM.getLabelId() + "'.size", 
 						equalTo((int) (spamCounters.getTotalBytes().longValue() - fileSizeA))).
-				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".total", 
+				body("'" + ReservedLabels.SPAM.getLabelId() + "'.total", 
 						equalTo((int) (spamCounters.getTotalMessages().longValue() - 1))).
-				body("\"" + ReservedLabels.SPAM.getLabelId() + "\".new", 
+				body("'" + ReservedLabels.SPAM.getLabelId() + "'.new", 
 						equalTo((int) (spamCounters.getNewMessages().longValue()))).
 			when().
 				get(REST_PATH + "/mailbox?metadata=true").asString();
@@ -874,9 +876,9 @@ public class RestIT
 		LabelCounters lc = new LabelCounters();
 		String l = Integer.toString(labelId);
 
-		lc.setTotalBytes( (long) from(json).getInt("\"" + l + "\".size") );
-		lc.setNewMessages( (long) from(json).getInt("\"" + l + "\".new") );
-		lc.setTotalMessages( (long) from(json).getInt("\"" + l + "\".total") );
+		lc.setTotalBytes( (long) from(json).getInt("'" + l + "'.size") );
+		lc.setNewMessages( (long) from(json).getInt("'" + l + "'.new") );
+		lc.setTotalMessages( (long) from(json).getInt("'" + l + "'.total") );
 
 		return lc;
 	}

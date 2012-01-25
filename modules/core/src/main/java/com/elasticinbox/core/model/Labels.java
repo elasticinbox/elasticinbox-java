@@ -40,13 +40,14 @@ import org.codehaus.jackson.annotate.JsonValue;
  * new messages).
  * 
  * @author Rustam Aliyev
- * @see {@link Label}
  * @see {@link LabelCounters}
  */
 public class Labels
 {
 	/** Maximum label count per mailbox (including reserved labels) */
 	public final static int MAX_LABEL_ID = 9999;
+	public final static int MAX_LABEL_NAME_LENGTH = 250;
+	public final static String NESTED_LABEL_SEPARATOR = "/";
 
 	private Map<Integer, String> labels;
 	private Map<Integer, LabelCounters> counters;

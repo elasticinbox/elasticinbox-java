@@ -45,12 +45,14 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.core.Response.Status;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.common.utils.JSONUtils;
 import com.elasticinbox.core.DAOFactory;
+import com.elasticinbox.core.ExistingLabelException;
 import com.elasticinbox.core.IllegalLabelException;
 import com.elasticinbox.core.LabelDAO;
 import com.elasticinbox.core.MessageDAO;
@@ -146,6 +148,9 @@ public final class LabelResource
 			labelDAO.rename(mailbox, labelId, label);
 		} catch (IllegalLabelException ile) {
 			throw new BadRequestException(ile.getMessage());
+		} catch (ExistingLabelException ele) {
+			return Response.status(Status.CONFLICT).entity(ele.getMessage())
+					.type("text/plain").build();
 		} catch (Exception e) {
 			logger.error("Renaming label failed: ", e);
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
@@ -178,6 +183,9 @@ public final class LabelResource
 			newLabelId = labelDAO.add(mailbox, label);
 		} catch (IllegalLabelException ile) {
 			throw new BadRequestException(ile.getMessage());
+		} catch (ExistingLabelException ele) {
+			return Response.status(Status.CONFLICT).entity(ele.getMessage())
+					.type("text/plain").build();
 		} catch (Exception e) {
 			logger.error("Adding label failed", e);
 			throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);
