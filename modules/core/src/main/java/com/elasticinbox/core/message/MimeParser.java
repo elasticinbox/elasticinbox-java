@@ -28,9 +28,9 @@
 
 package com.elasticinbox.core.message;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -44,9 +44,7 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMessage.RecipientType;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.ParseException;
-import javax.mail.util.SharedByteArrayInputStream;
 
-import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,12 +53,17 @@ import com.elasticinbox.core.model.Address;
 import com.elasticinbox.core.model.AddressList;
 import com.elasticinbox.core.model.Message;
 import com.elasticinbox.core.model.MimePart;
-import com.sun.mail.util.BASE64DecoderStream;
-import com.sun.mail.util.QPDecoderStream;
+import com.google.common.io.CharStreams;
+import com.google.common.io.LimitInputStream;
 
 public final class MimeParser
 {
 	public final static String MIME_HEADER_SPAM = "X-Spam-Flag";
+
+	/** Read 100K if cannot parse body */ 
+	private final static int MAX_UNPARSED_PART_SIZE = 50 * 1024;
+	/** Used when encoding is unknown */
+	private final static String DEFAULT_ENCODING = "ISO-8859-1";
 	private static Properties props = new Properties();
 
 	private Message message;
@@ -182,11 +185,8 @@ public final class MimeParser
 				if (content instanceof MimeMultipart) {
 					mp = (MimeMultipart) content;
 				} else if ((content instanceof String)
-						|| (content instanceof BASE64DecoderStream)
-						|| (content instanceof QPDecoderStream)
-						|| (content instanceof MimeMessage)
-						|| (content instanceof ByteArrayInputStream)
-						|| (content instanceof SharedByteArrayInputStream)) {
+						|| (content instanceof InputStream)
+						|| (content instanceof MimeMessage)) {
 					in = mp.getBodyPart(localPartId).getInputStream();
 				} else {
 					// normally, we should never get here
@@ -248,15 +248,19 @@ public final class MimeParser
 		} catch (UnsupportedEncodingException uee) {
 			// TODO: make better handling of unsupported encodings, perhaps using jcharset detector
 			if (part.isMimeType("text/*")) {
-				// decode text as ISO-8859-1 for all unknown encodings
-				logger.error("Parser detected unsupported encoding: {}, will try decoding with ISO-8859-1", uee.getMessage());
+				// decode text using default encoding for all unknown encodings
+				logger.warn("Parser detected unsupported encoding: {}. Will try decoding with {}", uee.getMessage(), DEFAULT_ENCODING);
 				InputStream in = part.getInputStream();
-				content = IOUtils.toString(in, "ISO-8859-1");
+				content = CharStreams.toString(new InputStreamReader(in, DEFAULT_ENCODING));
 			} else {
-				logger.error("Parser detected unsupported encoding: {}. Don't know how to decode.", uee.getMessage());
-				textBody.append("Unknown Encoding. Unable to display message contents.");
-				return;
+				logger.error("Parser detected unsupported encoding: {}. Unparsed part will be used.", uee.getMessage());
+				content = readUnparsedPart(part.getInputStream());
 			}
+		} catch (Exception e) {
+			// Content-Type is malformed if we got here
+			logger.warn("Unable to parse Content-Type. Thrown by {}: {}. Unparsed part will be used.",
+					e.getClass(), e.getMessage());
+			content = readUnparsedPart(part.getInputStream());
 		}
 
 		logger.debug("Parsing part {} with mime type {}.",
@@ -305,11 +309,8 @@ public final class MimeParser
 				Part nextPart = multipart.getBodyPart(i);
 				parseMessagePart(nextPart, nextPartId.toString());
 			}
-		} else if ((content instanceof BASE64DecoderStream)
-				|| (content instanceof QPDecoderStream)
-				|| (content instanceof MimeMessage)
-				|| (content instanceof ByteArrayInputStream)
-				|| (content instanceof SharedByteArrayInputStream)) {
+		} else if ((content instanceof InputStream)
+				|| (content instanceof MimeMessage)) {
 			// binary, message/rfc822 or text attachment
 			message.addPart(partId, new MimePart(part));
 		} else {
@@ -341,4 +342,18 @@ public final class MimeParser
 		return new AddressList(addresses);
 	}
 
+	/**
+	 * Read unparsed part.
+	 * 
+	 * @param in
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 * @throws IOException
+	 */
+	private static String readUnparsedPart(InputStream in)
+			throws UnsupportedEncodingException, IOException
+	{
+		return CharStreams.toString(new InputStreamReader(new LimitInputStream(
+				in, MAX_UNPARSED_PART_SIZE), DEFAULT_ENCODING));
+	}
 }

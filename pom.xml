@@ -19,8 +19,8 @@
   </organization>
   <licenses>
     <license>
-      <name>GNU GPL 2</name>
-      <url>http://www.gnu.org/licenses/gpl-2.html</url>
+      <name>Modified BSD</name>
+      <url>https://github.com/elasticinbox/elasticinbox/blob/master/LICENSE</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
