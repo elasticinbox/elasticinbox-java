@@ -79,8 +79,8 @@ public final class CassandraAccountDAO implements AccountDAO
 		// Add predefined labels
 		for (Label l : ReservedLabels.getAll()) {
 			String labelKey = new StringBuilder(AccountPersistence.CN_LABEL_PREFIX).
-					append(l.getLabelId()).toString();
-			attributes.put(labelKey, l.getLabelName());
+					append(l.getId()).toString();
+			attributes.put(labelKey, l.getName());
 		}
 
 		AccountPersistence.set(mailbox.getId(), attributes);
@@ -103,7 +103,7 @@ public final class CassandraAccountDAO implements AccountDAO
 			do {
 				// get all message ids
 				messageIds = LabelIndexPersistence.get(mailbox.getId(),
-						ReservedLabels.ALL_MAILS.getLabelId(), start,
+						ReservedLabels.ALL_MAILS.getId(), start,
 						CassandraDAOFactory.MAX_COLUMNS_PER_REQUEST, true);
 	
 				// get all message headers

@@ -240,7 +240,7 @@ public class LmtpIT
 
 		// check latest message
 		String jsonResponse = given().
-			pathParam("labelId", ReservedLabels.INBOX.getLabelId()).
+			pathParam("labelId", ReservedLabels.INBOX.getId()).
 		expect().
 			statusCode(200).
 		when().

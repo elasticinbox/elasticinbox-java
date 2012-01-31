@@ -44,13 +44,13 @@ import org.codehaus.jackson.annotate.JsonValue;
  */
 public class Labels
 {
-	/** Maximum label count per mailbox (including reserved labels) */
-	public final static int MAX_LABEL_ID = 9999;
-	public final static int MAX_LABEL_NAME_LENGTH = 250;
-	public final static String NESTED_LABEL_SEPARATOR = "/";
-
 	private Map<Integer, String> labels;
 	private Map<Integer, LabelCounters> counters;
+	
+	private final static String JSON_NAME = "name";
+	private final static String JSON_SIZE = "size";
+	private final static String JSON_MESSAGES_TOTAL = "total";
+	private final static String JSON_MESSAGES_UNREAD = "new";
 
 	public Labels() {
 		labels = new HashMap<Integer, String>(1);
@@ -73,7 +73,7 @@ public class Labels
 	 * @param label
 	 */
 	public void add(Label label) {
-		labels.put(label.getLabelId(), label.getLabelName());
+		labels.put(label.getId(), label.getName());
 	}
 
 	/**
@@ -83,6 +83,17 @@ public class Labels
 	 */
 	public void add(Map<Integer, String> labels) {
 		this.labels.putAll(labels);
+	}
+	
+	/**
+	 * Get label name by ID
+	 * 
+	 * @param labelId
+	 * @return
+	 */
+	public String getName(int labelId) {
+		String name = labels.get(labelId);
+		return name;
 	}
 
 	/**
@@ -138,13 +149,18 @@ public class Labels
 	}
 
 	/**
-	 * Checks whether label with given name exists
-	 *  
+	 * Checks whether label with given name exists. Case insensitive.
+	 * 
 	 * @param labelName
 	 * @return
 	 */
-	public boolean containsName(String labelName) {
-		return labels.containsValue(labelName);
+	public boolean containsName(String labelName)
+	{
+		for (String v : labels.values()) {
+			if (v.equalsIgnoreCase(labelName))
+				return true;
+		}
+		return false;
 	}
 
 	/**
@@ -167,16 +183,16 @@ public class Labels
 		{
 			Integer labelId = label.getKey();
 			metadata.put(labelId, new HashMap<String, Object>(4));
-			metadata.get(labelId).put("name", label.getValue());
+			metadata.get(labelId).put(JSON_NAME, label.getValue());
 
 			if (counters.containsKey(labelId)) {
-				metadata.get(labelId).put("size", counters.get(labelId).getTotalBytes());
-				metadata.get(labelId).put("total",counters.get(labelId).getTotalMessages());
-				metadata.get(labelId).put("new",  counters.get(labelId).getNewMessages());
+				metadata.get(labelId).put(JSON_SIZE, counters.get(labelId).getTotalBytes());
+				metadata.get(labelId).put(JSON_MESSAGES_TOTAL, counters.get(labelId).getTotalMessages());
+				metadata.get(labelId).put(JSON_MESSAGES_UNREAD,counters.get(labelId).getNewMessages());
 			} else {
-				metadata.get(labelId).put("size", 0);
-				metadata.get(labelId).put("total", 0);
-				metadata.get(labelId).put("new", 0);
+				metadata.get(labelId).put(JSON_SIZE, 0);
+				metadata.get(labelId).put(JSON_MESSAGES_TOTAL, 0);
+				metadata.get(labelId).put(JSON_MESSAGES_UNREAD, 0);
 			}
 		}
 

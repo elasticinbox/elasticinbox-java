@@ -53,11 +53,11 @@ public final class Label
 		return labelId.hashCode();
 	}
 
-	public String getLabelName() {
+	public String getName() {
 		return labelName;
 	}
 
-	public Integer getLabelId() {
+	public Integer getId() {
 		return labelId;
 	}
 

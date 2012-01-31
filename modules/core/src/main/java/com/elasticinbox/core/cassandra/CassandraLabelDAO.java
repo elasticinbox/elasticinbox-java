@@ -88,9 +88,6 @@ public final class CassandraLabelDAO implements LabelDAO
 	@Override
 	public int add(final Mailbox mailbox, String label)
 	{
-		// enforce lowercase
-		label = label.toLowerCase();
-
 		// get all existing labels
 		Labels existingLabels = new Labels();
 		existingLabels.add(AccountPersistence.getLabels(mailbox.getId()));
@@ -125,14 +122,14 @@ public final class CassandraLabelDAO implements LabelDAO
 	public void rename(final Mailbox mailbox, final Integer labelId, String label)
 			throws IOException
 	{
-		// enforce lowercase
-		label = label.toLowerCase();
-
 		// get all existing labels
 		Labels existingLabels = new Labels();
 		existingLabels.add(AccountPersistence.getLabels(mailbox.getId()));
 
-		LabelUtils.validateLabelName(label, existingLabels);
+		// validate only if name is changed (skip for letter case changes) 
+		if (!existingLabels.getName(labelId).equalsIgnoreCase(label)) {
+			LabelUtils.validateLabelName(label, existingLabels);
+		}
 
 		// check if label id reserved
 		if(ReservedLabels.contains(labelId)) {

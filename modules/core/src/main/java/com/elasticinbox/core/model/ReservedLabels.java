@@ -50,20 +50,19 @@ public final class ReservedLabels
 	public final static Label IMPORTANT	= new Label(7, "important");
 	public final static Label NOTIFICATIONS	= new Label(8, "notifications");
 	public final static Label ATTACHMENTS	= new Label(9, "attachments");
-	public final static int MAX_RESERVED_LABEL_ID = 20;
 
 	private final static ImmutableMap<Integer, Label> labels = 
 			new ImmutableMap.Builder<Integer, Label>()
-				.put(ALL_MAILS.getLabelId(), ALL_MAILS)
-				.put(INBOX.getLabelId(), INBOX)
-				.put(DRAFTS.getLabelId(), DRAFTS)
-				.put(SENT.getLabelId(), SENT)
-				.put(TRASH.getLabelId(), TRASH)
-				.put(SPAM.getLabelId(), SPAM)
-				.put(STARRED.getLabelId(), STARRED)
-				.put(IMPORTANT.getLabelId(), IMPORTANT)
-				.put(NOTIFICATIONS.getLabelId(), NOTIFICATIONS)
-				.put(ATTACHMENTS.getLabelId(), ATTACHMENTS)
+				.put(ALL_MAILS.getId(), ALL_MAILS)
+				.put(INBOX.getId(), INBOX)
+				.put(DRAFTS.getId(), DRAFTS)
+				.put(SENT.getId(), SENT)
+				.put(TRASH.getId(), TRASH)
+				.put(SPAM.getId(), SPAM)
+				.put(STARRED.getId(), STARRED)
+				.put(IMPORTANT.getId(), IMPORTANT)
+				.put(NOTIFICATIONS.getId(), NOTIFICATIONS)
+				.put(ATTACHMENTS.getId(), ATTACHMENTS)
 				.build();
 
 	public static Label get(final int labelId) {

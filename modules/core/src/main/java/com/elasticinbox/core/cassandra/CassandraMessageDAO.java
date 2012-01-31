@@ -112,7 +112,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 		// Check quota
 		LabelCounters mailboxCounters = LabelCounterPersistence.get(
-				mailbox.getId(), ReservedLabels.ALL_MAILS.getLabelId());
+				mailbox.getId(), ReservedLabels.ALL_MAILS.getId());
 
 		long requiredBytes = mailboxCounters.getTotalBytes() + message.getSize();
 		long requiredCount = mailboxCounters.getTotalMessages() + 1;
@@ -152,7 +152,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		}
 
 		// automatically add "all" label to all new messages
-		message.addLabel(ReservedLabels.ALL_MAILS.getLabelId());
+		message.addLabel(ReservedLabels.ALL_MAILS.getId());
 
 		try {
 			// begin batch operation
@@ -308,7 +308,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			return;
 
 		// label "all" cannot be removed from message
-		if (labelIds.contains(ReservedLabels.ALL_MAILS.getLabelId()))
+		if (labelIds.contains(ReservedLabels.ALL_MAILS.getId()))
 			throw new IllegalLabelException("This label cannot be removed");
 
 		// build list of attributes

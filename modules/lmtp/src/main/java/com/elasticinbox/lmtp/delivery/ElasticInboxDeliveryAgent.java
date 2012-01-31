@@ -88,7 +88,7 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 		}
 
 		message.setSize((long) env.getSize()); // update message size
-		message.addLabel(ReservedLabels.INBOX.getLabelId()); // default location
+		message.addLabel(ReservedLabels.INBOX.getId()); // default location
 
 		logEnvelope(env, message, deliveryId);
 

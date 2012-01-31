@@ -54,9 +54,8 @@ import me.prettyprint.hector.api.query.MultigetSuperSliceCounterQuery;
 import me.prettyprint.hector.api.query.QueryResult;
 
 import com.elasticinbox.core.cassandra.CassandraDAOFactory;
+import com.elasticinbox.core.model.LabelConstants;
 import com.elasticinbox.core.model.LabelCounters;
-import com.elasticinbox.core.model.Labels;
-import com.elasticinbox.core.model.ReservedLabels;
 
 public final class LabelCounterPersistence
 {
@@ -77,13 +76,13 @@ public final class LabelCounterPersistence
 				new StringBuilder(CN_LABEL_PREFIX).append(0).toString();
 
 		Map<Integer, LabelCounters> result = 
-				new HashMap<Integer, LabelCounters>(ReservedLabels.MAX_RESERVED_LABEL_ID);
+				new HashMap<Integer, LabelCounters>(LabelConstants.MAX_RESERVED_LABEL_ID);
 
 		MultigetSuperSliceCounterQuery<String, String, String> q = 
 				createMultigetSuperSliceCounterQuery(keyspace, strSe, strSe, strSe);
 
 		q.setColumnFamily(CF_COUNTERS);
-		q.setRange(startColumnName, null, false, Labels.MAX_LABEL_ID);
+		q.setRange(startColumnName, null, false, LabelConstants.MAX_LABEL_ID);
 		q.setKeys(mailbox);
 
 		QueryResult<CounterSuperRows<String, String, String>> r = q.execute();
