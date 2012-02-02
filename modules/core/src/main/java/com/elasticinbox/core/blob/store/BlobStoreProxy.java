@@ -26,15 +26,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.elasticinbox.core.blob;
+package com.elasticinbox.core.blob.store;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.zip.DeflaterInputStream;
 
 import org.jclouds.Constants;
 import org.jclouds.blobstore.BlobStore;
@@ -65,24 +66,10 @@ import com.google.common.collect.ImmutableSet;
  * @see {@link BlobStoreContext}
  * @see <a href="http://www.jclouds.org/">jClouds</a>
  */
-public final class BlobProxy
+public final class BlobStoreProxy
 {
-	private final static Logger logger = 
-			LoggerFactory.getLogger(BlobProxy.class);
-
-	public static final String BLOB_URI_SCHEMA = "blob";
-
-	/**
-	 * Providers that are independently configurable. Currently invisible form jClouds.
-	 * 
-	 * @see <a href="http://code.google.com/p/jclouds/issues/detail?id=657" />
-	 */
-	public static final Set<String> BLOBSTORE_PROVIDERS = ImmutableSet.of("aws-s3",
-			"cloudfiles-us", "cloudfiles-uk", "azureblob", "atmos",
-			"synaptic-storage", "scaleup-storage", "cloudonestorage", "walrus",
-			"googlestorage", "ninefold-storage", "scality-rs2",
-			"hosteurope-storage", "tiscali-storage", "swift", "transient",
-			"filesystem", "eucalyptus-partnercloud-s3");
+	private static final Logger logger = 
+			LoggerFactory.getLogger(BlobStoreProxy.class);
 
 	private static final String PROVIDER_FILESYSTEM = "filesystem";
 	private static final String PROVIDER_TRANSIENT = "transient";
@@ -100,14 +87,15 @@ public final class BlobProxy
 	 * @param size
 	 *            Payload size in bytes
 	 * @return
+	 * @throws IOException 
 	 */
-	public static URI write(final String blobName, InputStream in, final Long size)
+	public static URI write(String blobName, InputStream in, final Long size) throws IOException
 	{
 		Assert.notNull(in, "No data to store");
 
-		URI uri = null;
-		String profileName = Configurator.getBlobStoreWriteProfileName(); 
-		String container = Configurator.getBlobStoreProfile(profileName).getContainer();
+		final String profileName = Configurator.getBlobStoreWriteProfileName(); 
+		final String container = Configurator.getBlobStoreProfile(profileName).getContainer();
+		final String provider = Configurator.getBlobStoreProfile(profileName).getProvider();
 		BlobStoreContext context = getBlobStoreContext(profileName);
 
 		logger.debug("Storing blob {} on {}", blobName, profileName);
@@ -115,12 +103,21 @@ public final class BlobProxy
 		BlobStore blobStore = context.getBlobStore();
 
 		// add blob
-		Blob blob = blobStore.blobBuilder(blobName).payload(in).contentLength(size).build();
+		Blob blob;
+
+		if ((size > BlobStoreConstants.MIN_COMPRESS_SIZE)
+				&& BlobStoreConstants.CHUNKED_ENCODING_CAPABILITY.contains(provider))
+		{
+			// compressed stream, size unknown
+			InputStream dis = new DeflaterInputStream(in);
+			blobName = blobName + BlobStoreConstants.COMPRESS_SUFFIX;
+			blob = blobStore.blobBuilder(blobName).payload(dis).build();
+		} else {
+			blob = blobStore.blobBuilder(blobName).payload(in).contentLength(size).build();
+		}
+
 		blobStore.putBlob(container, blob);
-
-		uri = buildURI(profileName, blobName);
-
-		return uri;
+		return buildURI(profileName, blobName);
 	}
 
 	/**
@@ -207,7 +204,7 @@ public final class BlobProxy
 		if(blobStoreContexts.containsKey(profileName)) {
 			return blobStoreContexts.get(profileName);
 		} else {
-			synchronized (BlobProxy.class)
+			synchronized (BlobStoreProxy.class)
 			{
 				logger.debug("Creating new connection for '{}' blob store.", profileName);
 
@@ -218,7 +215,7 @@ public final class BlobProxy
 					// use endpoint as fs basedir, see: http://code.google.com/p/jclouds/issues/detail?id=776
 					properties.setProperty(FilesystemConstants.PROPERTY_BASEDIR, profile.getEndpoint());
 					properties.setProperty(Constants.PROPERTY_CREDENTIAL, "dummy");
-				} else if (BLOBSTORE_PROVIDERS.contains(profile.getProvider())) {
+				} else if (BlobStoreConstants.BLOBSTORE_PROVIDERS.contains(profile.getProvider())) {
 					if (profile.getEndpoint() != null) {
 						properties.setProperty(
 								profile.getProvider() + ".endpoint", profile.getEndpoint());
@@ -262,7 +259,7 @@ public final class BlobProxy
 		String absolutePath = (path.charAt(0) == '/') ? path : "/" + path;
 
 		try {
-			return new URI(BLOB_URI_SCHEMA, profile, absolutePath, null);
+			return new URI(BlobStoreConstants.BLOB_URI_SCHEMA, profile, absolutePath, null);
 		} catch (URISyntaxException e) {
 			throw new IllegalArgumentException("Invalid blob profile or path: ", e);
 		}
@@ -274,7 +271,7 @@ public final class BlobProxy
 	 * @param path
 	 * @return
 	 */
-	private static String relativize(String path) {
+	public static String relativize(String path) {
 		String relativePath = (path.charAt(0) == '/') ? path.substring(1) : path;
 		return relativePath;
 	}

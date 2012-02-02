@@ -8,10 +8,11 @@ Export-Package: com.elasticinbox.core,\
 	com.elasticinbox.core.account.validator,\
 	com.elasticinbox.core.message,\
 	com.elasticinbox.core.message.id,\
+	com.elasticinbox.core.blob,\
 	com.elasticinbox.core.log
 
 Private-Package: com.elasticinbox.core.cassandra.persistence,\
-	com.elasticinbox.core.blob,\
+	com.elasticinbox.core.blob.store,\
 	com.elasticinbox.core.blob.naming,\
 	com.elasticinbox.core.cassandra
 

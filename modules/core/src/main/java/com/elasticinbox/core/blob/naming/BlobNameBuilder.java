@@ -30,6 +30,8 @@ package com.elasticinbox.core.blob.naming;
 
 import java.util.UUID;
 
+import com.elasticinbox.common.utils.Assert;
+import com.elasticinbox.core.blob.store.BlobStoreConstants;
 import com.elasticinbox.core.model.Mailbox;
 
 /**
@@ -67,6 +69,20 @@ public final class BlobNameBuilder
 	 * @return
 	 */
 	public String build() {
-		return uuidPolicy.getBlobName(this);
+		String name = uuidPolicy.getBlobName(this);
+		validateBlobName(name);
+		return name;
+	}
+
+	/**
+	 * Validate generated Blob name
+	 * 
+	 * @param name
+	 */
+	private final static void validateBlobName(String name) {
+		Assert.isFalse(
+				name.endsWith(BlobStoreConstants.COMPRESS_SUFFIX),
+				"This suffix is reserved for internal compression. Blob name should not end with "
+						+ BlobStoreConstants.COMPRESS_SUFFIX);
 	}
 }

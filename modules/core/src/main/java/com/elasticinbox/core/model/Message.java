@@ -38,7 +38,8 @@ import java.util.Set;
 
 import org.codehaus.jackson.annotate.JsonIgnore;
 
-import com.elasticinbox.core.blob.BlobProxy;
+import com.elasticinbox.core.blob.store.BlobStoreConstants;
+import com.elasticinbox.core.blob.store.BlobStoreProxy;
 
 /**
  * Representation of MIME message containing message headers, labels, markers,
@@ -158,7 +159,7 @@ public class Message
 
 	public void setLocation(URI uri)
 	{
-		if (uri.getScheme().equals(BlobProxy.BLOB_URI_SCHEMA)) {
+		if (uri.getScheme().equals(BlobStoreConstants.BLOB_URI_SCHEMA)) {
 			this.location = uri;
 		} else {
 			throw new IllegalArgumentException(
@@ -168,7 +169,7 @@ public class Message
 
 	public void setLocation(String profile, String path)
 	{
-		this.location = BlobProxy.buildURI(profile, path);
+		this.location = BlobStoreProxy.buildURI(profile, path);
 	}
 
 	public String getPlainBody() {

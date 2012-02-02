@@ -26,40 +26,72 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.elasticinbox.config;
+package com.elasticinbox.core.blob;
 
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.util.zip.InflaterInputStream;
 
-import com.elasticinbox.config.blob.BlobStoreProfile;
+import com.elasticinbox.core.blob.store.BlobStoreConstants;
+import com.elasticinbox.core.blob.store.BlobStoreProxy;
 
-public class Config
+/**
+ * This class builds Blob data source from the given URI. It provides methods
+ * for identifying and uncompressing compressed objects.
+ * 
+ * @author Rustam Aliyev
+ */
+public class BlobDataSource
 {
-	// Default quota settings
-	public Long mailbox_quota_bytes; // maximum mailbox size in bytes
-	public Long mailbox_quota_count; // maximum message count in mailbox
+	private final Boolean compressed;
+	private final URI blobUri;
+	
+	public BlobDataSource(URI uri) {
+		blobUri = uri;
+		compressed = uri.getPath().endsWith(BlobStoreConstants.COMPRESS_SUFFIX);
+	}
 
-	// JMX monitoring
-	public Boolean enable_performance_counters;
-	public Integer performance_counters_interval;
+	/**
+	 * Check if Blob is compressed. Compression is identified by Blob name
+	 * suffix.
+	 * 
+	 * @return
+	 */
+	public boolean isCompressed() {
+		return compressed;
+	}
 
-	// LMTP settings
-	public Integer lmtp_port;
-	public Integer lmtp_max_connections;
+	/**
+	 * Returns unprocessed Blob data. E.g. if compressed, Blob will be returned
+	 * as binary compressed data.
+	 * 
+	 * @return
+	 * @throws IOException
+	 */
+	public InputStream getInputStream() throws IOException {
+		return BlobStoreProxy.read(blobUri);
+	}
+	
+	/**
+	 * Uncompresses compressed Blobs. If not compressed, original Blob will be returned.
+	 * <p> 
+	 * Use this method if you want to ensure that data is always text.
+	 * 
+	 * @return
+	 * @throws IOException
+	 */
+	public InputStream getInflatedInputStream() throws IOException
+	{
+		if (compressed) {
+			return new InflaterInputStream(getInputStream());
+		} else {
+			return getInputStream();
+		}
+	}
 
-	// metadata storage settings
-	public String metadata_storage_driver;
-	public Boolean store_html_message;
-	public Boolean store_plain_message;
+	public String getName() {
+		return BlobStoreProxy.relativize(blobUri.getPath());
+	}
 
-	// Cassandra settings
-	public List<String> cassandra_hosts;
-	public Boolean cassandra_autodiscovery;
-	public String cassandra_cluster_name;
-	public String cassandra_keyspace;
-
-	// Blob store settings
-	public Map<String, BlobStoreProfile> blobstore_profiles;
-	public String blobstore_write_profile;
-	public Boolean blobstore_enable_compression;
 }

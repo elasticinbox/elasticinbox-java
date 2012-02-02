@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.Marker;
 import com.elasticinbox.core.model.Message;
@@ -66,7 +67,7 @@ public interface MessageDAO
 	 * @return
 	 * @throws IOException
 	 */
-	public InputStream getRaw(Mailbox mailbox, UUID messageId) throws IOException;
+	public BlobDataSource getRaw(Mailbox mailbox, UUID messageId) throws IOException;
 
 	/**
 	 * Store message metadata and source.

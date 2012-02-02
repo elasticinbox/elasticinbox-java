@@ -588,13 +588,28 @@ public class RestIT
 		when().
 			get(REST_PATH + "/mailbox/message/{messageId}/{contentId}");
 
-		// get raw message source
+		// get uncompressed raw message
+		// TODO: currently this tests does not validate size due to bug in RESTAssured.
+		//       see {@link http://code.google.com/p/rest-assured/issues/detail?id=154}
 		given().
+			header("Accept-Encoding", "none").
 			pathParam("messageId", messageId).
 		expect().
 			statusCode(200).and().
 			header("Content-Type", equalTo("text/plain")).
-			header("Content-Length", equalTo(String.valueOf(fileSize))).
+//			header("Content-Length", equalTo(String.valueOf(fileSize))).
+//			header("Content-Encoding", not(equalTo("deflate"))).
+		when().
+			get(REST_PATH + "/mailbox/message/{messageId}/raw");
+
+		// get compressed raw message
+		given().
+			header("Accept-Encoding", "deflate").
+			pathParam("messageId", messageId).
+		expect().
+			statusCode(200).and().
+			header("Content-Encoding", equalTo("deflate")).
+			header("Content-Type", equalTo("text/plain")).
 		when().
 			get(REST_PATH + "/mailbox/message/{messageId}/raw");
 	}

@@ -51,8 +51,9 @@ import com.elasticinbox.config.Configurator;
 import com.elasticinbox.core.IllegalLabelException;
 import com.elasticinbox.core.MessageDAO;
 import com.elasticinbox.core.OverQuotaException;
-import com.elasticinbox.core.blob.BlobProxy;
+import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.naming.BlobNameBuilder;
+import com.elasticinbox.core.blob.store.BlobStoreProxy;
 import com.elasticinbox.core.cassandra.persistence.LabelCounterPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelIndexPersistence;
 import com.elasticinbox.core.cassandra.persistence.Marshaller;
@@ -80,10 +81,11 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 	}
 
 	@Override
-	public InputStream getRaw(final Mailbox mailbox, final UUID messageId)
+	public BlobDataSource getRaw(final Mailbox mailbox, final UUID messageId)
 			throws IOException
 	{
-		return getBlobInputStream(mailbox, messageId);
+		Message metadata = MessagePersistence.fetch(mailbox.getId(), messageId, false);
+		return new BlobDataSource(metadata.getLocation());
 	}
 
 	@Override
@@ -139,7 +141,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 						.setMessageSize(message.getSize()).build();
 
 				// store message in blobstore
-				uri = BlobProxy.write(blobName, in, message.getSize());
+				uri = BlobStoreProxy.write(blobName, in, message.getSize());
 				
 				// update location in metadata
 				message.setLocation(uri);
@@ -174,7 +176,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 			// rollback
 			if (uri != null)
-				BlobProxy.delete(uri);
+				BlobStoreProxy.delete(uri);
 
 			throw new IOException("Unable to store message metadata: ", e);
 		}
@@ -384,7 +386,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 			// delete message sources from object store
 			for(UUID messageId : messages.keySet()) {
-				BlobProxy.delete(messages.get(messageId).getLocation());
+				BlobStoreProxy.delete(messages.get(messageId).getLocation());
 			}
 
 			// purge expired (older than age) messages
@@ -397,22 +399,6 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			m.execute();
 		}
 		while (purgeIndex.size() >= CassandraDAOFactory.MAX_COLUMNS_PER_REQUEST);
-	}
-
-	/**
-	 * Get blob contents
-	 * 
-	 * @param mailbox
-	 * @param messageId
-	 * @return
-	 * @throws IOException
-	 */
-	private InputStream getBlobInputStream(final Mailbox mailbox,
-			final UUID messageId) throws IOException
-	{
-		// fetch message metadata
-		Message metadata = MessagePersistence.fetch(mailbox.getId(), messageId, false);
-		return BlobProxy.read(metadata.getLocation());
 	}
 
 	/**

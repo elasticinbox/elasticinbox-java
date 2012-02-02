@@ -26,40 +26,48 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.elasticinbox.config;
+package com.elasticinbox.core.blob.store;
 
-import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
-import com.elasticinbox.config.blob.BlobStoreProfile;
+import com.google.common.collect.ImmutableSet;
 
-public class Config
+/**
+ * Blob store constants
+ * 
+ * @author Rustam Aliyev
+ */
+public final class BlobStoreConstants
 {
-	// Default quota settings
-	public Long mailbox_quota_bytes; // maximum mailbox size in bytes
-	public Long mailbox_quota_count; // maximum message count in mailbox
+	/** URI schema used to identify blobs. */
+	public static final String BLOB_URI_SCHEMA = "blob";
+	
+	/** This suffix used to differentiate compressed files from not compressed. */
+	public static final String COMPRESS_SUFFIX = ".dfl";
+	
+	/** Files smaller that this parameter should not be compressed. In bytes. */
+	public static final Integer MIN_COMPRESS_SIZE = 512;
 
-	// JMX monitoring
-	public Boolean enable_performance_counters;
-	public Integer performance_counters_interval;
+	/**
+	 * Providers that are independently configurable. Currently invisible form jClouds.
+	 * 
+	 * @see <a href="http://code.google.com/p/jclouds/issues/detail?id=657" />
+	 */
+	public static final Set<String> BLOBSTORE_PROVIDERS = ImmutableSet.of(
+			"aws-s3", "cloudfiles-us", "cloudfiles-uk", "azureblob", "atmos",
+			"synaptic-storage", "scaleup-storage", "cloudonestorage", "walrus",
+			"googlestorage", "ninefold-storage", "scality-rs2",
+			"hosteurope-storage", "tiscali-storage", "swift", "transient",
+			"filesystem", "eucalyptus-partnercloud-s3");
 
-	// LMTP settings
-	public Integer lmtp_port;
-	public Integer lmtp_max_connections;
-
-	// metadata storage settings
-	public String metadata_storage_driver;
-	public Boolean store_html_message;
-	public Boolean store_plain_message;
-
-	// Cassandra settings
-	public List<String> cassandra_hosts;
-	public Boolean cassandra_autodiscovery;
-	public String cassandra_cluster_name;
-	public String cassandra_keyspace;
-
-	// Blob store settings
-	public Map<String, BlobStoreProfile> blobstore_profiles;
-	public String blobstore_write_profile;
-	public Boolean blobstore_enable_compression;
+	/**
+	 * List of the providers supporting chunked/streamed data, where the size
+	 * needn't be known in advance.
+	 * <p>
+	 * This is temporary workaround. Final solution should utilise
+	 * {@link org.jclouds.blobstore.attr.BlobCapability} which is not currently
+	 * available.
+	 */
+	public static final Set<String> CHUNKED_ENCODING_CAPABILITY = ImmutableSet
+			.of("transient", "filesystem", "openstack");
 }

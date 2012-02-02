@@ -52,6 +52,12 @@ public class Assert
 		}
 	}
 
+	/**
+	 * Will throw {@link IllegalArgumentException} if expression is false.
+	 * 
+	 * @param b Boolean expression
+	 * @param message Exception message
+	 */
 	public static void isTrue(boolean b, String message)
 	{
 		if (!b) {
@@ -59,4 +65,16 @@ public class Assert
 		}
 	}
 
+	/**
+	 * Will throw {@link IllegalArgumentException} if expression is true.
+	 * 
+	 * @param b Boolean expression
+	 * @param message Exception message
+	 */
+	public static void isFalse(boolean b, String message)
+	{
+		if (b) {
+			throw new IllegalArgumentException(message);
+		}
+	}
 }

@@ -48,3 +48,6 @@ blobstore_profiles:
 # deafult profile to use for writing messages to blob storage
 # only one profile can be used for writing at the same time 
 blobstore_write_profile: itest
+
+# compress objets writted to the blob store
+blobstore_enable_compression: true

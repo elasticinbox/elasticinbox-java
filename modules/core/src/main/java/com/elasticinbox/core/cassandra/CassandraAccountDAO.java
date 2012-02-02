@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
 import com.elasticinbox.config.Configurator;
 import com.elasticinbox.core.AccountDAO;
 import com.elasticinbox.core.MessageDAO;
-import com.elasticinbox.core.blob.BlobProxy;
+import com.elasticinbox.core.blob.store.BlobStoreProxy;
 import com.elasticinbox.core.cassandra.persistence.AccountPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelCounterPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelIndexPersistence;
@@ -112,7 +112,7 @@ public final class CassandraAccountDAO implements AccountDAO
 	
 				// delete message sources from object store
 				for(UUID messageId : messages.keySet()) {
-					BlobProxy.delete(messages.get(messageId).getLocation());
+					BlobStoreProxy.delete(messages.get(messageId).getLocation());
 				}
 	
 				// set start element for the next loop

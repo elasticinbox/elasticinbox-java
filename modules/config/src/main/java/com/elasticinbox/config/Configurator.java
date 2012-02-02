@@ -208,5 +208,13 @@ public class Configurator
 	public static String getBlobStoreWriteProfileName() {
 		return conf.blobstore_write_profile;
 	}
-	
+
+	/**
+	 * Compress BLOB before writing to the object store
+	 * 
+	 * @return
+	 */
+	public static Boolean isBlobStoreCompressionEnabled() {
+		return conf.blobstore_enable_compression;
+	}
 }

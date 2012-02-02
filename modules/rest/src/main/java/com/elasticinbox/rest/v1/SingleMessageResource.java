@@ -45,6 +45,7 @@ import javax.mail.internet.MimeUtility;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -53,10 +54,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +68,7 @@ import com.elasticinbox.core.DAOFactory;
 import com.elasticinbox.core.IllegalLabelException;
 import com.elasticinbox.core.MessageDAO;
 import com.elasticinbox.core.OverQuotaException;
+import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.message.MimeParser;
 import com.elasticinbox.core.message.MimeParserException;
 import com.elasticinbox.core.message.id.MessageIdBuilder;
@@ -172,18 +174,28 @@ public final class SingleMessageResource
 	@GET
 	@Path("raw")
 	@Produces(MediaType.TEXT_PLAIN)
-	public Response getOriginalMessage(
+	public Response getRawMessage(
+			@HeaderParam(HttpHeaders.ACCEPT_ENCODING) String acceptEncoding,
 			@PathParam("account") final String account,
 			@PathParam("messageid") final UUID messageId)
 	{
 		Mailbox mailbox = new Mailbox(account);
 
-		// Create input pipe
-		//PipedInputStream in = new PipedInputStream();
-    	InputStream in = null;
+		Response response;
 
 		try {
-			in = messageDAO.getRaw(mailbox, messageId);
+			BlobDataSource blobDS = messageDAO.getRaw(mailbox, messageId);
+
+			if (acceptEncoding != null && acceptEncoding.contains("deflate")
+					&& blobDS.isCompressed())
+			{
+				response = Response
+						.ok(blobDS.getInputStream(), MediaType.TEXT_PLAIN)
+						.header(HttpHeaders.CONTENT_ENCODING, "deflate").build();
+			} else {
+				response = Response.ok(blobDS.getInflatedInputStream(),
+						MediaType.TEXT_PLAIN).build();
+			}
 		} catch (IllegalArgumentException iae) {
 			throw new BadRequestException(iae.getMessage());
 		} catch (Exception e) {
@@ -191,9 +203,7 @@ public final class SingleMessageResource
 			throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);
 		}
 
-		return Response.ok(in, MediaType.TEXT_PLAIN)
-				//.header("Content-Encoding", "deflate")
-				.build();
+		return response;
 	}
 
 	/**
@@ -250,7 +260,7 @@ public final class SingleMessageResource
 		MimePart part = null;
 
 		try {
-			rawIn = messageDAO.getRaw(mailbox, messageId);
+			rawIn = messageDAO.getRaw(mailbox, messageId).getInflatedInputStream();
 			MimeParser mimeParser = new MimeParser();
 			mimeParser.parse(rawIn);
 			part = mimeParser.getMessage().getPart(partId);
@@ -295,7 +305,7 @@ public final class SingleMessageResource
 		MimePart part = null;
 
 		try {
-			rawIn = messageDAO.getRaw(mailbox, messageId);
+			rawIn = messageDAO.getRaw(mailbox, messageId).getInflatedInputStream();
 			MimeParser mimeParser = new MimeParser();
 			mimeParser.parse(rawIn);
 			part = mimeParser.getMessage().getPartByContentId(contentId);
