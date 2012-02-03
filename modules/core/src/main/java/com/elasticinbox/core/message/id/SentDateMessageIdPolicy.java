@@ -35,42 +35,50 @@ import com.elasticinbox.common.utils.Assert;
 import me.prettyprint.cassandra.utils.TimeUUIDUtils;
 
 /**
- * Generates unique message ID based on the time when message was sent, assuring
- * a uniqueness within and across threads.
+ * Generates message ID based on the time when message was sent.
+ * <p>
+ * <b>WARNING:</b> This implementation does not guarantee uniqueness.
  * 
  * @author Rustam Aliyev
- * @see {@link me.prettyprint.cassandra.service.clock.MicrosecondsSyncClockResolution}
  */
 public final class SentDateMessageIdPolicy extends AbstractMessageIdPolicy
 {
 	/** The last time value issued. Used to try to prevent duplicates. */
 	private static long lastTime = -1;
-	private static final long ONE_THOUSAND = 1000L;
 
 	@Override
 	protected UUID getMessageId(MessageIdBuilder builder)
 	{
 		Assert.notNull(builder.sentDate, "sent date cannot be null");
 
-		// Message date has granularity of seconds. The following simulates a
-		// microseconds resolution by advancing a static counter every time a
-		// client calls the getMessageId method, simulating a tick.
+		// The following advances mail time by a milliseconds of current time
 
-		long us = builder.sentDate.getTime() * ONE_THOUSAND;
-
+		// Counter should be checked against current time 
+		long currentUs = System.currentTimeMillis();
+		
+		// Message date has granularity of seconds. Delta adds milliseconds of
+		// current time.
+		long emailUs = builder.sentDate.getTime();
+		long delta = 0;
+		
 		// Synchronized to guarantee unique time within and across threads.
 		synchronized (SentDateMessageIdPolicy.class)
 		{
-			if (us > lastTime) {
-				lastTime = us;
+			if (currentUs > lastTime) {
+				lastTime = currentUs;
 			} else {
 				// the time i got from the system is equals or less
 				// (hope not - clock going backwards)
-				// One more "microsecond"
-				us = ++lastTime;
+				// One more "millisecond"
+				++lastTime;
 			}
+
+			// Get ms from the static counter
+			delta = lastTime % 1000L;
 		}
 
-		return TimeUUIDUtils.getTimeUUID(us);
+		// Append ms to the message date
+		emailUs += delta;
+		return TimeUUIDUtils.getTimeUUID(emailUs);
 	}
 }

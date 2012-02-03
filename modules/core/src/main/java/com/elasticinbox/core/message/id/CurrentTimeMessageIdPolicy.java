@@ -33,40 +33,16 @@ import java.util.UUID;
 import me.prettyprint.cassandra.utils.TimeUUIDUtils;
 
 /**
- * Generates unique message ID based on the current timestamp assuring a
- * uniqueness within and across threads.
+ * Generates unique message ID based on the current time.
  * 
  * @author Rustam Aliyev
- * @see {@link me.prettyprint.cassandra.service.clock.MicrosecondsSyncClockResolution}
  */
 public final class CurrentTimeMessageIdPolicy extends AbstractMessageIdPolicy
 {
-	/** The last time value issued. Used to try to prevent duplicates. */
-	private static long lastTime = -1;
-	private static final long ONE_THOUSAND = 1000L;
-
 	@Override
 	protected UUID getMessageId(MessageIdBuilder builder)
 	{
-		// The following simulates a microseconds resolution by advancing a
-		// static counter every time a client calls the getMessageId method,
-		// simulating a tick.
-		long us = System.currentTimeMillis() * ONE_THOUSAND;
-
-		// Synchronized to guarantee unique time within and across threads.
-		synchronized (CurrentTimeMessageIdPolicy.class)
-		{
-			if (us > lastTime) {
-				lastTime = us;
-			} else {
-				// the time i got from the system is equals or less
-				// (hope not - clock going backwards)
-				// One more "microsecond"
-				us = ++lastTime;
-			}
-		}
-
-		return TimeUUIDUtils.getTimeUUID(us);
+		return TimeUUIDUtils.getUniqueTimeUUIDinMillis();
 	}
 
 }

@@ -108,7 +108,7 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 				case DELIVER:
 					try {
 						// generate new UUID
-						UUID messageId = new MessageIdBuilder().setSentDate(message.getDate()).build();
+						UUID messageId = new MessageIdBuilder().build();
 
 						// store message
 						messageDAO.put(mailbox, messageId, message, env.getMessageInputStream());
