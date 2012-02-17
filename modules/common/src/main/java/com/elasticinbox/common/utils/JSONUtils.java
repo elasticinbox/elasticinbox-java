@@ -103,7 +103,7 @@ public class JSONUtils
     {
 		JSON_MAPPER.configure(Feature.WRITE_NULL_MAP_VALUES, false);
 		JSON_MAPPER.configure(Feature.WRITE_DATES_AS_TIMESTAMPS, false);
-		JSON_MAPPER.getSerializationConfig().setSerializationInclusion(Inclusion.NON_NULL);
+		JSON_MAPPER.getSerializationConfig().withSerializationInclusion(Inclusion.NON_NULL);
 		//JSON_MAPPER.getSerializationConfig().setDateFormat(myDateFormat);
 
         try {
