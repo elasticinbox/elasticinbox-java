@@ -58,6 +58,7 @@ import com.elasticinbox.core.LabelDAO;
 import com.elasticinbox.core.MessageDAO;
 import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.rest.BadRequestException;
+import com.elasticinbox.rest.RESTApplicationException;
 
 /**
  * This JAX-RS resource is responsible for managing mailbox labels.
@@ -149,8 +150,7 @@ public final class LabelResource
 		} catch (IllegalLabelException ile) {
 			throw new BadRequestException(ile.getMessage());
 		} catch (ExistingLabelException ele) {
-			return Response.status(Status.CONFLICT).entity(ele.getMessage())
-					.type("text/plain").build();
+			throw new RESTApplicationException(Status.CONFLICT, ele.getMessage());
 		} catch (Exception e) {
 			logger.error("Renaming label failed: ", e);
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
@@ -184,8 +184,7 @@ public final class LabelResource
 		} catch (IllegalLabelException ile) {
 			throw new BadRequestException(ile.getMessage());
 		} catch (ExistingLabelException ele) {
-			return Response.status(Status.CONFLICT).entity(ele.getMessage())
-					.type("text/plain").build();
+			throw new RESTApplicationException(Status.CONFLICT, ele.getMessage());
 		} catch (Exception e) {
 			logger.error("Adding label failed", e);
 			throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);

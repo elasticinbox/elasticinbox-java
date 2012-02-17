@@ -28,19 +28,32 @@
 
 package com.elasticinbox.rest;
 
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import com.elasticinbox.common.utils.JSONUtils;
+import com.google.common.collect.ImmutableMap;
+
 /**
- * Throws "400 Bad Request" REST exception
- *
+ * Throws REST exception with given status code and message. Message will be
+ * wrapped in JSON object.
+ * 
  * @author Rustam Aliyev
  */
-public class BadRequestException extends RESTApplicationException
+public class RESTApplicationException extends WebApplicationException
 {
 	private static final long serialVersionUID = 5728319121775424046L;
 
-	public BadRequestException(String message) {
-		super(Status.BAD_REQUEST, message);
+	public RESTApplicationException(Status status, String message)
+	{
+		super(Response
+				.status(status)
+				.entity(JSONUtils
+						.fromObject(new ImmutableMap.Builder<String, String>()
+								.put("message", message).build()))
+				.type(MediaType.APPLICATION_JSON).build());
 	}
 
 }
