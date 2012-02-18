@@ -111,7 +111,7 @@
 		<scope>provided</scope>
 	</dependency>
 	<dependency>
-		<groupId>org.jboss.netty</groupId>
+		<groupId>io.netty</groupId>
 		<artifactId>netty</artifactId>
 		<version>${bundle.netty.version}</version>
 		<type>bundle</type>

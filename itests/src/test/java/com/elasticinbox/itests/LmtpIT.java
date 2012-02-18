@@ -86,7 +86,7 @@ import com.elasticinbox.core.model.ReservedLabels;
 public class LmtpIT
 {
 	private static final String TEST_ACCOUNT = "test@elasticinbox.com";
-	private static final String REST_PATH = "/rest/v1/" + TEST_ACCOUNT;
+	private static final String REST_PATH = "/rest/v2/elasticinbox.com/test";
 //	private static final String EMAIL_LARGE_ATT = "/01-attach-utf8.eml";
 	private static final String EMAIL_REGULAR = "/01-headers-utf8.eml";
 
@@ -152,7 +152,7 @@ public class LmtpIT
 				mavenBundle().groupId("org.apache.james.protocols").artifactId("protocols-api").versionAsInProject(),
 				mavenBundle().groupId("org.apache.james.protocols").artifactId("protocols-smtp").versionAsInProject(),
 				mavenBundle().groupId("org.apache.james.protocols").artifactId("protocols-lmtp").versionAsInProject(),
-				mavenBundle().groupId("org.jboss.netty").artifactId("netty").versionAsInProject(),
+				mavenBundle().groupId("io.netty").artifactId("netty").versionAsInProject(),
 
 				// ElasticInbox Bundles
 				mavenBundle().groupId("com.googlecode.guava-osgi").artifactId("guava-osgi").versionAsInProject(),
