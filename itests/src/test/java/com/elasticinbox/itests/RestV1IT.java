@@ -76,7 +76,7 @@ import com.jayway.restassured.response.Response;
  */
 @RunWith(JUnit4TestRunner.class)
 @ExamReactorStrategy(EagerSingleStagedReactorFactory.class)
-public class RestIT
+public class RestV1IT
 {
 	private static final String TEST_ACCOUNT = "test@elasticinbox.com";
 	private static final String REST_PATH = "/rest/v1/" + TEST_ACCOUNT;
@@ -84,7 +84,7 @@ public class RestIT
 	private static final String EMAIL_REGULAR = "/01-headers-utf8.eml";
 
 	private final static Logger logger = 
-			LoggerFactory.getLogger(RestIT.class);
+			LoggerFactory.getLogger(RestV1IT.class);
 
 	@Configuration()
 	public Option[] config()
@@ -161,7 +161,7 @@ public class RestIT
 	{
 		createContainer(
 				createTestSystem(
-						combine(new RestIT().config(), profile("gogo")))).start();
+						combine(new RestV1IT().config(), profile("gogo")))).start();
 	}
 
 	@BeforeClass

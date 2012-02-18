@@ -4,7 +4,7 @@
         <listener-class>com.elasticinbox.rest.WebAppContextListener</listener-class>
     </listener>
     <servlet>
-        <servlet-name>Jersey Web Application</servlet-name>
+        <servlet-name>ElasticInbox REST APIv1</servlet-name>
         <servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class>
         <init-param>
             <param-name>com.sun.jersey.config.property.resourceConfigClass</param-name>
@@ -26,8 +26,35 @@
         </init-param>
         <load-on-startup>1</load-on-startup>
     </servlet>
+    <servlet>
+        <servlet-name>ElasticInbox REST APIv2</servlet-name>
+        <servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class>
+        <init-param>
+            <param-name>com.sun.jersey.config.property.resourceConfigClass</param-name>
+            <param-value>com.sun.jersey.api.core.ClassNamesResourceConfig</param-value>
+        </init-param>
+        <init-param>
+            <param-name>com.sun.jersey.config.property.classnames</param-name>
+            <param-value>
+            	com.elasticinbox.rest.v2.MailboxResource;
+            	com.elasticinbox.rest.v2.AccountResource;
+            	com.elasticinbox.rest.v2.LabelResource;
+            	com.elasticinbox.rest.v2.MessageResource;
+            	com.elasticinbox.rest.v2.SingleMessageResource
+            </param-value>
+        </init-param>
+        <init-param>
+            <param-name>com.sun.jersey.spi.container.ContainerResponseFilters</param-name>
+            <param-value>com.elasticinbox.rest.CharsetResponseFilter</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
     <servlet-mapping>
-        <servlet-name>Jersey Web Application</servlet-name>
+        <servlet-name>ElasticInbox REST APIv1</servlet-name>
         <url-pattern>/v1/*</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ElasticInbox REST APIv2</servlet-name>
+        <url-pattern>/v2/*</url-pattern>
     </servlet-mapping>
 </web-app>

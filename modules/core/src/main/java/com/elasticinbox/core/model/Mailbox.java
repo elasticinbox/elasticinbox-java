@@ -42,6 +42,11 @@ public final class Mailbox
 {
 	private final String id;
 
+	/**
+	 * Build Mailbox object from email
+	 * 
+	 * @param email
+	 */
 	public Mailbox(String email)
 	{
 		isEmailAddress(email, "Mailbox ID should be valid RFC5322 email address");
@@ -50,6 +55,17 @@ public final class Mailbox
 		this.id = email.toLowerCase();
 
 		//TODO: add support for mailbox aliasing
+	}
+
+	/**
+	 * Build Mailbox from user name and domain name
+	 * 
+	 * @param user User name
+	 * @param domain Domain name
+	 */
+	public Mailbox(String user, String domain)
+	{
+		this(new StringBuilder(user).append("@").append(domain).toString());
 	}
 
 	/**
