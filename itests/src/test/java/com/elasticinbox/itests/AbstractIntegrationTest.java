@@ -51,12 +51,12 @@ public abstract class AbstractIntegrationTest
 				systemProperty("org.ops4j.pax.logging.DefaultServiceLog.level").value("INFO"),
 	
 				// PAX Exam Bundles
-				mavenBundle().groupId("org.mortbay.jetty").artifactId("servlet-api").version("2.5-20110124"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-api").version("1.0.7"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-spi").version("1.0.7"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-jetty-bundle").version("1.0.7"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-extender-war").version("1.0.7"),
-				
+				mavenBundle().groupId("org.mortbay.jetty").artifactId("servlet-api").versionAsInProject(),
+				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-api").versionAsInProject(),
+				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-spi").versionAsInProject(),
+				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-jetty-bundle").versionAsInProject(),
+				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-extender-war").versionAsInProject(),
+
 				// Logging
 				mavenBundle().groupId("ch.qos.logback").artifactId("logback-core").versionAsInProject(),
 				mavenBundle().groupId("ch.qos.logback").artifactId("logback-classic").versionAsInProject(),
@@ -64,7 +64,7 @@ public abstract class AbstractIntegrationTest
 				// REST-Assured Bundles
 				wrappedBundle(mavenBundle().groupId("com.jayway.restassured").artifactId("rest-assured").versionAsInProject()).
 					imports("org.apache.http.impl.conn,org.apache.http.impl.client,org.apache.commons.lang3,org.apache.commons.lang3.math,org.codehaus.jackson.map,groovy.lang,org.hamcrest,*"),
-				wrappedBundle(mavenBundle().groupId("org.hamcrest").artifactId("hamcrest-all").version("1.1")),
+				wrappedBundle(mavenBundle().groupId("org.hamcrest").artifactId("hamcrest-all").versionAsInProject()),
 				mavenBundle().groupId("org.codehaus.groovy").artifactId("groovy-all").version("1.8.6"),
 				mavenBundle().groupId("org.apache.commons").artifactId("commons-lang3").version("3.1"),
 				mavenBundle().groupId("commons-collections").artifactId("commons-collections").version("3.2.1"),
@@ -87,7 +87,8 @@ public abstract class AbstractIntegrationTest
 				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.java-xmlbuilder").versionAsInProject(),
 				mavenBundle().groupId("com.google.inject.extensions").artifactId("guice-assistedinject").versionAsInProject(),
 				mavenBundle().groupId("com.google.code.gson").artifactId("gson").versionAsInProject(),
-	
+				mavenBundle("org.99soft.guice", "rocoto", "6.1"),
+
 				// ElasticInbox Bundles
 				mavenBundle().groupId("com.googlecode.guava-osgi").artifactId("guava-osgi").versionAsInProject(),
 				mavenBundle().groupId("org.codehaus.jackson").artifactId("jackson-core-asl").versionAsInProject(),

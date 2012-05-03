@@ -201,6 +201,34 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<!-- PAX Web/WAR Jetty -->
+		<dependency>
+			<groupId>org.mortbay.jetty</groupId>
+			<artifactId>servlet-api</artifactId>
+			<version>${bundle.servlet-api.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.ops4j.pax.web</groupId>
+			<artifactId>pax-web-extender-war</artifactId>
+			<version>${bundle.paxweb.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.ops4j.pax.web</groupId>
+			<artifactId>pax-web-api</artifactId>
+			<version>${bundle.paxweb.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.ops4j.pax.web</groupId>
+			<artifactId>pax-web-spi</artifactId>
+			<version>${bundle.paxweb.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.ops4j.pax.web</groupId>
+			<artifactId>pax-web-jetty-bundle</artifactId>
+			<version>${bundle.paxweb.version}</version>
+		</dependency>
+
 		<!-- Jclouds Dependencies -->
 		<dependency>
 			<groupId>org.jclouds</groupId>

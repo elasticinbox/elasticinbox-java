@@ -179,7 +179,7 @@
 			<type>bundle</type>
 			<scope>provided</scope>
 		</dependency>
-<!-- 
+<!-- Uncomment for OpenStack Swift
 		<dependency>
 			<groupId>org.jclouds.common</groupId>
 			<artifactId>openstack-common</artifactId>
@@ -262,6 +262,12 @@
 			<groupId>com.google.inject.extensions</groupId>
 			<artifactId>guice-assistedinject</artifactId>
 			<version>${bundle.guice.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.99soft.guice</groupId>
+			<artifactId>rocoto</artifactId>
+			<version>6.1</version>
 			<scope>provided</scope>
 		</dependency>
 
