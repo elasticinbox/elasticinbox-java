@@ -28,16 +28,9 @@
 
 package com.elasticinbox.itests;
 
-import static org.ops4j.pax.exam.CoreOptions.*;
-import static org.ops4j.pax.exam.OptionUtils.combine;
-import static org.ops4j.pax.exam.spi.PaxExamRuntime.createTestSystem;
-import static org.ops4j.pax.exam.spi.PaxExamRuntime.createContainer;
-
 import static org.hamcrest.Matchers.*;
 import static com.jayway.restassured.RestAssured.*;
 import static com.jayway.restassured.path.json.JsonPath.*;
-
-import groovyx.net.http.ContentType;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,26 +40,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.ops4j.pax.exam.Option;
-import org.ops4j.pax.exam.TimeoutException;
-import org.ops4j.pax.exam.junit.Configuration;
 import org.ops4j.pax.exam.junit.ExamReactorStrategy;
 import org.ops4j.pax.exam.junit.JUnit4TestRunner;
 import org.ops4j.pax.exam.spi.reactors.EagerSingleStagedReactorFactory;
-import org.osgi.framework.Bundle;
-import org.osgi.framework.BundleContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.core.model.LabelConstants;
 import com.elasticinbox.core.model.LabelCounters;
 import com.elasticinbox.core.model.Marker;
 import com.elasticinbox.core.model.ReservedLabels;
 import com.google.common.io.ByteStreams;
+import com.jayway.restassured.http.ContentType;
 import com.jayway.restassured.response.Response;
 
 /**
@@ -76,126 +61,19 @@ import com.jayway.restassured.response.Response;
  */
 @RunWith(JUnit4TestRunner.class)
 @ExamReactorStrategy(EagerSingleStagedReactorFactory.class)
-public class RestV2IT
+public class RestV2IT extends AbstractIntegrationTest
 {
-	//private static final String TEST_ACCOUNT = "test@elasticinbox.com";
-	private static final String REST_PATH = "/rest/v2/elasticinbox.com/test";
-	private static final String EMAIL_LARGE_ATT = "/01-attach-utf8.eml";
-	private static final String EMAIL_REGULAR = "/01-headers-utf8.eml";
-
-	private final static Logger logger = 
-			LoggerFactory.getLogger(RestV2IT.class);
-
-	@Configuration()
-	public Option[] config()
-	{
-		return options(
-				//junitBundles(),
-				felix(),
-				workingDirectory("target/paxrunner/"),
-				repository("https://repository.apache.org/snapshots/").allowSnapshots(),
-
-				// Configs
-				systemProperty("elasticinbox.config").value("../test-classes/elasticinbox.yaml"),
-				systemProperty("org.ops4j.pax.logging.DefaultServiceLog.level").value("INFO"),
-
-				// PAX Exam Bundles
-				mavenBundle().groupId("org.mortbay.jetty").artifactId("servlet-api").version("2.5-20110124"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-api").version("1.0.7"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-spi").version("1.0.7"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-jetty-bundle").version("1.0.7"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-extender-war").version("1.0.7"),
-				
-				// Logging
-				mavenBundle().groupId("ch.qos.logback").artifactId("logback-core").versionAsInProject(),
-				mavenBundle().groupId("ch.qos.logback").artifactId("logback-classic").versionAsInProject(),
-
-				// REST-Assured Bundles
-				wrappedBundle(mavenBundle().groupId("com.jayway.restassured").artifactId("rest-assured").versionAsInProject()),
-				wrappedBundle(mavenBundle().groupId("org.codehaus.groovy.modules.http-builder").artifactId("http-builder").version("0.5.2")),
-				wrappedBundle(mavenBundle().groupId("org.hamcrest").artifactId("hamcrest-all").version("1.1")),
-				wrappedBundle(mavenBundle().groupId("xml-resolver").artifactId("xml-resolver").version("1.2")),
-				wrappedBundle(mavenBundle().groupId("net.sf.ezmorph").artifactId("ezmorph").version("1.0.6")),
-				wrappedBundle(mavenBundle().groupId("net.sf.json-lib").artifactId("json-lib").version("2.4").classifier("jdk15")),
-				wrappedBundle(mavenBundle().groupId("net.sourceforge.nekohtml").artifactId("nekohtml").version("1.9.15")),
-				wrappedBundle(mavenBundle().groupId("xerces").artifactId("xercesImpl").version("2.9.1")),
-				mavenBundle().groupId("org.codehaus.groovy").artifactId("groovy-all").version("1.7.10"),
-				//mavenBundle().groupId("commons-lang").artifactId("commons-lang").version("2.6"),
-				mavenBundle().groupId("commons-beanutils").artifactId("commons-beanutils").version("1.8.3"),
-				mavenBundle().groupId("commons-collections").artifactId("commons-collections").version("3.2.1"),
-				mavenBundle().groupId("org.apache.httpcomponents").artifactId("httpcore-osgi").version("4.1.2"),
-				mavenBundle().groupId("org.apache.httpcomponents").artifactId("httpclient-osgi").version("4.1.2"),
-
-				// jClouds and dependencies
-				mavenBundle().groupId("com.google.inject").artifactId("guice").versionAsInProject(),
-				mavenBundle().groupId("org.jclouds").artifactId("jclouds-core").versionAsInProject(),
-				mavenBundle().groupId("org.jclouds").artifactId("jclouds-blobstore").versionAsInProject(),
-				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.aopalliance").versionAsInProject(),
-				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.commons-io").versionAsInProject(),
-				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.commons-lang").versionAsInProject(),
-				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.javax-inject").versionAsInProject(),
-				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.oauth-commons").versionAsInProject(),
-				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.java-xmlbuilder").versionAsInProject(),
-				mavenBundle().groupId("com.google.inject.extensions").artifactId("guice-assistedinject").versionAsInProject(),
-				mavenBundle().groupId("com.google.code.gson").artifactId("gson").versionAsInProject(),
-
-				// ElasticInbox Bundles
-				mavenBundle().groupId("com.googlecode.guava-osgi").artifactId("guava-osgi").versionAsInProject(),
-				mavenBundle().groupId("org.codehaus.jackson").artifactId("jackson-core-asl").versionAsInProject(),
-				mavenBundle().groupId("org.codehaus.jackson").artifactId("jackson-mapper-asl").versionAsInProject(),
-				mavenBundle().groupId("org.codehaus.jackson").artifactId("jackson-jaxrs").versionAsInProject(),
-				mavenBundle().groupId("com.ning").artifactId("compress-lzf").versionAsInProject(),
-				mavenBundle().groupId("com.sun.jersey").artifactId("jersey-core").versionAsInProject(),
-				mavenBundle().groupId("com.sun.jersey").artifactId("jersey-server").versionAsInProject(),
-				mavenBundle().groupId("com.sun.jersey").artifactId("jersey-servlet").versionAsInProject(),
-				mavenBundle().groupId("javax.mail").artifactId("mail").versionAsInProject(),
-				scanDir("../bundles/com.ecyrd.speed4j/target/"),
-				scanDir("../modules/common/target/"),
-				scanDir("../modules/config/target/"),
-				scanDir("../modules/core/target/"),
-				scanDir("../modules/rest/target/")
-		);
-	}
-
-	public static void main(String[] args) throws TimeoutException, IOException
-	{
-		createContainer(
-				createTestSystem(
-						combine(new RestV2IT().config(), profile("gogo")))).start();
-	}
-
-	@BeforeClass
-	public static void createAccountTest() {
-		// create account
-		expect().statusCode(201).when().post(REST_PATH);
-	}
-
-	@AfterClass
-	public static void deleteAccountTest() {
-		// delete account
-		expect().statusCode(204).when().delete(REST_PATH);
-	}
-
-	//@Test
-	public void bundleContextTest(BundleContext ctx)
-	{
-		//assertThat(ctx, is(notNullValue()));
-		logger.info("BundleContext of bundle injected: {}", ctx.getBundle().getSymbolicName());
-		
-		for (Bundle b : ctx.getBundles()) {
-			logger.info("Bundle {} [state={}]", b.getSymbolicName(), b.getState());
-		}
-	}
-
 	@Test
 	public void reservedLabelsTest()
 	{
+		initAccount();
+		
 		// check reserved labels
 		expect().
 			statusCode(200).and().
 			body("'" + ReservedLabels.ALL_MAILS.getId() + "'",		equalTo(ReservedLabels.ALL_MAILS.getName())).
 			body("'" + ReservedLabels.INBOX.getId() + "'",			equalTo(ReservedLabels.INBOX.getName())).
-			body("'" + ReservedLabels.DRAFTS.getId() + "'",		equalTo(ReservedLabels.DRAFTS.getName())).
+			body("'" + ReservedLabels.DRAFTS.getId() + "'",			equalTo(ReservedLabels.DRAFTS.getName())).
 			body("'" + ReservedLabels.SENT.getId() + "'",			equalTo(ReservedLabels.SENT.getName())).
 			body("'" + ReservedLabels.TRASH.getId() + "'",			equalTo(ReservedLabels.TRASH.getName())).
 			body("'" + ReservedLabels.SPAM.getId() + "'",			equalTo(ReservedLabels.SPAM.getName())).
@@ -210,6 +88,8 @@ public class RestV2IT
 	@Test
 	public void reservedLabelsWithMetadataTest()
 	{
+		initAccount();
+
 		// check labels metadata
 		expect().
 			statusCode(200).and().
@@ -224,6 +104,8 @@ public class RestV2IT
 	@Test
 	public void labelListAddDeleteTest()
 	{
+		initAccount();
+
 		final String labelA = "MyLabel";
 		final String labelACase = "mYlaBel";
 		final String labelB = "MyAnotherLabel";
@@ -320,6 +202,8 @@ public class RestV2IT
 	@Test
 	public void messageAddListViewDeletePurgeTest() throws IOException
 	{
+		initAccount();
+
 		long fileSizeA = getResourceSize(EMAIL_REGULAR);
 
 		String messageId = null;
@@ -442,6 +326,8 @@ public class RestV2IT
 	@Test
 	public void messageAddRemoveLabelsMarkersTest() throws IOException
 	{
+		initAccount();
+
 		// add labels
 		Integer labelId1 = addLabel("CustomLabelTest3739");
 		Integer labelId2 = addLabel("CustomLabelTest2398");
@@ -451,7 +337,7 @@ public class RestV2IT
 
 		// assign labels and marker to the message
 		given().
-			pathParam("messageId", messageId).
+			pathParam("messageId", messageId.toString()).
 			pathParam("labelId1", labelId1).
 			pathParam("labelId2", labelId2).
 			pathParam("seenMarker", Marker.SEEN.toString().toLowerCase()).
@@ -462,7 +348,7 @@ public class RestV2IT
 
 		// verify labels and marker
 		given().
-			pathParam("messageId", messageId).
+			pathParam("messageId", messageId.toString()).
 		expect().
 			statusCode(200).and().
 			body("message.labels", hasItems(0, 1, labelId1, labelId2)).
@@ -472,7 +358,7 @@ public class RestV2IT
 
 		// assign/remove labels and markers to the message
 		given().
-			pathParam("messageId", messageId).
+			pathParam("messageId", messageId.toString()).
 			pathParam("removeLabel", labelId1).
 			pathParam("addLabel", ReservedLabels.SPAM.getId()).
 			pathParam("removeMarker", Marker.SEEN.toString().toLowerCase()).
@@ -484,7 +370,7 @@ public class RestV2IT
 		
 		// verify labels and markers
 		given().
-			pathParam("messageId", messageId).
+			pathParam("messageId", messageId.toString()).
 		expect().
 			statusCode(200).and().
 			body("message.labels", hasItems(0, 1, labelId2, ReservedLabels.SPAM.getId())).
@@ -498,6 +384,8 @@ public class RestV2IT
 	@Test
 	public void messageBatchMofifyDeleteTest() throws IOException
 	{
+		initAccount();
+
 		// add labels
 		Integer labelId1 = addLabel("BatchLabelTest0912");
 		Integer labelId2 = addLabel("BatchLabelTest1290");
@@ -529,44 +417,37 @@ public class RestV2IT
 		when().
 			get(REST_PATH + "/mailbox/label/{labelId}?metadata=true");
 
-		/**
-		 * Batch delete test is skipped at the moment. HTTP DELETE request body
-		 * is not supported by RestAssured/HTTPBuilder at the moment. See:
-		 * 
-		 * http://code.google.com/p/rest-assured/issues/detail?id=48
-		 * http://stackoverflow.com/questions/299628/is-an-entity-body-allowed-for-an-http-delete-request
-		 * 
-		 */
-
 		// batch delete messages
-//		given().
-//			request().body("[\"" + messageId1.toString() + "\", \"" + messageId2.toString() + "\"]").contentType(ContentType.JSON).
-//		expect().
-//			statusCode(204).
-//		when().
-//			delete(REST_PATH + "/mailbox/message");
+		given().
+			request().body("[\"" + messageId1.toString() + "\", \"" + messageId2.toString() + "\"]").contentType(ContentType.JSON).
+		expect().
+			statusCode(204).
+		when().
+			delete(REST_PATH + "/mailbox/message");
 
 		// verify batch delete
-//		given().
-//			pathParam("labelId", ReservedLabels.ALL_MAILS.getLabelId()).
-//		expect().
-//			statusCode(200).and().
-//			body(messageId1.toString(), is(nullValue())).
-//			body(messageId2.toString(), is(nullValue())).
-//		when().
-//			get(REST_PATH + "/mailbox/label/{labelId}?metadata=true");
+		given().
+			pathParam("labelId", ReservedLabels.ALL_MAILS.getId()).
+		expect().
+			statusCode(200).and().
+			body(messageId1.toString(), is(nullValue())).
+			body(messageId2.toString(), is(nullValue())).
+		when().
+			get(REST_PATH + "/mailbox/label/{labelId}?metadata=true");
 	}
 
 	@Test
 	public void messageAttachmentAndRawTest() throws IOException
 	{
+		initAccount();
+
 		// add message
 		UUID messageId = addMessage(EMAIL_LARGE_ATT, ReservedLabels.INBOX.getId());
 		long fileSize = getResourceSize(EMAIL_LARGE_ATT);
 
 		// get attachment by part id
 		given().
-			pathParam("messageId", messageId).
+			pathParam("messageId", messageId.toString()).
 			pathParam("partId", 3).
 		expect().
 			statusCode(200).and().
@@ -578,7 +459,7 @@ public class RestV2IT
 
 		// get attachment by content id
 		given().
-			pathParam("messageId", messageId).
+			pathParam("messageId", messageId.toString()).
 			pathParam("contentId", "<image-001>").
 		expect().
 			statusCode(200).and().
@@ -593,7 +474,7 @@ public class RestV2IT
 		//       see {@link http://code.google.com/p/rest-assured/issues/detail?id=154}
 		given().
 			header("Accept-Encoding", "none").
-			pathParam("messageId", messageId).
+			pathParam("messageId", messageId.toString()).
 		expect().
 			statusCode(200).and().
 			header("Content-Type", equalTo("text/plain")).
@@ -605,7 +486,7 @@ public class RestV2IT
 		// get compressed raw message
 		given().
 			header("Accept-Encoding", "deflate").
-			pathParam("messageId", messageId).
+			pathParam("messageId", messageId.toString()).
 		expect().
 			statusCode(200).and().
 			header("Content-Encoding", equalTo("deflate")).
@@ -617,12 +498,14 @@ public class RestV2IT
 	@Test
 	public void messageUpdateTest() throws IOException
 	{
+		initAccount();
+
 		// add message
 		UUID messageId = addMessage(EMAIL_LARGE_ATT, ReservedLabels.INBOX.getId());
 
 		// add labels and markers
 		given().
-			pathParam("messageId", messageId).
+			pathParam("messageId", messageId.toString()).
 			pathParam("labelId1", ReservedLabels.IMPORTANT.getId()).
 			pathParam("labelId2", ReservedLabels.STARRED.getId()).
 			pathParam("marker1", Marker.SEEN.toString().toLowerCase()).
@@ -656,12 +539,13 @@ public class RestV2IT
 			body("message.markers", hasItems(Marker.SEEN.toString().toUpperCase())).
 		when().
 			get(REST_PATH + "/mailbox/message/{messageId}");
-
 	}
-
+	
 	@Test
 	public void countersTest() throws IOException
 	{
+		initAccount();
+
 		LabelCounters allCounters = new LabelCounters();
 		LabelCounters inboxCounters = new LabelCounters();
 		LabelCounters spamCounters = new LabelCounters();
@@ -824,7 +708,7 @@ public class RestV2IT
 
 		// remove message A
 		given().
-			pathParam("messageId", messageIdA).
+			pathParam("messageId", messageIdA.toString()).
 		expect().
 			statusCode(204).
 		when().
@@ -920,24 +804,5 @@ public class RestV2IT
 		lc.setTotalMessages( (long) from(json).getInt("'" + l + "'.total") );
 
 		return lc;
-	}
-
-	/**
-	 * Returns resource size
-	 *  
-	 * @param name
-	 * @return
-	 * @throws IOException 
-	 */
-	private long getResourceSize(String messageFile) throws IOException
-	{
-		InputStream in = null;
-
-		try {
-			in = this.getClass().getResourceAsStream(messageFile);
-			return in.available();
-		} finally {
-			in.close();
-		}
 	}
 }

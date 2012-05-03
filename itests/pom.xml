@@ -122,27 +122,17 @@
 			<type>bundle</type>
 			<scope>provided</scope>
 		</dependency>
-		<!-- 
-		<dependency>
-		    <groupId>com.elasticinbox</groupId>
-		    <artifactId>elasticinbox-rest</artifactId>
-		    <version>${project.version}</version>
-			<type>bundle</type>
-			<scope>provided</scope>
-		</dependency>
-		 -->
 
 		<dependency>
 		    <groupId>com.jayway.restassured</groupId>
 		    <artifactId>rest-assured</artifactId>
-		    <version>1.4</version>
+		    <version>1.6.1</version>
 			<scope>test</scope>
 		</dependency>
-
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.10</version>
+			<groupId>org.junit</groupId>
+			<artifactId>com.springsource.org.junit</artifactId>
+			<version>4.9.0</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -283,7 +273,7 @@
 		<!-- Pax Exam Dependencies -->
 		<dependency>
 			<groupId>org.ops4j.pax.exam</groupId>
-			<artifactId>pax-exam-junit4</artifactId>
+			<artifactId>pax-exam-container-paxrunner</artifactId>
 			<version>${bundle.paxexam.version}</version>
 			<scope>test</scope>
 		</dependency>
@@ -295,25 +285,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.ops4j.pax.exam</groupId>
-			<artifactId>pax-exam-spi</artifactId>
-			<version>${bundle.paxexam.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.ops4j.pax.exam</groupId>
-			<artifactId>pax-exam-container-paxrunner</artifactId>
-			<version>${bundle.paxexam.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.ops4j.pax.exam</groupId>
-			<artifactId>pax-exam-link-assembly</artifactId>
-			<version>${bundle.paxexam.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.ops4j.pax.exam</groupId>
-			<artifactId>pax-exam-testforge</artifactId>
+			<artifactId>pax-exam-junit4</artifactId>
 			<version>${bundle.paxexam.version}</version>
 			<scope>test</scope>
 		</dependency>
@@ -337,19 +309,7 @@
 			<version>${bundle.logback.version}</version>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>jcl-over-slf4j</artifactId>
-			<version>${bundle.slf4j.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-simple</artifactId>
-			<version>${bundle.slf4j.version}</version>
-			<scope>test</scope>
-		</dependency>
-		
+
 		<!-- LMTP -->
 		<dependency>
 			<groupId>org.apache.james.protocols</groupId>
@@ -401,6 +361,11 @@
 			</releases>
 			<id>niosmtp.snapshots</id>
 			<url>http://repository-niosmtp.forge.cloudbees.com/snapshot/</url>
+		</repository>
+		<repository>
+		    <id>com.springsource.repository.bundles.external</id>
+		    <name>SpringSource Enterprise Bundle Repository - External Bundle Releases</name>
+		    <url>http://repository.springsource.com/maven/bundles/external</url>
 		</repository>
 	</repositories>
 

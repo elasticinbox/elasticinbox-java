@@ -29,9 +29,6 @@
 package com.elasticinbox.itests;
 
 import static org.ops4j.pax.exam.CoreOptions.*;
-import static org.ops4j.pax.exam.OptionUtils.combine;
-import static org.ops4j.pax.exam.spi.PaxExamRuntime.createTestSystem;
-import static org.ops4j.pax.exam.spi.PaxExamRuntime.createContainer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -39,7 +36,6 @@ import static com.jayway.restassured.RestAssured.*;
 import static com.jayway.restassured.path.json.JsonPath.*;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
@@ -59,93 +55,35 @@ import me.normanmaurer.niosmtp.transport.SMTPClientTransport;
 import me.normanmaurer.niosmtp.transport.SMTPClientTransportFactory;
 import me.normanmaurer.niosmtp.transport.netty.NettyLMTPClientTransportFactory;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Option;
-import org.ops4j.pax.exam.TimeoutException;
 import org.ops4j.pax.exam.junit.Configuration;
 import org.ops4j.pax.exam.junit.ExamReactorStrategy;
 import org.ops4j.pax.exam.junit.JUnit4TestRunner;
 import org.ops4j.pax.exam.spi.reactors.EagerSingleStagedReactorFactory;
-import org.osgi.framework.Bundle;
-import org.osgi.framework.BundleContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.core.model.ReservedLabels;
+import com.google.common.collect.ObjectArrays;
 
 /**
- * Integration test for REST APIs
+ * Integration test for LMTP
  * 
  * @author Rustam Aliyev
  */
 @RunWith(JUnit4TestRunner.class)
 @ExamReactorStrategy(EagerSingleStagedReactorFactory.class)
-public class LmtpIT
+public class LmtpIT extends AbstractIntegrationTest
 {
-	private static final String TEST_ACCOUNT = "test@elasticinbox.com";
-	private static final String REST_PATH = "/rest/v2/elasticinbox.com/test";
-//	private static final String EMAIL_LARGE_ATT = "/01-attach-utf8.eml";
-	private static final String EMAIL_REGULAR = "/01-headers-utf8.eml";
-
-	private final static Logger logger = 
-			LoggerFactory.getLogger(LmtpIT.class);
-
+	/**
+	 * Append LMTP Specific config options
+	 * 
+	 * @return
+	 */
 	@Configuration()
 	public Option[] config()
 	{
-		return options(
-				//junitBundles(),
-				felix(),
-				workingDirectory("target/paxrunner/"),
-				repository("https://repository.apache.org/snapshots/").allowSnapshots(),
-
-				// Configs
-				systemProperty("elasticinbox.config").value("../test-classes/elasticinbox.yaml"),
-				systemProperty("org.ops4j.pax.logging.DefaultServiceLog.level").value("INFO"),
-
-				// PAX Exam Bundles
-				mavenBundle().groupId("org.mortbay.jetty").artifactId("servlet-api").version("2.5-20110124"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-api").version("1.0.7"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-spi").version("1.0.7"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-jetty-bundle").version("1.0.7"),
-				mavenBundle().groupId("org.ops4j.pax.web").artifactId("pax-web-extender-war").version("1.0.7"),
-				
-				// Logging
-				mavenBundle().groupId("ch.qos.logback").artifactId("logback-core").versionAsInProject(),
-				mavenBundle().groupId("ch.qos.logback").artifactId("logback-classic").versionAsInProject(),
-
-				// REST-Assured Bundles
-				wrappedBundle(mavenBundle().groupId("com.jayway.restassured").artifactId("rest-assured").versionAsInProject()),
-				wrappedBundle(mavenBundle().groupId("org.codehaus.groovy.modules.http-builder").artifactId("http-builder").version("0.5.2")),
-				wrappedBundle(mavenBundle().groupId("org.hamcrest").artifactId("hamcrest-all").version("1.1")),
-				wrappedBundle(mavenBundle().groupId("xml-resolver").artifactId("xml-resolver").version("1.2")),
-				wrappedBundle(mavenBundle().groupId("net.sf.ezmorph").artifactId("ezmorph").version("1.0.6")),
-				wrappedBundle(mavenBundle().groupId("net.sf.json-lib").artifactId("json-lib").version("2.4").classifier("jdk15")),
-				wrappedBundle(mavenBundle().groupId("net.sourceforge.nekohtml").artifactId("nekohtml").version("1.9.15")),
-				wrappedBundle(mavenBundle().groupId("xerces").artifactId("xercesImpl").version("2.9.1")),
-				mavenBundle().groupId("org.codehaus.groovy").artifactId("groovy-all").version("1.7.10"),
-				//mavenBundle().groupId("commons-lang").artifactId("commons-lang").version("2.6"),
-				mavenBundle().groupId("commons-beanutils").artifactId("commons-beanutils").version("1.8.3"),
-				mavenBundle().groupId("commons-collections").artifactId("commons-collections").version("3.2.1"),
-				mavenBundle().groupId("org.apache.httpcomponents").artifactId("httpcore-osgi").version("4.1.2"),
-				mavenBundle().groupId("org.apache.httpcomponents").artifactId("httpclient-osgi").version("4.1.2"),
-
-				// jClouds and dependencies
-				mavenBundle().groupId("com.google.inject").artifactId("guice").versionAsInProject(),
-				mavenBundle().groupId("org.jclouds").artifactId("jclouds-core").versionAsInProject(),
-				mavenBundle().groupId("org.jclouds").artifactId("jclouds-blobstore").versionAsInProject(),
-				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.aopalliance").versionAsInProject(),
-				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.commons-io").versionAsInProject(),
-				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.commons-lang").versionAsInProject(),
-				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.javax-inject").versionAsInProject(),
-				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.oauth-commons").versionAsInProject(),
-				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.java-xmlbuilder").versionAsInProject(),
-				mavenBundle().groupId("com.google.inject.extensions").artifactId("guice-assistedinject").versionAsInProject(),
-				mavenBundle().groupId("com.google.code.gson").artifactId("gson").versionAsInProject(),
-
+		return ObjectArrays.concat(super.config(), options(
 				// LMTP Test Bundles
 				wrappedBundle(mavenBundle().groupId("me.normanmaurer").artifactId("niosmtp").versionAsInProject()),
 				mavenBundle().groupId("org.apache.james.protocols").artifactId("protocols-netty").versionAsInProject(),
@@ -155,57 +93,15 @@ public class LmtpIT
 				mavenBundle().groupId("io.netty").artifactId("netty").versionAsInProject(),
 
 				// ElasticInbox Bundles
-				mavenBundle().groupId("com.googlecode.guava-osgi").artifactId("guava-osgi").versionAsInProject(),
-				mavenBundle().groupId("org.codehaus.jackson").artifactId("jackson-core-asl").versionAsInProject(),
-				mavenBundle().groupId("org.codehaus.jackson").artifactId("jackson-mapper-asl").versionAsInProject(),
-				mavenBundle().groupId("org.codehaus.jackson").artifactId("jackson-jaxrs").versionAsInProject(),
-				mavenBundle().groupId("com.ning").artifactId("compress-lzf").versionAsInProject(),
-				mavenBundle().groupId("com.sun.jersey").artifactId("jersey-core").versionAsInProject(),
-				mavenBundle().groupId("com.sun.jersey").artifactId("jersey-server").versionAsInProject(),
-				mavenBundle().groupId("com.sun.jersey").artifactId("jersey-servlet").versionAsInProject(),
-				mavenBundle().groupId("javax.mail").artifactId("mail").versionAsInProject(),
-				scanDir("../bundles/com.ecyrd.speed4j/target/"),
-				scanDir("../modules/common/target/"),
-				scanDir("../modules/config/target/"),
-				scanDir("../modules/core/target/"),
-				scanDir("../modules/lmtp/target/"),
-				scanDir("../modules/rest/target/")
-		);
-	}
-
-	public static void main(String[] args) throws TimeoutException, IOException
-	{
-		createContainer(
-				createTestSystem(
-						combine(new LmtpIT().config(), profile("gogo")))).start();
-	}
-
-	@BeforeClass
-	public static void createAccountTest() {
-		// create account
-		expect().statusCode(201).when().post(REST_PATH);
-	}
-
-	@AfterClass
-	public static void deleteAccountTest() {
-		// delete account
-		expect().statusCode(204).when().delete(REST_PATH);
-	}
-
-	//@Test
-	public void bundleContextTest(BundleContext ctx)
-	{
-		//assertThat(ctx, is(notNullValue()));
-		logger.info("BundleContext of bundle injected: {}", ctx.getBundle().getSymbolicName());
-		
-		for (Bundle b : ctx.getBundles()) {
-			logger.info("Bundle {} [state={}]", b.getSymbolicName(), b.getState());
-		}
+				scanDir("../modules/lmtp/target/")
+			), Option.class);
 	}
 
 	@Test
-	public void reservedLabelsTest() throws IOException
+	public void lmtpTest() throws IOException
 	{
+		initAccount();
+		
 		SMTPClientTransportFactory transportFactory = NettyLMTPClientTransportFactory.createNio();
 		SMTPClientTransport transport = transportFactory.createPlain();
 		SMTPDeliveryAgent c = new LMTPDeliveryAgent(transport);
@@ -262,26 +158,5 @@ public class LmtpIT
 			body("message.textBody", is(nullValue())).
 		when().
 			get(REST_PATH + "/mailbox/message/{messageId}");
-
-//		logger.info("JSON = {}", jsonResponse);
-	}
-
-	/**
-	 * Returns resource size
-	 *  
-	 * @param name
-	 * @return
-	 * @throws IOException 
-	 */
-	private long getResourceSize(String messageFile) throws IOException
-	{
-		InputStream in = null;
-
-		try {
-			in = this.getClass().getResourceAsStream(messageFile);
-			return in.available();
-		} finally {
-			in.close();
-		}
 	}
 }
