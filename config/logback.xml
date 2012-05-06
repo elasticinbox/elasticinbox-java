@@ -30,9 +30,9 @@
 		</encoder>
 	</appender>
 
-	<!-- Disable Speed4j Stats in logfile -->
-	<logger name="com.elasticinbox.speed4j" level="INFO" additivity="false">
-		<appender-ref ref="DEVNULL" />
+	<!-- do not log LMTPProtocols connection info, increase log level -->
+	<logger name="com.elasticinbox.lmtp.utils.LMTPProtocolLogger" level="WARN">
+		<appender-ref ref="FILE" />
 	</logger>
 
 	<root level="INFO">

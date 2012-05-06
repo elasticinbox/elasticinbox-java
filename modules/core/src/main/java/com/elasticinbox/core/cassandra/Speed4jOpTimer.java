@@ -51,7 +51,9 @@ public final class Speed4jOpTimer implements HOpTimer
 		PeriodicalLog pLog = new PeriodicalLog();
 		pLog.setName("ElasticInbox-Hector");
 		pLog.setPeriod(Configurator.getPerformanceCountersInterval());
-		pLog.setJmx("READ.success_,WRITE.success_,READ.fail_,WRITE.fail_,META_READ.success_,META_READ.fail_");
+		pLog.setMode(PeriodicalLog.Mode.JMX_ONLY);
+		pLog.setMaxQueueSize(250000);
+		pLog.setJmx("READ.success,WRITE.success,READ.fail,WRITE.fail,META_READ.success,META_READ.fail");
 		pLog.setSlf4jLogname("com.elasticinbox.speed4j.cassandra.HectorPeriodicalLogger");
 		stopWatchFactory = StopWatchFactory.getInstance(pLog);
 	}
@@ -63,7 +65,7 @@ public final class Speed4jOpTimer implements HOpTimer
 
 	@Override
 	public void stop(Object token, String tagName, boolean success) {
-		((StopWatch) token).stop(tagName.concat(success ? ".success_" : ".fail_"));
+		((StopWatch) token).stop(tagName.concat(success ? ".success" : ".fail"));
 	}
 
 }

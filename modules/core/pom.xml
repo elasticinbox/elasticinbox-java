@@ -120,13 +120,19 @@
 			<scope>compile</scope>
 		</dependency>
 
-		<!-- Cassandra Hector Dependencies -->
+		<!-- Cassandra Hector Dependencies (embedded) -->
 		<dependency>
 			<groupId>me.prettyprint</groupId>
 			<artifactId>hector-core</artifactId>
 			<version>1.0-5</version>
 			<type>jar</type>
 			<scope>compile</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>com.ecyrd.speed4j</groupId>
+					<artifactId>speed4j</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.thrift</groupId>

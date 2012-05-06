@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import com.ecyrd.speed4j.StopWatch;
 import com.ecyrd.speed4j.StopWatchFactory;
+import com.ecyrd.speed4j.log.PeriodicalLog;
 import com.ecyrd.speed4j.log.Slf4jLog;
 import com.elasticinbox.config.Configurator;
 import com.elasticinbox.lmtp.delivery.IDeliveryAgent;
@@ -65,6 +66,8 @@ public class Activator implements BundleActivator
 		if(Configurator.isPerformanceCountersEnabled()) {
 			LoggingPeriodicalLog pLog = new LoggingPeriodicalLog();
 			pLog.setName(SPEED4J_LOG_NAME);
+			pLog.setMode(PeriodicalLog.Mode.JMX_ONLY);
+			pLog.setMaxQueueSize(250000);
 			pLog.setPeriod(Configurator.getPerformanceCountersInterval());
 			pLog.setJmx("DELIVERY.success,DELIVERY.discard,DELIVERY.defer,DELIVERY.defer_failure,DELIVERY.reject_overQuota,DELIVERY.reject_nonExistent");
 			pLog.setSlf4jLogname("com.elasticinbox.speed4j.lmtp.PeriodicalLogger");
