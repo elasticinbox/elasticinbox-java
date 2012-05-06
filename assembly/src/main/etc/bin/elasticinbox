@@ -23,4 +23,4 @@ JVM_OPTS="-Xms${MEM}m -Xmx${MEM}m -Djava.io.tmpdir=${TMP_DIR}"
 #-Dcom.sun.management.jmxremote.ssl=false"
 
 cd ${libdir}
-exec /usr/bin/java ${JVM_OPTS} ${JMX_OPTS} -Dosgi.install.area=equinox -cp bundles/org.eclipse.osgi_3.6.2.R36x_v20110210.jar org.eclipse.core.runtime.adaptor.EclipseStarter ${CONSOLE} -configuration equinox
+exec /usr/bin/java ${JVM_OPTS} ${JMX_OPTS} -server -Dosgi.install.area=equinox -cp bundles/org.eclipse.osgi_3.6.2.R36x_v20110210.jar org.eclipse.core.runtime.adaptor.EclipseStarter ${CONSOLE} -configuration equinox
