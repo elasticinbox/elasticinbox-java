@@ -43,7 +43,7 @@ public final class UuidBlobNamingPolicy extends AbstractBlobNamingPolicy
 		Assert.notNull(builder.messageId, "message id cannot be null");
 		Assert.notNull(builder.mailbox, "mailbox cannot be null");
 
-		return new StringBuilder(builder.mailbox.getId()).append(":").append(builder.messageId).toString();
+		return builder.messageId.toString() + ":" + builder.mailbox.getId();
 	}
-	
+
 }
