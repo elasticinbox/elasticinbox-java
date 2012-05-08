@@ -33,6 +33,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.zip.InflaterInputStream;
 
+import com.elasticinbox.common.utils.Assert;
 import com.elasticinbox.core.blob.store.BlobStoreConstants;
 import com.elasticinbox.core.blob.store.BlobStoreProxy;
 
@@ -47,7 +48,10 @@ public class BlobDataSource
 	private final Boolean compressed;
 	private final URI blobUri;
 	
-	public BlobDataSource(URI uri) {
+	public BlobDataSource(URI uri)
+	{
+		Assert.notNull(uri.getPath(), "Invalid blob URI provided, missing URI path: " + uri.toString());
+
 		blobUri = uri;
 		compressed = uri.getPath().endsWith(BlobStoreConstants.COMPRESS_SUFFIX);
 	}
