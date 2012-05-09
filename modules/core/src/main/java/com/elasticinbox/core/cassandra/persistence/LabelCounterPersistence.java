@@ -28,12 +28,10 @@
 
 package com.elasticinbox.core.cassandra.persistence;
 
-import static me.prettyprint.hector.api.factory.HFactory.createMultigetSuperSliceCounterQuery;
-import static me.prettyprint.hector.api.factory.HFactory.createCounterSuperColumn;
 import static me.prettyprint.hector.api.factory.HFactory.createCounterColumn;
+import static me.prettyprint.hector.api.factory.HFactory.createCounterSliceQuery;
 import static com.elasticinbox.core.cassandra.CassandraDAOFactory.CF_COUNTERS;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -43,26 +41,32 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import me.prettyprint.cassandra.serializers.CompositeSerializer;
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.hector.api.Keyspace;
-import me.prettyprint.hector.api.beans.CounterSuperRows;
-import me.prettyprint.hector.api.beans.CounterSuperSlice;
+import me.prettyprint.hector.api.beans.Composite;
+import me.prettyprint.hector.api.beans.CounterSlice;
 import me.prettyprint.hector.api.beans.HCounterColumn;
-import me.prettyprint.hector.api.beans.HCounterSuperColumn;
 import me.prettyprint.hector.api.mutation.Mutator;
-import me.prettyprint.hector.api.query.MultigetSuperSliceCounterQuery;
 import me.prettyprint.hector.api.query.QueryResult;
+import me.prettyprint.hector.api.query.SliceCounterQuery;
 
 import com.elasticinbox.core.cassandra.CassandraDAOFactory;
 import com.elasticinbox.core.model.LabelConstants;
 import com.elasticinbox.core.model.LabelCounters;
+import com.elasticinbox.core.model.ReservedLabels;
 
 public final class LabelCounterPersistence
 {
-	public final static String CN_TOTAL_BYTES = "total_bytes";
-	public final static String CN_TOTAL_MESSAGES = "total_msg";
-	public final static String CN_NEW_MESSAGES = "new_msg";
-	public final static String CN_LABEL_PREFIX = "l:";
+	/** Counter type for Label counters */
+	public final static String CN_TYPE_LABEL = "l";
+
+	/** Label counter subtype for total bytes */
+	public final static String CN_SUBTYPE_BYTES = "b";
+	/** Label counter subtype for total messages */
+	public final static String CN_SUBTYPE_MESSAGES = "m";
+	/** Label counter subtype for unread messages */
+	public final static String CN_SUBTYPE_UNREAD = "u";
 
 	private final static Keyspace keyspace = CassandraDAOFactory.getKeyspace();
 	private final static StringSerializer strSe = StringSerializer.get();
@@ -70,44 +74,62 @@ public final class LabelCounterPersistence
 	private final static Logger logger = 
 			LoggerFactory.getLogger(LabelCounterPersistence.class);
 
+	/**
+	 * Get counters for all label in the given mailbox
+	 * 
+	 * @param mailbox
+	 * @return
+	 */
 	public static Map<Integer, LabelCounters> getAll(final String mailbox)
 	{
-		final String startColumnName = 
-				new StringBuilder(CN_LABEL_PREFIX).append(0).toString();
+		Composite startRange = new Composite();
+		startRange.addComponent(0, CN_TYPE_LABEL, Composite.ComponentEquality.EQUAL);
 
-		Map<Integer, LabelCounters> result = 
-				new HashMap<Integer, LabelCounters>(LabelConstants.MAX_RESERVED_LABEL_ID);
+		Composite endRange = new Composite();
+		endRange.addComponent(0, CN_TYPE_LABEL, Composite.ComponentEquality.GREATER_THAN_EQUAL);
 
-		MultigetSuperSliceCounterQuery<String, String, String> q = 
-				createMultigetSuperSliceCounterQuery(keyspace, strSe, strSe, strSe);
+		SliceCounterQuery<String, Composite> sliceQuery =
+				createCounterSliceQuery(keyspace, strSe, new CompositeSerializer());
+		sliceQuery.setColumnFamily(CF_COUNTERS);
+		sliceQuery.setKey(mailbox);
+		sliceQuery.setRange(startRange, endRange, false, LabelConstants.MAX_LABEL_ID);
 
-		q.setColumnFamily(CF_COUNTERS);
-		q.setRange(startColumnName, null, false, LabelConstants.MAX_LABEL_ID);
-		q.setKeys(mailbox);
+		QueryResult<CounterSlice<Composite>> r = sliceQuery.execute();
 
-		QueryResult<CounterSuperRows<String, String, String>> r = q.execute();
-		
-		CounterSuperSlice<String, String> slice = r.get().getByKey(mailbox).getSuperSlice();
-
-		for (HCounterSuperColumn<String, String> sc : slice.getSuperColumns())
-		{
-			if(sc.getName().startsWith(CN_LABEL_PREFIX)) {
-				LabelCounters labelCounters = labelCountersToObject(sc.getColumns());
-				Integer labelId = Integer.parseInt(sc.getName().split("\\:")[1]);
-
-				logger.debug("Fetched counters for label {} with {}", labelId, labelCounters);
-				result.put(labelId, labelCounters);
-			}
-		}
-
-		return result;
+		return compositeColumnsToCounters(r.get().getColumns());
 	}
 
+	/**
+	 * Get counters for the specified label in the given mailbox
+	 * 
+	 * @param mailbox
+	 * @param labelId
+	 * @return
+	 */
 	public static LabelCounters get(final String mailbox, final Integer labelId)
 	{
-		// TODO: get exact super-column instead of all?
-		Map<Integer, LabelCounters> allLabelCounters = getAll(mailbox);
-		return (allLabelCounters.containsKey(labelId)) ? allLabelCounters.get(labelId) : new LabelCounters();
+		Composite startRange = new Composite();
+		startRange.addComponent(0, CN_TYPE_LABEL, Composite.ComponentEquality.EQUAL);
+		startRange.addComponent(1, labelId.toString(), Composite.ComponentEquality.EQUAL);
+
+		Composite endRange = new Composite();
+		endRange.addComponent(0, CN_TYPE_LABEL, Composite.ComponentEquality.EQUAL);
+		endRange.addComponent(1, labelId.toString(), Composite.ComponentEquality.GREATER_THAN_EQUAL);
+
+		SliceCounterQuery<String, Composite> sliceQuery =
+				createCounterSliceQuery(keyspace, strSe, new CompositeSerializer());
+		sliceQuery.setColumnFamily(CF_COUNTERS);
+		sliceQuery.setKey(mailbox);
+		sliceQuery.setRange(startRange, endRange, false, 5);
+
+		QueryResult<CounterSlice<Composite>> r = sliceQuery.execute();
+
+		Map<Integer, LabelCounters> counters = compositeColumnsToCounters(r.get().getColumns());
+		LabelCounters labelCounters = counters.containsKey(labelId) ? counters.get(labelId) : new LabelCounters();
+
+		logger.debug("Fetched counters for single label {} with {}", labelId, labelCounters);
+
+		return labelCounters;
 	}
 
 	/**
@@ -122,30 +144,29 @@ public final class LabelCounterPersistence
 	public static void add(Mutator<String> mutator, final String mailbox,
 			final Set<Integer> labelIds, final LabelCounters labelCounters)
 	{
-		// prepare column addition (increments or decrements)
-		List<HCounterColumn<String>> columns = new ArrayList<HCounterColumn<String>>(3);
-
-		// update value only if not null
-		if (labelCounters.getTotalBytes() != 0)
-			columns.add(createCounterColumn(CN_TOTAL_BYTES, labelCounters.getTotalBytes()));
-
-		if (labelCounters.getTotalMessages() != 0)
-			columns.add(createCounterColumn(CN_TOTAL_MESSAGES, labelCounters.getTotalMessages()));
-
-		if (labelCounters.getNewMessages() != 0)
-			columns.add(createCounterColumn(CN_NEW_MESSAGES, labelCounters.getNewMessages()));
-
 		// batch add of counters for each of the labels
 		for (Integer labelId : labelIds)
 		{
 			logger.debug("Updating counters for label {} with {}", labelId, labelCounters);
 
-			String columnName = new StringBuilder(CN_LABEL_PREFIX).append(labelId).toString();
+			// update total bytes only for ALL_MAILS label (i.e. total mailbox usage)
+			if ((labelId == ReservedLabels.ALL_MAILS.getId()) && (labelCounters.getTotalBytes() != 0)) {
+				HCounterColumn<Composite> col = countersToCompositeColumn(
+						labelId, CN_SUBTYPE_BYTES, labelCounters.getTotalBytes()); 
+				mutator.addCounter(mailbox, CF_COUNTERS, col);
+			}
 
-			HCounterSuperColumn<String, String> sc = 
-					createCounterSuperColumn(columnName, columns, strSe, strSe);
+			if (labelCounters.getTotalMessages() != 0) {
+				HCounterColumn<Composite> col = countersToCompositeColumn(
+						labelId, CN_SUBTYPE_MESSAGES, labelCounters.getTotalMessages()); 
+				mutator.addCounter(mailbox, CF_COUNTERS, col);
+			}
 
-			mutator.addCounter(mailbox, CF_COUNTERS, sc);
+			if (labelCounters.getNewMessages() != 0) {
+				HCounterColumn<Composite> col = countersToCompositeColumn(
+						labelId, CN_SUBTYPE_UNREAD, labelCounters.getNewMessages()); 
+				mutator.addCounter(mailbox, CF_COUNTERS, col);
+			}
 		}
 	}
 
@@ -193,12 +214,23 @@ public final class LabelCounterPersistence
 		LabelCounters labelCounters = get(mailbox, labelId);
 
 		// if counter super-column for this label exists
-		if(labelCounters != null) {
+		if (labelCounters != null) {
 			subtract(mutator, mailbox, labelId, labelCounters);
 
 			// delete counters
-			String key = new StringBuilder(CN_LABEL_PREFIX).append(labelId).toString();
-			mutator.addDeletion(mailbox, CF_COUNTERS, key, strSe);
+			HCounterColumn<Composite> c;
+			
+			c = countersToCompositeColumn(labelId, CN_SUBTYPE_MESSAGES, labelCounters.getTotalMessages()); 
+			mutator.addDeletion(mailbox, CF_COUNTERS, c.getName(), new CompositeSerializer());
+			
+			c = countersToCompositeColumn(labelId, CN_SUBTYPE_UNREAD, labelCounters.getTotalMessages()); 
+			mutator.addDeletion(mailbox, CF_COUNTERS, c.getName(), new CompositeSerializer());
+
+			// delete bytes only if ALL_MAILS
+			if (labelId == ReservedLabels.ALL_MAILS.getId()) {
+				c = countersToCompositeColumn(labelId, CN_SUBTYPE_BYTES, labelCounters.getTotalMessages()); 
+				mutator.addDeletion(mailbox, CF_COUNTERS, c.getName(), new CompositeSerializer());
+			}
 		}
 	}
 	
@@ -222,32 +254,65 @@ public final class LabelCounterPersistence
 	}
 
 	/**
-	 * Map counters from Cassandra to {@link LabelCounters} object
+	 * Build composite counter column
 	 * 
-	 * @param counters
+	 * @param labelId
+	 * @param subtype
+	 * @param count
 	 * @return
 	 */
-	private static LabelCounters labelCountersToObject(
-			final List<HCounterColumn<String>> counters)
+	private static HCounterColumn<Composite> countersToCompositeColumn(
+			final Integer labelId, final String subtype, final Long count)
 	{
+		Composite composite = new Composite();
+		composite.addComponent(CN_TYPE_LABEL, strSe);
+		composite.addComponent(labelId.toString(), strSe);
+		composite.addComponent(subtype, strSe);
+		return createCounterColumn(composite, count, new CompositeSerializer());
+	}
+	
+	/**
+	 * Convert Hector Composite Columns to {@link LabelCounters}
+	 * 
+	 * @param columnList
+	 * @return
+	 */
+	private static Map<Integer, LabelCounters> compositeColumnsToCounters(
+			List<HCounterColumn<Composite>> columnList)
+	{
+		Map<Integer, LabelCounters> result = 
+				new HashMap<Integer, LabelCounters>(LabelConstants.MAX_RESERVED_LABEL_ID);
+
 		LabelCounters labelCounters = new LabelCounters();
+		Integer prevLabelId = 0; // remember previous labelid which is always start form 0
 
-		for (HCounterColumn<String> c : counters)
+		for (HCounterColumn<Composite> c : columnList)
 		{
-			if ((c != null) && (c.getValue() != null)) {
+			Integer labelId = Integer.parseInt(c.getName().get(1, strSe));
 
-				// map counters to LabelCounters object
-				if (c.getName().equals(CN_TOTAL_BYTES)) {
-					labelCounters.setTotalBytes(c.getValue());
-				} else if (c.getName().equals(CN_TOTAL_MESSAGES)) {
-					labelCounters.setTotalMessages(c.getValue());
-				} else if (c.getName().equals(CN_NEW_MESSAGES)) {
-					labelCounters.setNewMessages(c.getValue());
-				}
+			// since columns are ordered by labels, we can
+			// flush label counters to result map as we traverse
+			if (prevLabelId != labelId) {
+				logger.debug("Fetched counters for label {} with {}", labelId, labelCounters);
+				result.put(prevLabelId, labelCounters);
+				labelCounters = new LabelCounters();
+				prevLabelId = labelId;
+			}
+
+			String subtype = c.getName().get(2, strSe);
+
+			if (subtype.equals(CN_SUBTYPE_BYTES)) {
+				labelCounters.setTotalBytes(c.getValue());
+			} else if (subtype.equals(CN_SUBTYPE_MESSAGES)) {
+				labelCounters.setTotalMessages(c.getValue());
+			} else if (subtype.equals(CN_SUBTYPE_UNREAD)) {
+				labelCounters.setNewMessages(c.getValue());
 			}
 		}
 
-		return labelCounters;
-	}
+		// flush remaining counters for the last label
+		result.put(prevLabelId, labelCounters);
 
+		return result;
+	}
 }

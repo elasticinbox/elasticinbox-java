@@ -32,10 +32,9 @@ create column family IndexLabels with
 	comment='Message ID indexes grouped by labels and ordered by time';
 
 create column family Counters with
-	column_type=Super and
-	default_validation_class=CounterColumnType and 
-	replicate_on_write=true and
+	comparator='CompositeType(UTF8Type,UTF8Type,UTF8Type)' and
 	key_validation_class=UTF8Type and
-	comparator=UTF8Type and
-	subcomparator=AsciiType and
+	default_validation_class=CounterColumnType and
+	replicate_on_write=true and
+	rows_cached=300000 and
 	comment='All counters for an account';

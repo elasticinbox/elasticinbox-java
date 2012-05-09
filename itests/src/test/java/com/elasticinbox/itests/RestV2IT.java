@@ -570,8 +570,6 @@ public class RestV2IT extends AbstractIntegrationTest
 						equalTo((int) (allCounters.getTotalMessages().longValue() + 1))).
 				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.new", 
 						equalTo((int) (allCounters.getNewMessages().longValue() + 1))).
-				body("'" + ReservedLabels.INBOX.getId() + "'.size", 
-						equalTo((int) (inboxCounters.getTotalBytes().longValue() + fileSizeA))).
 				body("'" + ReservedLabels.INBOX.getId() + "'.total", 
 						equalTo((int) (inboxCounters.getTotalMessages().longValue() + 1))).
 				body("'" + ReservedLabels.INBOX.getId() + "'.new", 
@@ -592,8 +590,6 @@ public class RestV2IT extends AbstractIntegrationTest
 		jsonResponse = 
 			expect().
 				statusCode(200).and().
-				body("'" + ReservedLabels.SPAM.getId() + "'.size", 
-						equalTo((int) (spamCounters.getTotalBytes().longValue() + fileSizeA))).
 				body("'" + ReservedLabels.SPAM.getId() + "'.total", 
 						equalTo((int) (spamCounters.getTotalMessages().longValue() + 1))).
 				body("'" + ReservedLabels.SPAM.getId() + "'.new", 
@@ -652,14 +648,10 @@ public class RestV2IT extends AbstractIntegrationTest
 						equalTo((int) (allCounters.getTotalMessages().longValue()))).
 				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.new", 
 						equalTo((int) (allCounters.getNewMessages().longValue()))).
-				body("'" + ReservedLabels.INBOX.getId() + "'.size", 
-						equalTo((int) (inboxCounters.getTotalBytes().longValue() - fileSizeA))).
 				body("'" + ReservedLabels.INBOX.getId() + "'.total", 
 						equalTo((int) (inboxCounters.getTotalMessages().longValue() - 1))).
 				body("'" + ReservedLabels.INBOX.getId() + "'.new", 
 						equalTo((int) (inboxCounters.getNewMessages().longValue()))).
-				body("'" + ReservedLabels.SPAM.getId() + "'.size", 
-						equalTo((int) (spamCounters.getTotalBytes().longValue()))).
 				body("'" + ReservedLabels.SPAM.getId() + "'.total", 
 						equalTo((int) (spamCounters.getTotalMessages().longValue()))).
 				body("'" + ReservedLabels.SPAM.getId() + "'.new", 
@@ -686,14 +678,10 @@ public class RestV2IT extends AbstractIntegrationTest
 						equalTo((int) (allCounters.getTotalMessages().longValue() + 1))).
 				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.new", 
 						equalTo((int) (allCounters.getNewMessages().longValue() + 1))).
-				body("'" + ReservedLabels.INBOX.getId() + "'.size", 
-						equalTo((int) (inboxCounters.getTotalBytes().longValue()))).
 				body("'" + ReservedLabels.INBOX.getId() + "'.total", 
 						equalTo((int) (inboxCounters.getTotalMessages().longValue()))).
 				body("'" + ReservedLabels.INBOX.getId() + "'.new", 
 						equalTo((int) (inboxCounters.getNewMessages().longValue()))).
-				body("'" + ReservedLabels.SPAM.getId() + "'.size", 
-						equalTo((int) (spamCounters.getTotalBytes().longValue() + fileSizeB))).
 				body("'" + ReservedLabels.SPAM.getId() + "'.total", 
 						equalTo((int) (spamCounters.getTotalMessages().longValue() + 1))).
 				body("'" + ReservedLabels.SPAM.getId() + "'.new", 
@@ -724,8 +712,6 @@ public class RestV2IT extends AbstractIntegrationTest
 						equalTo((int) (allCounters.getTotalMessages().longValue() - 1))).
 				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.new", 
 						equalTo((int) (allCounters.getNewMessages().longValue()))).
-				body("'" + ReservedLabels.SPAM.getId() + "'.size", 
-						equalTo((int) (spamCounters.getTotalBytes().longValue() - fileSizeA))).
 				body("'" + ReservedLabels.SPAM.getId() + "'.total", 
 						equalTo((int) (spamCounters.getTotalMessages().longValue() - 1))).
 				body("'" + ReservedLabels.SPAM.getId() + "'.new", 
