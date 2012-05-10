@@ -38,7 +38,7 @@ public final class LabelCounters
 {
 	private Long totalBytes = 0L;
 	private Long totalMessages = 0L;
-	private Long newMessages = 0L;
+	private Long unreadMessages = 0L;
 
 	public Long getTotalBytes() {
 		return totalBytes;
@@ -56,12 +56,12 @@ public final class LabelCounters
 		this.totalMessages = totalMessages;
 	}
 
-	public Long getNewMessages() {
-		return newMessages;
+	public Long getUnreadMessages() {
+		return unreadMessages;
 	}
 
-	public void setNewMessages(Long newMessages) {
-		this.newMessages = newMessages;
+	public void setUnreadMessages(Long unreadMessages) {
+		this.unreadMessages = unreadMessages;
 	}
 	
 	/**
@@ -73,14 +73,14 @@ public final class LabelCounters
 	public void add(final LabelCounters diff) {
 		this.totalBytes += diff.totalBytes;
 		this.totalMessages += diff.totalMessages;
-		this.newMessages += diff.newMessages;
+		this.unreadMessages += diff.unreadMessages;
 	}
 	
 	@Override
 	public String toString() {
 		return new StringBuilder("LabelCounters: {totalBytes:")
 				.append(totalBytes).append(", totalMessage:")
-				.append(totalMessages).append(", newMessages:")
-				.append(newMessages).append("}").toString();
+				.append(totalMessages).append(", unreadMessages:")
+				.append(unreadMessages).append("}").toString();
 	}
 }

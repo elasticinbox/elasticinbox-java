@@ -305,7 +305,7 @@ public class Message
 		lc.setTotalMessages(1L);
 
 		if(this.markers == null || !this.markers.contains(Marker.SEEN))
-			lc.setNewMessages(1L);
+			lc.setUnreadMessages(1L);
 
 		return lc;
 	}

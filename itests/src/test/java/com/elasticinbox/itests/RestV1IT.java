@@ -75,7 +75,7 @@ public class RestV1IT extends AbstractIntegrationTest
 			statusCode(200).and().
 			body("'" + ReservedLabels.ALL_MAILS.getId() + "'",		equalTo(ReservedLabels.ALL_MAILS.getName())).
 			body("'" + ReservedLabels.INBOX.getId() + "'",			equalTo(ReservedLabels.INBOX.getName())).
-			body("'" + ReservedLabels.DRAFTS.getId() + "'",		equalTo(ReservedLabels.DRAFTS.getName())).
+			body("'" + ReservedLabels.DRAFTS.getId() + "'",			equalTo(ReservedLabels.DRAFTS.getName())).
 			body("'" + ReservedLabels.SENT.getId() + "'",			equalTo(ReservedLabels.SENT.getName())).
 			body("'" + ReservedLabels.TRASH.getId() + "'",			equalTo(ReservedLabels.TRASH.getName())).
 			body("'" + ReservedLabels.SPAM.getId() + "'",			equalTo(ReservedLabels.SPAM.getName())).
@@ -95,9 +95,9 @@ public class RestV1IT extends AbstractIntegrationTest
 		// check labels metadata
 		expect().
 			statusCode(200).and().
-			body("'" + ReservedLabels.INBOX.getId() + "'.name",	equalTo(ReservedLabels.INBOX.getName())).
-			body("'" + ReservedLabels.INBOX.getId() + "'.size",	greaterThanOrEqualTo(0)).
-			body("'" + ReservedLabels.INBOX.getId() + "'.new",		greaterThanOrEqualTo(0)).
+			body("'" + ReservedLabels.ALL_MAILS.getId() + "'.size",	greaterThanOrEqualTo(0)).
+			body("'" + ReservedLabels.INBOX.getId() + "'.name",		equalTo(ReservedLabels.INBOX.getName())).
+			body("'" + ReservedLabels.INBOX.getId() + "'.unread",	greaterThanOrEqualTo(0)).
 			body("'" + ReservedLabels.INBOX.getId() + "'.total",	greaterThanOrEqualTo(0)).
 		when().
 			get(REST_PATH + "/mailbox?metadata=true");
@@ -571,12 +571,12 @@ public class RestV1IT extends AbstractIntegrationTest
 						equalTo((int) (allCounters.getTotalBytes().longValue() + fileSizeA))).
 				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.total", 
 						equalTo((int) (allCounters.getTotalMessages().longValue() + 1))).
-				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.new", 
-						equalTo((int) (allCounters.getNewMessages().longValue() + 1))).
+				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.unread", 
+						equalTo((int) (allCounters.getUnreadMessages().longValue() + 1))).
 				body("'" + ReservedLabels.INBOX.getId() + "'.total", 
 						equalTo((int) (inboxCounters.getTotalMessages().longValue() + 1))).
-				body("'" + ReservedLabels.INBOX.getId() + "'.new", 
-						equalTo((int) (inboxCounters.getNewMessages().longValue() + 1))).
+				body("'" + ReservedLabels.INBOX.getId() + "'.unread", 
+						equalTo((int) (inboxCounters.getUnreadMessages().longValue() + 1))).
 			when().
 				get(REST_PATH + "/mailbox?metadata=true").asString();
 
@@ -595,8 +595,8 @@ public class RestV1IT extends AbstractIntegrationTest
 				statusCode(200).and().
 				body("'" + ReservedLabels.SPAM.getId() + "'.total", 
 						equalTo((int) (spamCounters.getTotalMessages().longValue() + 1))).
-				body("'" + ReservedLabels.SPAM.getId() + "'.new", 
-						equalTo((int) (spamCounters.getNewMessages().longValue() + 1))).
+				body("'" + ReservedLabels.SPAM.getId() + "'.unread", 
+						equalTo((int) (spamCounters.getUnreadMessages().longValue() + 1))).
 			when().
 				get(REST_PATH + "/mailbox?metadata=true").asString();
 
@@ -618,12 +618,12 @@ public class RestV1IT extends AbstractIntegrationTest
 		jsonResponse = 
 			expect().
 				statusCode(200).and().
-				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.new", 
-						equalTo((int) (allCounters.getNewMessages().longValue() - 1))).
-				body("'" + ReservedLabels.INBOX.getId() + "'.new", 
-						equalTo((int) (inboxCounters.getNewMessages().longValue() - 1))).
-				body("'" + ReservedLabels.SPAM.getId() + "'.new", 
-						equalTo((int) (spamCounters.getNewMessages().longValue() - 1))).
+				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.unread", 
+						equalTo((int) (allCounters.getUnreadMessages().longValue() - 1))).
+				body("'" + ReservedLabels.INBOX.getId() + "'.unread", 
+						equalTo((int) (inboxCounters.getUnreadMessages().longValue() - 1))).
+				body("'" + ReservedLabels.SPAM.getId() + "'.unread", 
+						equalTo((int) (spamCounters.getUnreadMessages().longValue() - 1))).
 			when().
 				get(REST_PATH + "/mailbox?metadata=true").asString();
 
@@ -649,16 +649,16 @@ public class RestV1IT extends AbstractIntegrationTest
 						equalTo((int) (allCounters.getTotalBytes().longValue()))).
 				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.total", 
 						equalTo((int) (allCounters.getTotalMessages().longValue()))).
-				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.new", 
-						equalTo((int) (allCounters.getNewMessages().longValue()))).
+				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.unread", 
+						equalTo((int) (allCounters.getUnreadMessages().longValue()))).
 				body("'" + ReservedLabels.INBOX.getId() + "'.total", 
 						equalTo((int) (inboxCounters.getTotalMessages().longValue() - 1))).
-				body("'" + ReservedLabels.INBOX.getId() + "'.new", 
-						equalTo((int) (inboxCounters.getNewMessages().longValue()))).
+				body("'" + ReservedLabels.INBOX.getId() + "'.unread", 
+						equalTo((int) (inboxCounters.getUnreadMessages().longValue()))).
 				body("'" + ReservedLabels.SPAM.getId() + "'.total", 
 						equalTo((int) (spamCounters.getTotalMessages().longValue()))).
-				body("'" + ReservedLabels.SPAM.getId() + "'.new", 
-						equalTo((int) (spamCounters.getNewMessages().longValue()))).
+				body("'" + ReservedLabels.SPAM.getId() + "'.unread", 
+						equalTo((int) (spamCounters.getUnreadMessages().longValue()))).
 			when().
 				get(REST_PATH + "/mailbox?metadata=true").asString();
 
@@ -679,16 +679,16 @@ public class RestV1IT extends AbstractIntegrationTest
 						equalTo((int) (allCounters.getTotalBytes().longValue() + fileSizeB))).
 				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.total", 
 						equalTo((int) (allCounters.getTotalMessages().longValue() + 1))).
-				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.new", 
-						equalTo((int) (allCounters.getNewMessages().longValue() + 1))).
+				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.unread", 
+						equalTo((int) (allCounters.getUnreadMessages().longValue() + 1))).
 				body("'" + ReservedLabels.INBOX.getId() + "'.total", 
 						equalTo((int) (inboxCounters.getTotalMessages().longValue()))).
-				body("'" + ReservedLabels.INBOX.getId() + "'.new", 
-						equalTo((int) (inboxCounters.getNewMessages().longValue()))).
+				body("'" + ReservedLabels.INBOX.getId() + "'.unread", 
+						equalTo((int) (inboxCounters.getUnreadMessages().longValue()))).
 				body("'" + ReservedLabels.SPAM.getId() + "'.total", 
 						equalTo((int) (spamCounters.getTotalMessages().longValue() + 1))).
-				body("'" + ReservedLabels.SPAM.getId() + "'.new", 
-						equalTo((int) (spamCounters.getNewMessages().longValue() + 1))).
+				body("'" + ReservedLabels.SPAM.getId() + "'.unread", 
+						equalTo((int) (spamCounters.getUnreadMessages().longValue() + 1))).
 			when().
 				get(REST_PATH + "/mailbox?metadata=true").asString();
 
@@ -713,12 +713,12 @@ public class RestV1IT extends AbstractIntegrationTest
 						equalTo((int) (allCounters.getTotalBytes().longValue() - fileSizeA))).
 				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.total", 
 						equalTo((int) (allCounters.getTotalMessages().longValue() - 1))).
-				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.new", 
-						equalTo((int) (allCounters.getNewMessages().longValue()))).
+				body("'" + ReservedLabels.ALL_MAILS.getId() + "'.unread", 
+						equalTo((int) (allCounters.getUnreadMessages().longValue()))).
 				body("'" + ReservedLabels.SPAM.getId() + "'.total", 
 						equalTo((int) (spamCounters.getTotalMessages().longValue() - 1))).
-				body("'" + ReservedLabels.SPAM.getId() + "'.new", 
-						equalTo((int) (spamCounters.getNewMessages().longValue()))).
+				body("'" + ReservedLabels.SPAM.getId() + "'.unread", 
+						equalTo((int) (spamCounters.getUnreadMessages().longValue()))).
 			when().
 				get(REST_PATH + "/mailbox?metadata=true").asString();
 
@@ -789,7 +789,7 @@ public class RestV1IT extends AbstractIntegrationTest
 		String l = Integer.toString(labelId);
 
 		lc.setTotalBytes( (long) from(json).getInt("'" + l + "'.size") );
-		lc.setNewMessages( (long) from(json).getInt("'" + l + "'.new") );
+		lc.setUnreadMessages( (long) from(json).getInt("'" + l + "'.unread") );
 		lc.setTotalMessages( (long) from(json).getInt("'" + l + "'.total") );
 
 		return lc;

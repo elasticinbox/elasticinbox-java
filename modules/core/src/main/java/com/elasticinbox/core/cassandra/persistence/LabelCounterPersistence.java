@@ -162,9 +162,9 @@ public final class LabelCounterPersistence
 				mutator.addCounter(mailbox, CF_COUNTERS, col);
 			}
 
-			if (labelCounters.getNewMessages() != 0) {
+			if (labelCounters.getUnreadMessages() != 0) {
 				HCounterColumn<Composite> col = countersToCompositeColumn(
-						labelId, CN_SUBTYPE_UNREAD, labelCounters.getNewMessages()); 
+						labelId, CN_SUBTYPE_UNREAD, labelCounters.getUnreadMessages()); 
 				mutator.addCounter(mailbox, CF_COUNTERS, col);
 			}
 		}
@@ -177,7 +177,7 @@ public final class LabelCounterPersistence
 		LabelCounters negativeCounters = new LabelCounters();
 		negativeCounters.setTotalBytes(-labelCounters.getTotalBytes());
 		negativeCounters.setTotalMessages(-labelCounters.getTotalMessages());
-		negativeCounters.setNewMessages(-labelCounters.getNewMessages());
+		negativeCounters.setUnreadMessages(-labelCounters.getUnreadMessages());
 
 		// perform add
 		add(mutator, mailbox, labelIds, negativeCounters);
@@ -306,7 +306,7 @@ public final class LabelCounterPersistence
 			} else if (subtype.equals(CN_SUBTYPE_MESSAGES)) {
 				labelCounters.setTotalMessages(c.getValue());
 			} else if (subtype.equals(CN_SUBTYPE_UNREAD)) {
-				labelCounters.setNewMessages(c.getValue());
+				labelCounters.setUnreadMessages(c.getValue());
 			}
 		}
 

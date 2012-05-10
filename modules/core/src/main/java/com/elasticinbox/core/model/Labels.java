@@ -46,11 +46,11 @@ public class Labels
 {
 	private Map<Integer, String> labels;
 	private Map<Integer, LabelCounters> counters;
-	
+
 	private final static String JSON_NAME = "name";
 	private final static String JSON_SIZE = "size";
 	private final static String JSON_MESSAGES_TOTAL = "total";
-	private final static String JSON_MESSAGES_UNREAD = "new";
+	private final static String JSON_MESSAGES_UNREAD = "unread";
 
 	public Labels() {
 		labels = new HashMap<Integer, String>(1);
@@ -188,7 +188,7 @@ public class Labels
 			if (counters.containsKey(labelId)) {
 				metadata.get(labelId).put(JSON_SIZE, counters.get(labelId).getTotalBytes());
 				metadata.get(labelId).put(JSON_MESSAGES_TOTAL, counters.get(labelId).getTotalMessages());
-				metadata.get(labelId).put(JSON_MESSAGES_UNREAD,counters.get(labelId).getNewMessages());
+				metadata.get(labelId).put(JSON_MESSAGES_UNREAD,counters.get(labelId).getUnreadMessages());
 			} else {
 				metadata.get(labelId).put(JSON_SIZE, 0);
 				metadata.get(labelId).put(JSON_MESSAGES_TOTAL, 0);

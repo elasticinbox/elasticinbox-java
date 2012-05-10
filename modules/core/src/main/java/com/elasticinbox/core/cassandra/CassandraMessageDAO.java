@@ -213,7 +213,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		if (markers.contains(Marker.SEEN)) {
 			for (Integer labelId : labels.getIds()) {
 				LabelCounters labelCounters = new LabelCounters();
-				labelCounters.setNewMessages(labels.getLabelCounters(labelId).getNewMessages());
+				labelCounters.setUnreadMessages(labels.getLabelCounters(labelId).getUnreadMessages());
 				LabelCounterPersistence.subtract(m, mailbox.getId(), labelId, labelCounters);
 			}
 		}
@@ -257,8 +257,8 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 				// only seen messages will be marked as new, so we count only seen 
 				Long seenMessages = 
 						labels.getLabelCounters(labelId).getTotalMessages()
-						- labels.getLabelCounters(labelId).getNewMessages();
-				labelCounters.setNewMessages(seenMessages);
+						- labels.getLabelCounters(labelId).getUnreadMessages();
+				labelCounters.setUnreadMessages(seenMessages);
 
 				LabelCounterPersistence.add(m, mailbox.getId(), labelId, labelCounters);
 			}
