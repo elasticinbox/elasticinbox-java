@@ -788,9 +788,12 @@ public class RestV1IT extends AbstractIntegrationTest
 		LabelCounters lc = new LabelCounters();
 		String l = Integer.toString(labelId);
 
-		lc.setTotalBytes( (long) from(json).getInt("'" + l + "'.size") );
 		lc.setUnreadMessages( (long) from(json).getInt("'" + l + "'.unread") );
 		lc.setTotalMessages( (long) from(json).getInt("'" + l + "'.total") );
+		// size returned only for ALL_MAILS
+		if(labelId == ReservedLabels.ALL_MAILS.getId()) {
+			lc.setTotalBytes( (long) from(json).getInt("'" + l + "'.size") );
+		}
 
 		return lc;
 	}

@@ -186,13 +186,19 @@ public class Labels
 			metadata.get(labelId).put(JSON_NAME, label.getValue());
 
 			if (counters.containsKey(labelId)) {
-				metadata.get(labelId).put(JSON_SIZE, counters.get(labelId).getTotalBytes());
 				metadata.get(labelId).put(JSON_MESSAGES_TOTAL, counters.get(labelId).getTotalMessages());
 				metadata.get(labelId).put(JSON_MESSAGES_UNREAD,counters.get(labelId).getUnreadMessages());
+				// display size only for ALL_MAILS
+				if(labelId == ReservedLabels.ALL_MAILS.getId()) {
+					metadata.get(labelId).put(JSON_SIZE, counters.get(labelId).getTotalBytes());
+				}
 			} else {
-				metadata.get(labelId).put(JSON_SIZE, 0);
 				metadata.get(labelId).put(JSON_MESSAGES_TOTAL, 0);
 				metadata.get(labelId).put(JSON_MESSAGES_UNREAD, 0);
+				// display size only for ALL_MAILS
+				if(labelId == ReservedLabels.ALL_MAILS.getId()) {
+					metadata.get(labelId).put(JSON_SIZE, 0);
+				}
 			}
 		}
 
