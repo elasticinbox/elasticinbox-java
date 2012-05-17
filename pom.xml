@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.elasticinbox</groupId>
   <artifactId>elasticinbox-parent</artifactId>
-  <version>0.3.0-SNAPSHOT</version>
+  <version>0.3.0-RC2-SNAPSHOT</version>
 
   <name>ElasticInbox</name>
   <description>Scalable Email Storage</description>
@@ -13,6 +13,7 @@
   	<connection>scm:git:git@github.com:elasticinbox/elasticinbox.git</connection>
   	<developerConnection>scm:git:git@github.com:elasticinbox/elasticinbox.git</developerConnection>
   	<url>http://github.com/elasticinbox/elasticinbox</url>
+    <tag>HEAD</tag>
   </scm>
   <organization>
     <name>ElasticInbox</name>
@@ -90,9 +91,9 @@
     <visualvm.root.folder>/System/Library/Java/Support/VisualVM.bundle/Contents/Home/</visualvm.root.folder>
 
     <!-- Default settings -->
-    <boot.delegation.packages/>
+    <boot.delegation.packages />
     <vm.properties>-Dcom.sun.management.jmxremote.port=9099 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false</vm.properties>
-    <vm.loglevel/>
+    <vm.loglevel />
     <default.osgi.framework>equinox</default.osgi.framework>
     <default.osgi.framework.version>3.6.2</default.osgi.framework.version>
   </properties>
