@@ -70,10 +70,19 @@ public final class LabelCounters
 	 * @param diff
 	 *            Triplet to add. Negative values will perform subtraction.
 	 */
-	public void add(final LabelCounters diff) {
-		this.totalBytes += diff.totalBytes;
-		this.totalMessages += diff.totalMessages;
-		this.unreadMessages += diff.unreadMessages;
+	public void add(final LabelCounters diff)
+	{
+		if (diff.totalBytes != null) {
+			this.totalBytes += diff.totalBytes;
+		}
+
+		if (diff.totalMessages != null) {
+			this.totalMessages += diff.totalMessages;
+		}
+
+		if (diff.unreadMessages != null) {
+			this.unreadMessages += diff.unreadMessages;
+		}
 	}
 	
 	@Override
