@@ -10,7 +10,8 @@
   <description>Scalable Email Storage</description>
   <url>http://www.elasticinbox.com</url>
   <scm>
-  	<connection>scm:git:git://github.com/elasticinbox/elasticinbox.git</connection>
+  	<connection>scm:git:git@github.com:elasticinbox/elasticinbox.git</connection>
+  	<developerConnection>scm:git:git@github.com:elasticinbox/elasticinbox.git</developerConnection>
   	<url>http://github.com/elasticinbox/elasticinbox</url>
   </scm>
   <organization>
@@ -162,6 +163,14 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-release-plugin</artifactId>
+				<version>2.3</version>
+				<configuration>
+					<autoVersionSubmodules>true</autoVersionSubmodules>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.ops4j</groupId>
