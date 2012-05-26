@@ -2,7 +2,8 @@
 # Use this file to add customized Bnd instructions for the bundle
 #-----------------------------------------------------------------
 
-Export-Package: com.elasticinbox.core,\
+Export-Package: \
+	com.elasticinbox.core,\
 	com.elasticinbox.core.model,\
 	com.elasticinbox.core.utils,\
 	com.elasticinbox.core.account.validator,\
@@ -11,10 +12,12 @@ Export-Package: com.elasticinbox.core,\
 	com.elasticinbox.core.blob,\
 	com.elasticinbox.core.log
 
-Private-Package: com.elasticinbox.core.cassandra.persistence,\
+Private-Package: \
 	com.elasticinbox.core.blob.store,\
 	com.elasticinbox.core.blob.naming,\
-	com.elasticinbox.core.cassandra
+	com.elasticinbox.core.cassandra,\
+	com.elasticinbox.core.cassandra.persistence,\
+	com.elasticinbox.core.cassandra.utils
 
 Import-Package: *;resolution:=optional
 

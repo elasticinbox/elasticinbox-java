@@ -52,6 +52,7 @@ import com.elasticinbox.core.cassandra.persistence.AccountPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelCounterPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelIndexPersistence;
 import com.elasticinbox.core.cassandra.persistence.MessagePersistence;
+import com.elasticinbox.core.cassandra.utils.BatchConstants;
 import com.elasticinbox.core.model.Label;
 import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.Message;
@@ -104,7 +105,7 @@ public final class CassandraAccountDAO implements AccountDAO
 				// get all message ids
 				messageIds = LabelIndexPersistence.get(mailbox.getId(),
 						ReservedLabels.ALL_MAILS.getId(), start,
-						CassandraDAOFactory.MAX_COLUMNS_PER_REQUEST, true);
+						BatchConstants.BATCH_READS, true);
 	
 				// get all message headers
 				Map<UUID, Message> messages = 
@@ -118,7 +119,7 @@ public final class CassandraAccountDAO implements AccountDAO
 				// set start element for the next loop
 				start = messageIds.isEmpty() ? null : messageIds.get(messageIds.size()-1);
 			}
-			while (messageIds.size() >= CassandraDAOFactory.MAX_COLUMNS_PER_REQUEST);
+			while (messageIds.size() >= BatchConstants.BATCH_READS);
 		} catch (Exception e) {
 			throw new IOException(e);
 		}

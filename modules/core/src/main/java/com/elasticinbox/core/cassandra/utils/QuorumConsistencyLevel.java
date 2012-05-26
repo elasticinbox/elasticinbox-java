@@ -26,46 +26,44 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.elasticinbox.core.cassandra;
+package com.elasticinbox.core.cassandra.utils;
 
-import me.prettyprint.cassandra.connection.HOpTimer;
-
-import com.ecyrd.speed4j.StopWatch;
-import com.ecyrd.speed4j.StopWatchFactory;
-import com.ecyrd.speed4j.log.PeriodicalLog;
-import com.elasticinbox.config.Configurator;
+import me.prettyprint.cassandra.service.OperationType;
+import me.prettyprint.hector.api.ConsistencyLevelPolicy;
+import me.prettyprint.hector.api.HConsistencyLevel;
 
 /**
- * Implementation of {@link HOpTimer} for JMX performance counters without
- * speed4j.properties file.
+ * Set Cassandra operations' consistency level to QUORUM for both - read and
+ * write operations.
  * 
  * @author Rustam Aliyev
  */
-public final class Speed4jOpTimer implements HOpTimer
+public final class QuorumConsistencyLevel implements ConsistencyLevelPolicy
 {
-	private final StopWatchFactory stopWatchFactory;
-
-	public Speed4jOpTimer()
+	@Override
+	public HConsistencyLevel get(OperationType op)
 	{
-		// Instantiate a new Periodical logger
-		PeriodicalLog pLog = new PeriodicalLog();
-		pLog.setName("ElasticInbox-Hector");
-		pLog.setPeriod(Configurator.getPerformanceCountersInterval());
-		pLog.setMode(PeriodicalLog.Mode.JMX_ONLY);
-		pLog.setMaxQueueSize(250000);
-		pLog.setJmx("READ.success,WRITE.success,READ.fail,WRITE.fail,META_READ.success,META_READ.fail");
-		pLog.setSlf4jLogname("com.elasticinbox.speed4j.cassandra.HectorPeriodicalLogger");
-		stopWatchFactory = StopWatchFactory.getInstance(pLog);
+		switch (op) {
+			case READ:
+				return HConsistencyLevel.QUORUM;
+			case WRITE:
+				return HConsistencyLevel.QUORUM;
+			default:
+				return HConsistencyLevel.QUORUM; // just in Case
+		}
 	}
 
 	@Override
-	public Object start() {
-		return stopWatchFactory.getStopWatch();
-	}
-
-	@Override
-	public void stop(Object token, String tagName, boolean success) {
-		((StopWatch) token).stop(tagName.concat(success ? ".success" : ".fail"));
+	public HConsistencyLevel get(OperationType op, String cfName)
+	{
+		switch (op) {
+			case READ:
+				return HConsistencyLevel.QUORUM;
+			case WRITE:
+				return HConsistencyLevel.QUORUM;
+			default:
+				return HConsistencyLevel.QUORUM; // just in Case
+		}
 	}
 
 }

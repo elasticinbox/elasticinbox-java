@@ -37,6 +37,8 @@ import com.elasticinbox.core.AccountDAO;
 import com.elasticinbox.core.DAOFactory;
 import com.elasticinbox.core.LabelDAO;
 import com.elasticinbox.core.MessageDAO;
+import com.elasticinbox.core.cassandra.utils.QuorumConsistencyLevel;
+import com.elasticinbox.core.cassandra.utils.Speed4jOpTimer;
 
 import me.prettyprint.cassandra.service.CassandraHostConfigurator;
 import me.prettyprint.cassandra.service.FailoverPolicy;
@@ -56,7 +58,6 @@ public final class CassandraDAOFactory extends DAOFactory
 	public final static String CF_METADATA = "MessageMetadata";
 	public final static String CF_LABEL_INDEX = "IndexLabels";
 	public final static String CF_COUNTERS = "Counters";
-	public final static int MAX_COLUMNS_PER_REQUEST = 500;
 
 	public static Keyspace getKeyspace() {
 	    return keyspace;
@@ -104,14 +105,13 @@ public final class CassandraDAOFactory extends DAOFactory
 				Configurator.getCassandraClusterName(), cassConfig);
 
 		// Failover Policy
-		// FailoverPolicy fp = new FailoverPolicy(3, 200);
+		FailoverPolicy fp = new FailoverPolicy(Configurator.getCassandraHosts().size() * 2, 0);
 
 		// Consistency Level Policy
 		ConsistencyLevelPolicy clp = new QuorumConsistencyLevel();
 
 		// Use/Create keyspace and set Consistency Level
-		keyspace = HFactory.createKeyspace(Configurator.getCassandraKeyspace(),
-				cluster, clp, FailoverPolicy.ON_FAIL_TRY_ALL_AVAILABLE);
+		keyspace = HFactory.createKeyspace(Configurator.getCassandraKeyspace(), cluster, clp, fp);
 	}
 
 }

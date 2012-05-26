@@ -130,6 +130,10 @@
 					<groupId>com.ecyrd.speed4j</groupId>
 					<artifactId>speed4j</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-log4j12</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
@@ -281,6 +285,11 @@
 			<artifactId>slf4j-api</artifactId>
 			<version>${bundle.slf4j.version}</version>
 			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>${bundle.slf4j.version}</version>
 		</dependency>
 
 		<!-- Gson -->

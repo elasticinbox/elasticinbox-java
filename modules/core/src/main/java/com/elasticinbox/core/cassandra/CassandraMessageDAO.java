@@ -54,11 +54,9 @@ import com.elasticinbox.core.OverQuotaException;
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.naming.BlobNameBuilder;
 import com.elasticinbox.core.blob.store.BlobStoreProxy;
-import com.elasticinbox.core.cassandra.persistence.LabelCounterPersistence;
-import com.elasticinbox.core.cassandra.persistence.LabelIndexPersistence;
-import com.elasticinbox.core.cassandra.persistence.Marshaller;
-import com.elasticinbox.core.cassandra.persistence.MessagePersistence;
-import com.elasticinbox.core.cassandra.persistence.PurgeIndexPersistence;
+import com.elasticinbox.core.cassandra.persistence.*;
+import com.elasticinbox.core.cassandra.utils.BatchConstants;
+import com.elasticinbox.core.cassandra.utils.ThrottlingMutator;
 import com.elasticinbox.core.model.LabelCounters;
 import com.elasticinbox.core.model.Labels;
 import com.elasticinbox.core.model.Mailbox;
@@ -278,13 +276,12 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		// build list of attributes
 		Set<String> attributes = new HashSet<String>(labelIds.size());
 		for (Integer labelId : labelIds) {
-			String a = new StringBuilder(Marshaller.CN_LABEL_PREFIX)
-					.append(labelId).toString();
-			attributes.add(a);
+			attributes.add(Marshaller.CN_LABEL_PREFIX + labelId);
 		}
 
 		// begin batch operation
-		Mutator<String> m = createMutator(keyspace, strSe);
+		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe,
+				BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
 
 		// get message stats for counters
 		LabelCounters labelCounters = countStatsForMessages(mailbox, messageIds);
@@ -316,13 +313,12 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		// build list of attributes
 		Set<String> attributes = new HashSet<String>(labelIds.size());
 		for (Integer labelId : labelIds) {
-			String a = new StringBuilder(Marshaller.CN_LABEL_PREFIX)
-					.append(labelId).toString();
-			attributes.add(a);
+			attributes.add(Marshaller.CN_LABEL_PREFIX + labelId);
 		}
 
 		// begin batch operation
-		Mutator<String> m = createMutator(keyspace, strSe);
+		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe,
+				BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
 
 		// get message stats for counters, negative
 		LabelCounters labelCounters = countStatsForMessages(mailbox, messageIds);
@@ -344,7 +340,8 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 	public void delete(final Mailbox mailbox, final List<UUID> messageIds)
 	{
 		// begin batch operation
-		Mutator<String> m = createMutator(keyspace, strSe);
+		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe,
+				BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
 
 		// add messages to purge index
 		PurgeIndexPersistence.add(m, mailbox.getId(), messageIds);
@@ -373,12 +370,8 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 		// loop until we process all purged items
 		do {
-			// begin batch operation
-			Mutator<String> m = createMutator(keyspace, strSe);
-
 			// get message IDs of messages to purge
-			purgeIndex = PurgeIndexPersistence.get(mailbox.getId(), age,
-					CassandraDAOFactory.MAX_COLUMNS_PER_REQUEST);
+			purgeIndex = PurgeIndexPersistence.get(mailbox.getId(), age, BatchConstants.BATCH_READS);
 
 			// get metadata/blob location
 			Map<UUID, Message> messages = 
@@ -389,6 +382,10 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 				BlobStoreProxy.delete(messages.get(messageId).getLocation());
 			}
 
+			// initiate throttling mutator 
+			Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe,
+					BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
+
 			// purge expired (older than age) messages
 			MessagePersistence.deleteMessage(m, mailbox.getId(), purgeIndex.values());
 
@@ -398,7 +395,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			// commit batch operation
 			m.execute();
 		}
-		while (purgeIndex.size() >= CassandraDAOFactory.MAX_COLUMNS_PER_REQUEST);
+		while (purgeIndex.size() >= BatchConstants.BATCH_READS);
 	}
 
 	/**

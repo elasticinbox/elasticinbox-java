@@ -47,6 +47,7 @@ import com.elasticinbox.core.MessageDAO;
 import com.elasticinbox.core.cassandra.persistence.AccountPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelCounterPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelIndexPersistence;
+import com.elasticinbox.core.cassandra.utils.BatchConstants;
 import com.elasticinbox.core.model.Labels;
 import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.ReservedLabels;
@@ -165,12 +166,12 @@ public final class CassandraLabelDAO implements LabelDAO
 		do {
 			// get message ids of label
 			messageIds = LabelIndexPersistence.get(mailbox.getId(), labelId,
-					null, CassandraDAOFactory.MAX_COLUMNS_PER_REQUEST, false);
+					null, BatchConstants.BATCH_READS, false);
 
 			// remove label from message metadata
 			messageDAO.removeLabel(mailbox, labelIds, messageIds);
 		}
-		while (messageIds.size() >= CassandraDAOFactory.MAX_COLUMNS_PER_REQUEST);
+		while (messageIds.size() >= BatchConstants.BATCH_READS);
 
 		// begin batch operation
 		Mutator<String> m = createMutator(keyspace, strSe);
