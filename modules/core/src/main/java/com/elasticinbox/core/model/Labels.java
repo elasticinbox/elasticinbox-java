@@ -37,7 +37,7 @@ import org.codehaus.jackson.annotate.JsonValue;
 
 /**
  * This class stores multiple labels with counters (total size, total messages,
- * new messages).
+ * unread messages).
  * 
  * @author Rustam Aliyev
  * @see {@link LabelCounters}
@@ -97,22 +97,37 @@ public class Labels
 	}
 
 	/**
-	 * Add counters to a single label
+	 * Set counters of a single label
 	 * 
 	 * @param labelId
 	 * @param counters
 	 */
-	public void addCounters(int labelId, LabelCounters counters) {
+	public void setCounters(final int labelId, LabelCounters counters) {
 		this.counters.put(labelId, counters);
 	}
 
 	/**
-	 * Add counters to multiple labels
+	 * Set counters of multiple labels
 	 * 
 	 * @param counters
 	 */
-	public void addCounters(Map<Integer, LabelCounters> counters) {
+	public void setCounters(Map<Integer, LabelCounters> counters) {
 		this.counters.putAll(counters);
+	}
+
+	/**
+	 * Increments counters of the given label
+	 * 
+	 * @param labelId
+	 * @param counters
+	 */
+	public void incrementCounters(final int labelId, LabelCounters counters)
+	{
+		if (!this.counters.containsKey(labelId)) {
+			this.counters.put(labelId, counters);
+		} else {
+			this.counters.get(labelId).add(counters);
+		}
 	}
 
 	/**

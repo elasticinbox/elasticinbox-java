@@ -40,7 +40,8 @@
             	com.elasticinbox.rest.v2.AccountResource;
             	com.elasticinbox.rest.v2.LabelResource;
             	com.elasticinbox.rest.v2.MessageResource;
-            	com.elasticinbox.rest.v2.SingleMessageResource
+            	com.elasticinbox.rest.v2.SingleMessageResource;
+            	com.elasticinbox.rest.v2.ScrubResource
             </param-value>
         </init-param>
         <init-param>

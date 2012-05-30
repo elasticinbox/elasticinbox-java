@@ -36,9 +36,21 @@ package com.elasticinbox.core.model;
  */
 public final class LabelCounters
 {
-	private Long totalBytes = 0L;
-	private Long totalMessages = 0L;
-	private Long unreadMessages = 0L;
+	private Long totalBytes;
+	private Long totalMessages;
+	private Long unreadMessages;
+
+	public LabelCounters() {
+		totalBytes = 0L;
+		totalMessages = 0L;
+		unreadMessages = 0L;
+	}
+
+	public LabelCounters(LabelCounters l) {
+		totalBytes = l.getTotalBytes();
+		totalMessages = l.getTotalMessages();
+		unreadMessages = l.getUnreadMessages();
+	}
 
 	public Long getTotalBytes() {
 		return totalBytes;
@@ -83,6 +95,22 @@ public final class LabelCounters
 		if (diff.unreadMessages != null) {
 			this.unreadMessages += diff.unreadMessages;
 		}
+	}
+	
+	/**
+	 * Returns inverse value of each counter. Can be used for subtraction.
+	 * 
+	 * @return
+	 */
+	public LabelCounters getInverse()
+	{
+		LabelCounters inverse = new LabelCounters();
+
+		inverse.setTotalBytes(-this.totalBytes);
+		inverse.setTotalMessages(-this.totalMessages);
+		inverse.setUnreadMessages(-this.unreadMessages);
+
+		return inverse;
 	}
 	
 	@Override

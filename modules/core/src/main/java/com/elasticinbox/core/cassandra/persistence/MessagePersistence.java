@@ -31,6 +31,7 @@ package com.elasticinbox.core.cassandra.persistence;
 import static com.elasticinbox.core.cassandra.CassandraDAOFactory.CF_METADATA;
 import static me.prettyprint.hector.api.factory.HFactory.createColumn;
 import static me.prettyprint.hector.api.factory.HFactory.createSuperColumn;
+import static me.prettyprint.hector.api.factory.HFactory.createSuperSliceQuery;
 import static me.prettyprint.hector.api.factory.HFactory.createMultigetSuperSliceQuery;
 
 import java.io.IOException;
@@ -56,12 +57,14 @@ import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.serializers.UUIDSerializer;
 import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.beans.HColumn;
+import me.prettyprint.hector.api.beans.HSuperColumn;
 import me.prettyprint.hector.api.beans.SuperRows;
 import me.prettyprint.hector.api.beans.SuperSlice;
 import me.prettyprint.hector.api.exceptions.HectorException;
 import me.prettyprint.hector.api.mutation.Mutator;
 import me.prettyprint.hector.api.query.MultigetSuperSliceQuery;
 import me.prettyprint.hector.api.query.QueryResult;
+import me.prettyprint.hector.api.query.SuperSliceQuery;
 
 public final class MessagePersistence
 {
@@ -139,6 +142,43 @@ public final class MessagePersistence
 		Assert.notNull(messages.get(messageId), "Message not found");
 
 		return messages.get(messageId);
+	}
+
+	/**
+	 * Get messages within given range (excludes body)
+	 * 
+	 * @param mailbox
+	 * @param start
+	 * @param count
+	 * @return
+	 */
+	public static Map<UUID, Message> getRange(final String mailbox,
+			final UUID start, final int count)
+	{
+		// read message ids from the result
+		Map<UUID, Message> result = new LinkedHashMap<UUID, Message>();
+
+		// Create a query
+		SuperSliceQuery<String, UUID, String, byte[]> q = 
+				createSuperSliceQuery(keyspace, strSe, uuidSe, strSe, byteSe);
+
+		// set keys, cf, range
+		q.setColumnFamily(CF_METADATA);
+		q.setKey(mailbox);
+		q.setRange(start, null, false, count);
+
+		// execute
+		QueryResult<SuperSlice<UUID, String, byte[]>> r = q.execute();
+
+		List<HSuperColumn<UUID, String, byte[]>> superColumns = r.get().getSuperColumns();
+
+		for (HSuperColumn<UUID, String, byte[]> superColumn : superColumns)
+		{
+			result.put(superColumn.getName(), 
+					Marshaller.unmarshall(superColumn.getColumns(), false));
+		}
+
+		return result;
 	}
 
 	/**

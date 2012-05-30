@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.elasticinbox.core.blob.BlobDataSource;
+import com.elasticinbox.core.model.Labels;
 import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.Marker;
 import com.elasticinbox.core.model.Message;
@@ -226,4 +227,11 @@ public interface MessageDAO
 	 */
 	public void purge(Mailbox mailbox, Date age);
 
+	/**
+	 * Calculates counters for all labels bu scanning through all messages. Used
+	 * for scrub operation.
+	 * 
+	 * @return
+	 */
+	public Labels calculateCounters(Mailbox mailbox);
 }

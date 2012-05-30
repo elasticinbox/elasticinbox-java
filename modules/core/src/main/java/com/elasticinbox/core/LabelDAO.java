@@ -95,4 +95,11 @@ public interface LabelDAO
 	 */
 	public void delete(Mailbox mailbox, Integer labelId) throws IOException, IllegalLabelException;
 
+	/**
+	 * Set new counter value for labels
+	 * 
+	 * @param mailbox
+	 * @param labels Lables and their new counter values
+	 */
+	public void setCounters(Mailbox mailbox, Labels labels);
 }

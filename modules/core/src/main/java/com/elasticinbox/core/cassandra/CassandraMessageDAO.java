@@ -398,6 +398,34 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		while (purgeIndex.size() >= BatchConstants.BATCH_READS);
 	}
 
+	@Override
+	public Labels calculateCounters(final Mailbox mailbox)
+	{
+		Labels labels = new Labels();
+		UUID lastMessage = null;
+		Map<UUID, Message> messages;
+		
+		do {
+			messages = MessagePersistence.getRange(
+					mailbox.getId(), lastMessage, BatchConstants.BATCH_READS);
+
+			for (UUID messageId : messages.keySet())
+			{
+				Message message = messages.get(messageId);
+
+				// add counters for each of the labels
+				for (int labelId : message.getLabels()) {
+					labels.incrementCounters(labelId, message.getLabelCounters());
+				}
+				
+				lastMessage = messageId;
+			}
+		}
+		while (messages.size() >= BatchConstants.BATCH_READS);
+
+		return labels;
+	}
+
 	/**
 	 * Get aggregated {@link LabelCounter} stats for the list of messages
 	 * 
@@ -445,7 +473,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 			for (int labelId : messageLabels) {
 				if(!labels.containsId(labelId))
-					labels.addCounters(labelId, new LabelCounters());
+					labels.setCounters(labelId, new LabelCounters());
 
 				labels.getLabelCounters(labelId).add(
 						headers.get(messageId).getLabelCounters());

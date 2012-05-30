@@ -48,6 +48,7 @@ import com.elasticinbox.core.cassandra.persistence.AccountPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelCounterPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelIndexPersistence;
 import com.elasticinbox.core.cassandra.utils.BatchConstants;
+import com.elasticinbox.core.model.LabelCounters;
 import com.elasticinbox.core.model.Labels;
 import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.ReservedLabels;
@@ -76,7 +77,7 @@ public final class CassandraLabelDAO implements LabelDAO
 		labels.add(AccountPersistence.getLabels(mailbox.getId()));
 
 		// get labels' counters
-		labels.addCounters(LabelCounterPersistence.getAll(mailbox.getId()));
+		labels.setCounters(LabelCounterPersistence.getAll(mailbox.getId()));
 		
 		return labels;
 	}
@@ -186,6 +187,43 @@ public final class CassandraLabelDAO implements LabelDAO
 		AccountPersistence.deleteLabel(m, mailbox.getId(), labelId);
 
 		// commit batch operation
+		m.execute();
+	}
+
+	@Override
+	public void setCounters(Mailbox mailbox, Labels calculatedCounters)
+	{
+		Map<Integer, LabelCounters> existingCounters = 
+				LabelCounterPersistence.getAll(mailbox.getId());
+
+		// begin batch operation
+		Mutator<String> m = createMutator(keyspace, strSe);
+
+		// update calculated counters
+		for (int labelId : calculatedCounters.getIds())
+		{
+			LabelCounters diff = new LabelCounters(calculatedCounters.getLabelCounters(labelId));
+
+			if (existingCounters.containsKey(labelId)) {
+				diff.add(existingCounters.get(labelId).getInverse());
+			}
+
+			logger.debug(
+					"Recalculated counters for label {}:\n\tCurrent: {}\n\tCalculated: {}\n\tDiff: {}",
+					new Object[] { labelId, existingCounters.get(labelId),
+							calculatedCounters.getLabelCounters(labelId), diff });
+
+			LabelCounterPersistence.add(m, mailbox.getId(), labelId, diff);
+		}
+		
+		// reset non-existing counters
+		for (int labelId : existingCounters.keySet()) {
+			if (!calculatedCounters.containsId(labelId)) {
+				LabelCounterPersistence.subtract(
+						m, mailbox.getId(), labelId, existingCounters.get(labelId));
+			}
+		}
+
 		m.execute();
 	}
 

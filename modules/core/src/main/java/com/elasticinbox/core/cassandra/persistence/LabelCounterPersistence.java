@@ -173,14 +173,8 @@ public final class LabelCounterPersistence
 	public static void subtract(Mutator<String> mutator, final String mailbox,
 			final Set<Integer> labelIds, final LabelCounters labelCounters)
 	{
-		// inverse values
-		LabelCounters negativeCounters = new LabelCounters();
-		negativeCounters.setTotalBytes(-labelCounters.getTotalBytes());
-		negativeCounters.setTotalMessages(-labelCounters.getTotalMessages());
-		negativeCounters.setUnreadMessages(-labelCounters.getUnreadMessages());
-
-		// perform add
-		add(mutator, mailbox, labelIds, negativeCounters);
+		// perform addition of inverse (i.e. subtraction)
+		add(mutator, mailbox, labelIds, labelCounters.getInverse());
 	}
 
 	public static void add(Mutator<String> mutator, final String mailbox,
@@ -270,7 +264,7 @@ public final class LabelCounterPersistence
 		composite.addComponent(subtype, strSe);
 		return createCounterColumn(composite, count, new CompositeSerializer());
 	}
-	
+
 	/**
 	 * Convert Hector Composite Columns to {@link LabelCounters}
 	 * 
@@ -278,22 +272,22 @@ public final class LabelCounterPersistence
 	 * @return
 	 */
 	private static Map<Integer, LabelCounters> compositeColumnsToCounters(
-			List<HCounterColumn<Composite>> columnList)
+			final List<HCounterColumn<Composite>> columnList)
 	{
 		Map<Integer, LabelCounters> result = 
 				new HashMap<Integer, LabelCounters>(LabelConstants.MAX_RESERVED_LABEL_ID);
 
 		LabelCounters labelCounters = new LabelCounters();
-		Integer prevLabelId = 0; // remember previous labelid which is always start form 0
+		int prevLabelId = 0; // remember previous labelid which is always start form 0
 
 		for (HCounterColumn<Composite> c : columnList)
 		{
-			Integer labelId = Integer.parseInt(c.getName().get(1, strSe));
+			int labelId = Integer.parseInt(c.getName().get(1, strSe));
 
 			// since columns are ordered by labels, we can
 			// flush label counters to result map as we traverse
 			if (prevLabelId != labelId) {
-				logger.debug("Fetched counters for label {} with {}", labelId, labelCounters);
+				logger.debug("Fetched counters for label {} with {}", prevLabelId, labelCounters);
 				result.put(prevLabelId, labelCounters);
 				labelCounters = new LabelCounters();
 				prevLabelId = labelId;
