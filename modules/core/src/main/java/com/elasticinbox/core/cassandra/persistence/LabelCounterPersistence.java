@@ -300,7 +300,7 @@ public final class LabelCounterPersistence
 			if (c.getValue() >= 0) {
 				cValue = c.getValue();
 			} else {
-				logger.warn("Negative counter value found {}/{}: ", labelId);
+				logger.warn("Negative counter value found for label {}/{}: ", mailbox, labelId);
 			}
 
 			switch (subtype) {
