@@ -294,25 +294,20 @@ public final class LabelCounterPersistence
 				prevLabelId = labelId;
 			}
 
-			long cValue = 0;
-	
-			// never return negative counter value
-			if (c.getValue() >= 0) {
-				cValue = c.getValue();
-			} else {
-				logger.warn("Negative counter value found for label {}/{}: ", mailbox, labelId);
-			}
-
 			switch (subtype) {
 			case CN_SUBTYPE_BYTES:
-				labelCounters.setTotalBytes(cValue);
+				labelCounters.setTotalBytes(c.getValue());
 				break;
 			case CN_SUBTYPE_MESSAGES:
-				labelCounters.setTotalMessages(cValue);
+				labelCounters.setTotalMessages(c.getValue());
 				break;
 			case CN_SUBTYPE_UNREAD:
-				labelCounters.setUnreadMessages(cValue);
+				labelCounters.setUnreadMessages(c.getValue());
 				break;
+			}
+
+			if (c.getValue() < 0) {
+				logger.warn("Negative counter value found for label {}/{}: ", mailbox, labelId);
 			}
 		}
 

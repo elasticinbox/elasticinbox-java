@@ -200,12 +200,18 @@ public class Labels
 			metadata.put(labelId, new HashMap<String, Object>(4));
 			metadata.get(labelId).put(JSON_NAME, label.getValue());
 
-			if (counters.containsKey(labelId)) {
-				metadata.get(labelId).put(JSON_MESSAGES_TOTAL, counters.get(labelId).getTotalMessages());
-				metadata.get(labelId).put(JSON_MESSAGES_UNREAD,counters.get(labelId).getUnreadMessages());
+			if (counters.containsKey(labelId))
+			{
+				// never return negative values
+				metadata.get(labelId).put(JSON_MESSAGES_TOTAL,
+						Math.max(0, counters.get(labelId).getTotalMessages()));
+				metadata.get(labelId).put(JSON_MESSAGES_UNREAD,
+						Math.max(0, counters.get(labelId).getUnreadMessages()));
+
 				// display size only for ALL_MAILS
 				if(labelId == ReservedLabels.ALL_MAILS.getId()) {
-					metadata.get(labelId).put(JSON_SIZE, counters.get(labelId).getTotalBytes());
+					metadata.get(labelId).put(JSON_SIZE,
+							Math.max(0, counters.get(labelId).getTotalBytes()));
 				}
 			} else {
 				metadata.get(labelId).put(JSON_MESSAGES_TOTAL, 0);
