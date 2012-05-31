@@ -62,11 +62,11 @@ public final class LabelCounterPersistence
 	public final static String CN_TYPE_LABEL = "l";
 
 	/** Label counter subtype for total bytes */
-	public final static String CN_SUBTYPE_BYTES = "b";
+	public final static char CN_SUBTYPE_BYTES = 'b';
 	/** Label counter subtype for total messages */
-	public final static String CN_SUBTYPE_MESSAGES = "m";
+	public final static char CN_SUBTYPE_MESSAGES = 'm';
 	/** Label counter subtype for unread messages */
-	public final static String CN_SUBTYPE_UNREAD = "u";
+	public final static char CN_SUBTYPE_UNREAD = 'u';
 
 	private final static Keyspace keyspace = CassandraDAOFactory.getKeyspace();
 	private final static StringSerializer strSe = StringSerializer.get();
@@ -96,7 +96,7 @@ public final class LabelCounterPersistence
 
 		QueryResult<CounterSlice<Composite>> r = sliceQuery.execute();
 
-		return compositeColumnsToCounters(r.get().getColumns());
+		return compositeColumnsToCounters(mailbox, r.get().getColumns());
 	}
 
 	/**
@@ -124,7 +124,7 @@ public final class LabelCounterPersistence
 
 		QueryResult<CounterSlice<Composite>> r = sliceQuery.execute();
 
-		Map<Integer, LabelCounters> counters = compositeColumnsToCounters(r.get().getColumns());
+		Map<Integer, LabelCounters> counters = compositeColumnsToCounters(mailbox, r.get().getColumns());
 		LabelCounters labelCounters = counters.containsKey(labelId) ? counters.get(labelId) : new LabelCounters();
 
 		logger.debug("Fetched counters for single label {} with {}", labelId, labelCounters);
@@ -256,12 +256,12 @@ public final class LabelCounterPersistence
 	 * @return
 	 */
 	private static HCounterColumn<Composite> countersToCompositeColumn(
-			final Integer labelId, final String subtype, final Long count)
+			final Integer labelId, final char subtype, final Long count)
 	{
 		Composite composite = new Composite();
 		composite.addComponent(CN_TYPE_LABEL, strSe);
 		composite.addComponent(labelId.toString(), strSe);
-		composite.addComponent(subtype, strSe);
+		composite.addComponent(Character.toString(subtype), strSe);
 		return createCounterColumn(composite, count, new CompositeSerializer());
 	}
 
@@ -272,7 +272,7 @@ public final class LabelCounterPersistence
 	 * @return
 	 */
 	private static Map<Integer, LabelCounters> compositeColumnsToCounters(
-			final List<HCounterColumn<Composite>> columnList)
+			final String mailbox, final List<HCounterColumn<Composite>> columnList)
 	{
 		Map<Integer, LabelCounters> result = 
 				new HashMap<Integer, LabelCounters>(LabelConstants.MAX_RESERVED_LABEL_ID);
@@ -283,6 +283,7 @@ public final class LabelCounterPersistence
 		for (HCounterColumn<Composite> c : columnList)
 		{
 			int labelId = Integer.parseInt(c.getName().get(1, strSe));
+			char subtype = c.getName().get(2, strSe).charAt(0);
 
 			// since columns are ordered by labels, we can
 			// flush label counters to result map as we traverse
@@ -293,14 +294,25 @@ public final class LabelCounterPersistence
 				prevLabelId = labelId;
 			}
 
-			String subtype = c.getName().get(2, strSe);
+			long cValue = 0;
+	
+			// never return negative counter value
+			if (c.getValue() >= 0) {
+				cValue = c.getValue();
+			} else {
+				logger.warn("Negative counter value found {}/{}: ", labelId);
+			}
 
-			if (subtype.equals(CN_SUBTYPE_BYTES)) {
-				labelCounters.setTotalBytes(c.getValue());
-			} else if (subtype.equals(CN_SUBTYPE_MESSAGES)) {
-				labelCounters.setTotalMessages(c.getValue());
-			} else if (subtype.equals(CN_SUBTYPE_UNREAD)) {
-				labelCounters.setUnreadMessages(c.getValue());
+			switch (subtype) {
+			case CN_SUBTYPE_BYTES:
+				labelCounters.setTotalBytes(cValue);
+				break;
+			case CN_SUBTYPE_MESSAGES:
+				labelCounters.setTotalMessages(cValue);
+				break;
+			case CN_SUBTYPE_UNREAD:
+				labelCounters.setUnreadMessages(cValue);
+				break;
 			}
 		}
 
