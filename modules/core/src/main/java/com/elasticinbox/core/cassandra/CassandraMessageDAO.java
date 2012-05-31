@@ -404,13 +404,27 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		Labels labels = new Labels();
 		UUID lastMessage = null;
 		Map<UUID, Message> messages;
+		Map<UUID, UUID> purgeIndex;
+		Set<UUID> deletedMessages = new HashSet<UUID>();
 		
+		// get deleted message IDs from purge queue
+		// deleted messages should be excluded during calculation
+		do {
+			purgeIndex = PurgeIndexPersistence.get(
+					mailbox.getId(), new Date(), BatchConstants.BATCH_READS);
+			deletedMessages.addAll(purgeIndex.values());
+		}
+		while (purgeIndex.size() >= BatchConstants.BATCH_READS);
+
+		// read messages and calculate label counters
 		do {
 			messages = MessagePersistence.getRange(
 					mailbox.getId(), lastMessage, BatchConstants.BATCH_READS);
 
 			for (UUID messageId : messages.keySet())
 			{
+				if (deletedMessages.contains(messageId)) continue;
+
 				Message message = messages.get(messageId);
 
 				// add counters for each of the labels
