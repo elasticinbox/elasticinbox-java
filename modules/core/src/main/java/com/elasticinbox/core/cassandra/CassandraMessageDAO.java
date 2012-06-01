@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import me.prettyprint.cassandra.serializers.StringSerializer;
+import me.prettyprint.cassandra.utils.TimeUUIDUtils;
 import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.mutation.Mutator;
 
@@ -63,6 +64,7 @@ import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.Marker;
 import com.elasticinbox.core.model.Message;
 import com.elasticinbox.core.model.ReservedLabels;
+import com.google.common.collect.Iterables;
 
 public final class CassandraMessageDAO extends AbstractMessageDAO implements MessageDAO
 {
@@ -402,24 +404,29 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 	public Labels calculateCounters(final Mailbox mailbox)
 	{
 		Labels labels = new Labels();
-		UUID lastMessage = null;
 		Map<UUID, Message> messages;
 		Map<UUID, UUID> purgeIndex;
 		Set<UUID> deletedMessages = new HashSet<UUID>();
-		
+
+		logger.debug("Recalculating counters for {}", mailbox);
+
 		// get deleted message IDs from purge queue
 		// deleted messages should be excluded during calculation
+		UUID start = TimeUUIDUtils.getUniqueTimeUUIDinMillis();
 		do {
 			purgeIndex = PurgeIndexPersistence.get(
-					mailbox.getId(), new Date(), BatchConstants.BATCH_READS);
+					mailbox.getId(), start, BatchConstants.BATCH_READS);
+
 			deletedMessages.addAll(purgeIndex.values());
+			start = Iterables.getLast(purgeIndex.keySet());
 		}
 		while (purgeIndex.size() >= BatchConstants.BATCH_READS);
 
-		// read messages and calculate label counters
+		// reset start, read messages and calculate label counters
+		start = TimeUUIDUtils.getUniqueTimeUUIDinMillis();
 		do {
 			messages = MessagePersistence.getRange(
-					mailbox.getId(), lastMessage, BatchConstants.BATCH_READS);
+					mailbox.getId(), start, BatchConstants.BATCH_READS);
 
 			for (UUID messageId : messages.keySet())
 			{
@@ -432,7 +439,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 					labels.incrementCounters(labelId, message.getLabelCounters());
 				}
 				
-				lastMessage = messageId;
+				start = messageId;
 			}
 		}
 		while (messages.size() >= BatchConstants.BATCH_READS);

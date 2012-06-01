@@ -34,7 +34,7 @@ import static me.prettyprint.hector.api.factory.HFactory.createSliceQuery;
 
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -101,10 +101,22 @@ public final class PurgeIndexPersistence
 	public static Map<UUID, UUID> get(final String mailbox, final Date age,
 			final int count)
 	{
-		Map<UUID, UUID> messageIds = new HashMap<UUID, UUID>(count);
-
 		UUID start = TimeUUIDUtils.getTimeUUID(age.getTime());
-		
+		return get(mailbox, start, count);
+	}
+
+	/**
+	 * Get all message IDs deleted before given UUID
+	 * 
+	 * @param mailbox
+	 * @param age
+	 * @return
+	 */
+	public static Map<UUID, UUID> get(final String mailbox, final UUID start,
+			final int count)
+	{
+		Map<UUID, UUID> messageIds = new LinkedHashMap<UUID, UUID>(count);
+
 		String key = new StringBuilder(mailbox)
 				.append(LabelIndexPersistence.COMPOSITE_KEY_DELIMITER)
 				.append(PURGE_LABEL_ID).toString();
@@ -130,6 +142,8 @@ public final class PurgeIndexPersistence
 
 		return messageIds;
 	}
+	
+	
 
 	/**
 	 * Remove all message IDs from purge index deleted before given date

@@ -165,7 +165,7 @@ public final class MessagePersistence
 		// set keys, cf, range
 		q.setColumnFamily(CF_METADATA);
 		q.setKey(mailbox);
-		q.setRange(start, null, false, count);
+		q.setRange(start, null, true, count);
 
 		// execute
 		QueryResult<SuperSlice<UUID, String, byte[]>> r = q.execute();
