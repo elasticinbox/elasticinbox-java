@@ -368,6 +368,10 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 		logger.debug("Purging all messages older than {} for {}", age.toString(), mailbox);
 
+		// initiate throttling mutator 
+		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe,
+				BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
+
 		// loop until we process all purged items
 		do {
 			// get message IDs of messages to purge
@@ -382,20 +386,16 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 				BlobStoreProxy.delete(messages.get(messageId).getLocation());
 			}
 
-			// initiate throttling mutator 
-			Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe,
-					BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
-
 			// purge expired (older than age) messages
 			MessagePersistence.deleteMessage(m, mailbox.getId(), purgeIndex.values());
 
 			// remove from purge index
 			PurgeIndexPersistence.remove(m, mailbox.getId(), purgeIndex.keySet());
-
-			// commit batch operation
-			m.execute();
 		}
 		while (purgeIndex.size() >= BatchConstants.BATCH_READS);
+
+		// commit remaining items
+		m.execute();
 	}
 
 	@Override
