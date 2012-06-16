@@ -105,7 +105,7 @@ public final class CassandraDAOFactory extends DAOFactory
 				Configurator.getCassandraClusterName(), cassConfig);
 
 		// Failover Policy
-		FailoverPolicy fp = new FailoverPolicy(Configurator.getCassandraHosts().size() * 2, 0);
+		FailoverPolicy fp = new FailoverPolicy(Configurator.getCassandraHosts().size(), 0);
 
 		// Consistency Level Policy
 		ConsistencyLevelPolicy clp = new QuorumConsistencyLevel();
