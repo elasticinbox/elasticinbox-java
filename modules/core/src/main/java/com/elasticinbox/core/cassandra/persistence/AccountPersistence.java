@@ -42,7 +42,6 @@ import com.elasticinbox.core.cassandra.CassandraDAOFactory;
 import me.prettyprint.cassandra.serializers.BytesArraySerializer;
 import me.prettyprint.cassandra.serializers.SerializerTypeInferer;
 import me.prettyprint.cassandra.serializers.StringSerializer;
-import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.beans.ColumnSlice;
 import me.prettyprint.hector.api.beans.HColumn;
 import me.prettyprint.hector.api.mutation.Mutator;
@@ -56,8 +55,6 @@ public final class AccountPersistence
 	private final static BytesArraySerializer byteSe = BytesArraySerializer.get();
 	private final static StringSerializer strSe = StringSerializer.get();
 
-	private final static Keyspace keyspace = CassandraDAOFactory.getKeyspace();
-
 	/**
 	 * Get all account attributes
 	 * 
@@ -69,7 +66,7 @@ public final class AccountPersistence
 	{
 		// Create a query
 		SliceQuery<String, String, byte[]> q = 
-				createSliceQuery(keyspace, strSe, strSe, byteSe);
+				createSliceQuery(CassandraDAOFactory.getKeyspace(), strSe, strSe, byteSe);
 
 		// set key, cf, range
 		q.setColumnFamily(CF_ACCOUNTS).setKey(mailbox);
@@ -120,7 +117,7 @@ public final class AccountPersistence
 	 */
 	public static <V> void set(final String mailbox, final Map<String, V> attributes)
 	{
-		Mutator<String> m = createMutator(keyspace, strSe);
+		Mutator<String> m = createMutator(CassandraDAOFactory.getKeyspace(), strSe);
 
 		for (Map.Entry<String, V> a : attributes.entrySet()) {
 			m.addInsertion(mailbox,	CF_ACCOUNTS,

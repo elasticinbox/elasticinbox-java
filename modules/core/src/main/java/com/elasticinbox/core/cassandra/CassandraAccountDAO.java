@@ -60,12 +60,16 @@ import com.elasticinbox.core.model.ReservedLabels;
 
 public final class CassandraAccountDAO implements AccountDAO
 {
-	private final static Keyspace keyspace = CassandraDAOFactory.getKeyspace();
+	private final Keyspace keyspace;
 	private final static StringSerializer strSe = StringSerializer.get();
 
 	@SuppressWarnings("unused")
 	private final static Logger logger = LoggerFactory
 			.getLogger(CassandraAccountDAO.class);
+
+	public CassandraAccountDAO(Keyspace keyspace) {
+		this.keyspace = keyspace;
+	}
 
 	@Override
 	public void add(final Mailbox mailbox) throws IOException, IllegalArgumentException
@@ -92,7 +96,7 @@ public final class CassandraAccountDAO implements AccountDAO
 	{
 		// purge all previously deleted objects
 		// TODO: we should not instantinate here
-		MessageDAO messageDAO = new CassandraMessageDAO();
+		MessageDAO messageDAO = new CassandraMessageDAO(keyspace);
 		messageDAO.purge(mailbox, new Date());
 
 		// delete all objects from object store

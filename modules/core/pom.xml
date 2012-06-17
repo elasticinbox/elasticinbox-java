@@ -321,6 +321,24 @@
 			<version>1.1</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.yaml</groupId>
+			<artifactId>snakeyaml</artifactId>
+			<version>1.8</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.codehaus.jackson</groupId>
+			<artifactId>jackson-mapper-asl</artifactId>
+			<version>${bundle.jackson.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.ning</groupId>
+			<artifactId>compress-lzf</artifactId>
+			<version>${bundle.compress-lzf.version}</version>
+			<scope>test</scope>
+		</dependency>
 
 	</dependencies>
 

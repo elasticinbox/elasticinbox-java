@@ -52,7 +52,7 @@ public final class CassandraDAOFactory extends DAOFactory
 	private final static Logger logger = 
 		LoggerFactory.getLogger(CassandraDAOFactory.class);
 
-	private final static Keyspace keyspace;
+	private static Keyspace keyspace;
 
 	public final static String CF_ACCOUNTS = "Accounts";
 	public final static String CF_METADATA = "MessageMetadata";
@@ -63,19 +63,29 @@ public final class CassandraDAOFactory extends DAOFactory
 	    return keyspace;
 	}
 
+	/**
+	 * This method sets system-wide keyspace. Should be used only for unit test
+	 * injection.
+	 * 
+	 * @param k
+	 */
+	public static void setKeyspace(Keyspace k) {
+		keyspace = k;
+	}
+
 	@Override
 	public AccountDAO getAccountDAO() {
-		return new CassandraAccountDAO();
+		return new CassandraAccountDAO(keyspace);
 	}
 
 	@Override
 	public MessageDAO getMessageDAO() {
-		return new CassandraMessageDAO();
+		return new CassandraMessageDAO(keyspace);
 	}
 
 	@Override
 	public LabelDAO getLabelDAO() {
-		return new CassandraLabelDAO();
+		return new CassandraLabelDAO(keyspace);
 	}
 
 	static

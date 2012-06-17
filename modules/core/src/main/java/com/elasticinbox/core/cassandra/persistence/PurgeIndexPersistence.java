@@ -47,7 +47,6 @@ import com.elasticinbox.core.cassandra.CassandraDAOFactory;
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.serializers.UUIDSerializer;
 import me.prettyprint.cassandra.utils.TimeUUIDUtils;
-import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.beans.ColumnSlice;
 import me.prettyprint.hector.api.beans.HColumn;
 import me.prettyprint.hector.api.mutation.Mutator;
@@ -56,8 +55,6 @@ import me.prettyprint.hector.api.query.SliceQuery;
 
 public final class PurgeIndexPersistence
 {
-	private final static Keyspace keyspace = CassandraDAOFactory.getKeyspace();
-
 	private final static StringSerializer strSe = StringSerializer.get();
 	private final static UUIDSerializer uuidSe = UUIDSerializer.get();
 
@@ -122,8 +119,8 @@ public final class PurgeIndexPersistence
 				.append(PURGE_LABEL_ID).toString();
 
 		// Create a query
-		SliceQuery<String, UUID, UUID> q = createSliceQuery(keyspace, strSe,
-				uuidSe, uuidSe);
+		SliceQuery<String, UUID, UUID> q = createSliceQuery(
+				CassandraDAOFactory.getKeyspace(), strSe, uuidSe, uuidSe);
 
 		// set key, cf, range
 		q.setColumnFamily(CF_LABEL_INDEX);

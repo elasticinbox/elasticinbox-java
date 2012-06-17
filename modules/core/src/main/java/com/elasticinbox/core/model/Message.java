@@ -251,6 +251,11 @@ public class Message
 		this.labels.add(labelId);
 	}
 
+	@JsonIgnore
+	public void addLabel(Label label) {
+		this.labels.add(label.getId());
+	}
+
 	public Set<Marker> getMarkers() {
 		return this.markers;
 	}

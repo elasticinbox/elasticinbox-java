@@ -48,7 +48,6 @@ import com.google.common.collect.ImmutableList;
 import me.prettyprint.cassandra.serializers.BytesArraySerializer;
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.serializers.UUIDSerializer;
-import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.beans.ColumnSlice;
 import me.prettyprint.hector.api.beans.HColumn;
 import me.prettyprint.hector.api.exceptions.HectorException;
@@ -59,7 +58,6 @@ import me.prettyprint.hector.api.query.SliceQuery;
 public final class LabelIndexPersistence
 {
 	protected final static String COMPOSITE_KEY_DELIMITER = ":";
-	private final static Keyspace keyspace = CassandraDAOFactory.getKeyspace();
 
 	private final static StringSerializer strSe = StringSerializer.get();
 	private final static UUIDSerializer uuidSe = UUIDSerializer.get();
@@ -149,7 +147,7 @@ public final class LabelIndexPersistence
 
 		// Create a query
 		SliceQuery<String, UUID, byte[]> q = 
-				createSliceQuery(keyspace, strSe, uuidSe, byteSe);
+				createSliceQuery(CassandraDAOFactory.getKeyspace(), strSe, uuidSe, byteSe);
 
 		// set key, cf, range
 		q.setColumnFamily(CF_LABEL_INDEX);

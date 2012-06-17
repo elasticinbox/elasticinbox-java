@@ -44,14 +44,30 @@ public class AddressList extends AbstractList<Address>
 	private final List<Address> addresses;
 
 	/**
+	 * Create new address list
 	 * 
 	 * @param addresses
-	 * 				A List that contains only Mailbox objects.
+	 * 				A List that contains only Address objects.
 	 */
 	public AddressList(List<Address> addresses)
 	{
 		if (addresses != null) {
 			this.addresses = new ArrayList<Address>(addresses);
+		} else {
+			this.addresses = Collections.emptyList();
+		}
+	}
+
+	/**
+	 * Create new address list
+	 * 
+	 * @param address
+	 */
+	public AddressList(Address address)
+	{
+		if (address != null) {
+			this.addresses = new ArrayList<Address>(1);
+			this.addresses.add(address);
 		} else {
 			this.addresses = Collections.emptyList();
 		}

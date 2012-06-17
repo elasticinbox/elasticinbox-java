@@ -43,7 +43,6 @@ import org.slf4j.LoggerFactory;
 
 import me.prettyprint.cassandra.serializers.CompositeSerializer;
 import me.prettyprint.cassandra.serializers.StringSerializer;
-import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.beans.Composite;
 import me.prettyprint.hector.api.beans.CounterSlice;
 import me.prettyprint.hector.api.beans.HCounterColumn;
@@ -68,7 +67,6 @@ public final class LabelCounterPersistence
 	/** Label counter subtype for unread messages */
 	public final static char CN_SUBTYPE_UNREAD = 'u';
 
-	private final static Keyspace keyspace = CassandraDAOFactory.getKeyspace();
 	private final static StringSerializer strSe = StringSerializer.get();
 
 	private final static Logger logger = 
@@ -89,7 +87,7 @@ public final class LabelCounterPersistence
 		endRange.addComponent(0, CN_TYPE_LABEL, Composite.ComponentEquality.GREATER_THAN_EQUAL);
 
 		SliceCounterQuery<String, Composite> sliceQuery =
-				createCounterSliceQuery(keyspace, strSe, new CompositeSerializer());
+				createCounterSliceQuery(CassandraDAOFactory.getKeyspace(), strSe, new CompositeSerializer());
 		sliceQuery.setColumnFamily(CF_COUNTERS);
 		sliceQuery.setKey(mailbox);
 		sliceQuery.setRange(startRange, endRange, false, LabelConstants.MAX_LABEL_ID);
@@ -117,7 +115,7 @@ public final class LabelCounterPersistence
 		endRange.addComponent(1, labelId.toString(), Composite.ComponentEquality.GREATER_THAN_EQUAL);
 
 		SliceCounterQuery<String, Composite> sliceQuery =
-				createCounterSliceQuery(keyspace, strSe, new CompositeSerializer());
+				createCounterSliceQuery(CassandraDAOFactory.getKeyspace(), strSe, new CompositeSerializer());
 		sliceQuery.setColumnFamily(CF_COUNTERS);
 		sliceQuery.setKey(mailbox);
 		sliceQuery.setRange(startRange, endRange, false, 5);

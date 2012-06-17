@@ -60,13 +60,17 @@ import me.prettyprint.hector.api.mutation.Mutator;
 
 public final class CassandraLabelDAO implements LabelDAO
 {
-	private final static Keyspace keyspace = CassandraDAOFactory.getKeyspace();
+	private final Keyspace keyspace;
 	private final static StringSerializer strSe = StringSerializer.get();
 
 	private final static int MAX_NEW_LABEL_ID_ATTEMPTS = 200;
 
 	private final static Logger logger = 
 			LoggerFactory.getLogger(CassandraLabelDAO.class);
+
+	public CassandraLabelDAO(Keyspace keyspace) {
+		this.keyspace = keyspace;
+	}
 
 	@Override
 	public Labels getAllWithMetadata(final Mailbox mailbox)
@@ -156,8 +160,7 @@ public final class CassandraLabelDAO implements LabelDAO
 		}
 
 		// get message DAO object
-		CassandraDAOFactory dao = new CassandraDAOFactory();
-		MessageDAO messageDAO = dao.getMessageDAO();
+		MessageDAO messageDAO = new CassandraMessageDAO(keyspace);
 
 		List<UUID> messageIds = null;
 		Set<Integer> labelIds = new HashSet<Integer>(1);

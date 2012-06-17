@@ -55,7 +55,6 @@ import com.elasticinbox.core.model.Message;
 import me.prettyprint.cassandra.serializers.BytesArraySerializer;
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.serializers.UUIDSerializer;
-import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.beans.HColumn;
 import me.prettyprint.hector.api.beans.HSuperColumn;
 import me.prettyprint.hector.api.beans.SuperRows;
@@ -68,8 +67,6 @@ import me.prettyprint.hector.api.query.SuperSliceQuery;
 
 public final class MessagePersistence
 {
-	private final static Keyspace keyspace = CassandraDAOFactory.getKeyspace();
-
 	private final static UUIDSerializer uuidSe = UUIDSerializer.get();
 	private final static StringSerializer strSe = StringSerializer.get();
 	private final static BytesArraySerializer byteSe = BytesArraySerializer.get();
@@ -94,7 +91,7 @@ public final class MessagePersistence
 
 		// Create a query
 		MultigetSuperSliceQuery<String, UUID, String, byte[]> q = 
-				createMultigetSuperSliceQuery(keyspace, strSe, uuidSe, strSe, byteSe);
+				createMultigetSuperSliceQuery(CassandraDAOFactory.getKeyspace(), strSe, uuidSe, strSe, byteSe);
 
 		// set keys, cf, range
 		q.setColumnFamily(CF_METADATA);
@@ -160,7 +157,7 @@ public final class MessagePersistence
 
 		// Create a query
 		SuperSliceQuery<String, UUID, String, byte[]> q = 
-				createSuperSliceQuery(keyspace, strSe, uuidSe, strSe, byteSe);
+				createSuperSliceQuery(CassandraDAOFactory.getKeyspace(), strSe, uuidSe, strSe, byteSe);
 
 		// set keys, cf, range
 		q.setColumnFamily(CF_METADATA);
