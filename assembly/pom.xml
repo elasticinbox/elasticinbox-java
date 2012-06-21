@@ -62,7 +62,7 @@
 						<id>package-provision</id>
 						<phase>package</phase>
 						<goals>
-							<goal>run</goal>
+							<goal>directory</goal>
 						</goals>
 					</execution>
 				</executions>
