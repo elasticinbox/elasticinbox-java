@@ -473,13 +473,17 @@ public final class ThrottlingMutator<K> implements Mutator<K>
 			pendingMutations = new ThrottlingBatchMutation<K>(keySerializer, batchSize);
 
 			if (batchInterval != null) {
-				try {
-					long sleepInterval = batchInterval - (long) (result.getExecutionTimeMicro() / 1000);
-					logger.debug("sleeping {}ms to throttle.", sleepInterval);
-					Thread.sleep(sleepInterval);
-				} catch (InterruptedException e) {
-					// rethrow as hector exception
-					throw new HectorException(e.getMessage());
+				// sleep remaining time (batch time - execution time)
+				long sleepInterval = batchInterval - (long) (result.getExecutionTimeMicro() / 1000);
+
+				if (sleepInterval > 0) {
+					try {
+						logger.debug("sleeping {}ms to throttle.", sleepInterval);
+						Thread.sleep(sleepInterval);
+					} catch (InterruptedException e) {
+						// rethrow as hector exception
+						throw new HectorException(e.getMessage());
+					}
 				}
 			}
 		}
