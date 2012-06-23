@@ -38,6 +38,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.elasticinbox.core.cassandra.CassandraDAOFactory;
+import com.elasticinbox.core.model.Label;
+import com.elasticinbox.core.model.ReservedLabels;
 
 import me.prettyprint.cassandra.serializers.BytesArraySerializer;
 import me.prettyprint.cassandra.serializers.SerializerTypeInferer;
@@ -95,17 +97,22 @@ public final class AccountPersistence
 	{
 		Map<Integer, String> labels = new HashMap<Integer, String>();
 
-		// get list of labels from cassandra
+		// get list of user specific labels from Cassandra
 		Map<String, Object> attributes = getAll(mailbox);
 
-		// build result
+		// add user specific labels
 		for (Map.Entry<String, Object> a : attributes.entrySet()) {
 			if (a.getKey().startsWith(CN_LABEL_PREFIX)) {
 				Integer labelId = Integer.parseInt(a.getKey().split(":")[1]);
 				labels.put(labelId, (String) a.getValue());
 			}
 		}
-		
+
+		// add default reserved labels
+		for (Label l : ReservedLabels.getAll()) {
+			labels.put(l.getId(), l.getName());
+		}
+
 		return labels;
 	}
 
