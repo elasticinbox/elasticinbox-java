@@ -32,7 +32,6 @@ import static me.prettyprint.hector.api.factory.HFactory.createMutator;
 
 import java.io.IOException;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -53,7 +52,6 @@ import com.elasticinbox.core.cassandra.persistence.LabelCounterPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelIndexPersistence;
 import com.elasticinbox.core.cassandra.persistence.MessagePersistence;
 import com.elasticinbox.core.cassandra.utils.BatchConstants;
-import com.elasticinbox.core.model.Label;
 import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.Message;
 import com.elasticinbox.core.model.ReservedLabels;
@@ -74,21 +72,16 @@ public final class CassandraAccountDAO implements AccountDAO
 	@Override
 	public void add(final Mailbox mailbox) throws IOException, IllegalArgumentException
 	{
-		Map<String, Object> attributes = new HashMap<String, Object>();
+		// currently nothing happens here
+
+		//Map<String, Object> attributes = new HashMap<String, Object>();
 
 		// TODO: make quota configurable on the mailbox level
 		//attributes.put("quota:bytes", DEFAULT_QUOTA_BYTES);
 		//attributes.put("quota:messages", DEFAULT_QUOTA_MESSAGES);
 		//attributes.put("version", CURRENT_MAILBOX_VERSION);
 
-		// Add predefined labels
-		for (Label l : ReservedLabels.getAll()) {
-			String labelKey = new StringBuilder(AccountPersistence.CN_LABEL_PREFIX).
-					append(l.getId()).toString();
-			attributes.put(labelKey, l.getName());
-		}
-
-		AccountPersistence.set(mailbox.getId(), attributes);
+		//AccountPersistence.set(mailbox.getId(), attributes);
 	}
 
 	@Override
