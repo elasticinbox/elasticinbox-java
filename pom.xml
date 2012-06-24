@@ -95,6 +95,7 @@
     <!-- JMX enabled through startup script
     <vm.properties>-Dcom.sun.management.jmxremote.port=9099 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false</vm.properties>
     -->
+    <vm.properties />
     <vm.loglevel />
     <default.osgi.framework>equinox</default.osgi.framework>
     <default.osgi.framework.version>3.6.2</default.osgi.framework.version>
