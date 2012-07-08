@@ -437,8 +437,10 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			purgeIndex = PurgeIndexPersistence.get(
 					mailbox.getId(), start, BatchConstants.BATCH_READS);
 
-			deletedMessages.addAll(purgeIndex.values());
-			start = Iterables.getLast(purgeIndex.keySet());
+			if (!purgeIndex.isEmpty()) {
+				deletedMessages.addAll(purgeIndex.values());
+				start = Iterables.getLast(purgeIndex.keySet());
+			}
 		}
 		while (purgeIndex.size() >= BatchConstants.BATCH_READS);
 
@@ -450,6 +452,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 			for (UUID messageId : messages.keySet())
 			{
+				// skip messages from purge queue
 				if (deletedMessages.contains(messageId)) continue;
 
 				Message message = messages.get(messageId);
