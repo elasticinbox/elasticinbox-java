@@ -451,7 +451,9 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 					mailbox.getId(), start, BatchConstants.BATCH_READS);
 
 			for (UUID messageId : messages.keySet())
-			{
+			{				
+				start = messageId; // shift next query start
+
 				// skip messages from purge queue
 				if (deletedMessages.contains(messageId)) continue;
 
@@ -461,8 +463,6 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 				for (int labelId : message.getLabels()) {
 					labels.incrementCounters(labelId, message.getLabelCounters());
 				}
-				
-				start = messageId;
 			}
 		}
 		while (messages.size() >= BatchConstants.BATCH_READS);
