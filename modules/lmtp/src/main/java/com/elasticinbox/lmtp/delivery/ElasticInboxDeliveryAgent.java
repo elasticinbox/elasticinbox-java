@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import com.ecyrd.speed4j.StopWatch;
 import com.elasticinbox.lmtp.Activator;
+import com.elasticinbox.lmtp.filter.*;
 import com.elasticinbox.lmtp.server.api.DeliveryException;
 import com.elasticinbox.lmtp.server.api.DeliveryReturnCode;
 import com.elasticinbox.core.MessageDAO;
@@ -49,7 +50,6 @@ import com.elasticinbox.core.message.MimeParserException;
 import com.elasticinbox.core.message.id.MessageIdBuilder;
 import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.Message;
-import com.elasticinbox.core.model.ReservedLabels;
 
 /**
  * Delivery agent implementation
@@ -88,7 +88,12 @@ public class ElasticInboxDeliveryAgent implements IDeliveryAgent
 		}
 
 		message.setSize((long) env.getSize()); // update message size
-		message.addLabel(ReservedLabels.INBOX.getId()); // default location
+
+		FilterProcessor<Message> processor = new FilterProcessor<Message>();
+		//processor.add(new NotificationMailFilter());
+		processor.add(new SpamMailFilter());
+		processor.add(new DefaultMailFilter());
+		message = processor.doFilter(message);
 
 		logEnvelope(env, message, deliveryId);
 
