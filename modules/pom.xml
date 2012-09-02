@@ -47,6 +47,7 @@
     <module>config</module>
     <module>core</module>
     <module>lmtp</module>
+    <module>pop3</module>
     <module>rest</module>
   </modules>
 

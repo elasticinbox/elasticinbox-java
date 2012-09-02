@@ -1,0 +1,11 @@
+#-----------------------------------------------------------------
+# Use this file to add customized Bnd instructions for the bundle
+#-----------------------------------------------------------------
+
+Bundle-Activator: com.elasticinbox.pop3.Activator
+
+Import-Package: *
+
+Private-Package: \
+  com.elasticinbox.pop3,\
+  com.elasticinbox.pop3.*
