@@ -50,6 +50,7 @@ public final class ReservedLabels
 	public final static Label IMPORTANT	= new Label(7, "important");
 	public final static Label NOTIFICATIONS	= new Label(8, "notifications");
 	public final static Label ATTACHMENTS	= new Label(9, "attachments");
+	public final static Label POP3		= new Label(10, "pop3");
 
 	private final static ImmutableMap<Integer, Label> labels = 
 			new ImmutableMap.Builder<Integer, Label>()
@@ -63,6 +64,7 @@ public final class ReservedLabels
 				.put(IMPORTANT.getId(), IMPORTANT)
 				.put(NOTIFICATIONS.getId(), NOTIFICATIONS)
 				.put(ATTACHMENTS.getId(), ATTACHMENTS)
+				.put(POP3.getId(), POP3)
 				.build();
 
 	public static Label get(final int labelId) {
