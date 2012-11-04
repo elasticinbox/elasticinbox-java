@@ -120,9 +120,9 @@
 
 		<!-- Cassandra Hector Dependencies (embedded) -->
 		<dependency>
-			<groupId>me.prettyprint</groupId>
+			<groupId>org.hectorclient</groupId>
 			<artifactId>hector-core</artifactId>
-			<version>1.0-5</version>
+			<version>1.1-1</version>
 			<type>jar</type>
 			<scope>compile</scope>
 			<exclusions>
@@ -139,14 +139,14 @@
 		<dependency>
 			<groupId>org.apache.thrift</groupId>
 			<artifactId>libthrift</artifactId>
-			<version>0.6.1</version>
+			<version>0.7.0</version>
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.cassandra</groupId>
 			<artifactId>cassandra-thrift</artifactId>
-			<version>1.0.9</version>
+			<version>1.1.5</version>
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
@@ -202,7 +202,8 @@
 			<type>bundle</type>
 			<scope>provided</scope>
 		</dependency>
- -->		<dependency>
+ -->
+		<dependency>
 			<groupId>org.jclouds.common</groupId>
 			<artifactId>aws-common</artifactId>
 			<version>${bundle.jclouds.version}</version>
@@ -223,17 +224,22 @@
 			<type>bundle</type>
 			<scope>provided</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>org.apache.servicemix.bundles</groupId>
 			<artifactId>org.apache.servicemix.bundles.aopalliance</artifactId>
 			<version>${bundle.aopalliance.version}</version>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.apache.servicemix.bundles</groupId>
-			<artifactId>org.apache.servicemix.bundles.commons-io</artifactId>
+ 		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
 			<version>${bundle.commons-io.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>commons-lang</groupId>
+			<artifactId>commons-lang</artifactId>
+			<version>${bundle.commons-lang.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -252,12 +258,6 @@
 			<groupId>org.apache.servicemix.bundles</groupId>
 			<artifactId>org.apache.servicemix.bundles.java-xmlbuilder</artifactId>
 			<version>${bundle.java-xmlbuilder.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.servicemix.bundles</groupId>
-			<artifactId>org.apache.servicemix.bundles.commons-lang</artifactId>
-			<version>${bundle.commons-lang.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -302,8 +302,8 @@
 
 		<!-- Guava -->
 		<dependency>
-			<groupId>com.googlecode.guava-osgi</groupId>
-			<artifactId>guava-osgi</artifactId>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
 			<version>${bundle.guava.version}</version>
 			<scope>provided</scope>
 		</dependency>
