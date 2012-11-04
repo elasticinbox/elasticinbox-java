@@ -37,10 +37,9 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.DeflaterInputStream;
 
-import org.jclouds.Constants;
 import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
-import org.jclouds.blobstore.BlobStoreContextFactory;
+import org.jclouds.ContextBuilder;
 import org.jclouds.blobstore.domain.Blob;
 import org.jclouds.filesystem.reference.FilesystemConstants;
 import org.slf4j.Logger;
@@ -207,22 +206,25 @@ public final class BlobStoreProxy
 			synchronized (BlobStoreProxy.class)
 			{
 				logger.debug("Creating new connection for '{}' blob store.", profileName);
-
+				
 				Properties properties = new Properties();
 				BlobStoreProfile profile = Configurator.getBlobStoreProfile(profileName);
+				ContextBuilder contextBuilder = ContextBuilder.newBuilder(profile.getProvider());
 
 				if (profile.getProvider().equals(PROVIDER_FILESYSTEM)) {
 					// use endpoint as fs basedir, see: http://code.google.com/p/jclouds/issues/detail?id=776
 					properties.setProperty(FilesystemConstants.PROPERTY_BASEDIR, profile.getEndpoint());
-					properties.setProperty(Constants.PROPERTY_CREDENTIAL, "dummy");
+					contextBuilder.endpoint(profile.getEndpoint());
+					//properties.setProperty(PROPERTY_CREDENTIAL, "dummy");
 				} else if (BlobStoreConstants.BLOBSTORE_PROVIDERS.contains(profile.getProvider())) {
 					if (profile.getEndpoint() != null) {
-						properties.setProperty(
-								profile.getProvider() + ".endpoint", profile.getEndpoint());
+						contextBuilder.endpoint(profile.getEndpoint());
 					}
 					if (profile.getApiversion() != null) {
-						properties.setProperty(
-								profile.getProvider() + ".apiversion", profile.getApiversion());
+						contextBuilder.apiVersion(profile.getApiversion());
+					}
+					if (profile.getIdentity() != null && profile.getCredential() != null) {
+						contextBuilder.credentials(profile.getIdentity(), profile.getCredential());
 					}
 				} else {
 					throw new UnsupportedOperationException(
@@ -230,9 +232,10 @@ public final class BlobStoreProxy
 				}
 
 				// get a context with filesystem that offers the portable BlobStore api
-				BlobStoreContext context = new BlobStoreContextFactory().createContext(
-						profile.getProvider(), profile.getIdentity(), profile.getCredential(),
-						ImmutableSet.of(new JcloudsSlf4JLoggingModule()), properties);
+				BlobStoreContext context = contextBuilder
+						.overrides(properties)
+						.modules(ImmutableSet.of(new JcloudsSlf4JLoggingModule()))
+						.buildView(BlobStoreContext.class);
 
 				// create container for transient store
 				if(profile.getProvider().equals(PROVIDER_TRANSIENT)) {

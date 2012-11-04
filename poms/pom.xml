@@ -96,20 +96,6 @@
 	    <type>bundle</type>
 	    <scope>provided</scope>
       </dependency>
-      <dependency>
-		<groupId>com.googlecode.guava-osgi</groupId>
-		<artifactId>guava-osgi</artifactId>
-		<version>${bundle.guava.version}</version>
-	    <type>bundle</type>
-		<scope>provided</scope>
-      </dependency>
-      <dependency>
-		<groupId>com.google.code.gson</groupId>
-		<artifactId>gson</artifactId>
-		<version>${bundle.gson.version}</version>
-	    <type>bundle</type>
-		<scope>provided</scope>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 

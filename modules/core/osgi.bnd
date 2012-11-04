@@ -22,7 +22,7 @@ Private-Package: \
 Import-Package: *;resolution:=optional
 
 Embed-Dependency: \
-  hector-core;groupId=me.prettyprint;inline=false,\
+  hector-core;groupId=org.hectorclient;inline=false,\
   libthrift;groupId=org.apache.thrift;inline=false,\
   cassandra-thrift;groupId=org.apache.cassandra;inline=false,\
   uuid;groupId=com.github.stephenc.eaio-uuid;inline=false,\

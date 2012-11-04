@@ -85,7 +85,7 @@ public class LmtpIT extends AbstractIntegrationTest
 	{
 		return ObjectArrays.concat(super.config(), options(
 				// LMTP Test Bundles
-				wrappedBundle(mavenBundle().groupId("me.normanmaurer").artifactId("niosmtp").versionAsInProject()),
+				wrappedBundle(mavenBundle().groupId("me.normanmaurer.niosmtp").artifactId("niosmtp").versionAsInProject()),
 				mavenBundle().groupId("org.apache.james.protocols").artifactId("protocols-netty").versionAsInProject(),
 				mavenBundle().groupId("org.apache.james.protocols").artifactId("protocols-api").versionAsInProject(),
 				mavenBundle().groupId("org.apache.james.protocols").artifactId("protocols-smtp").versionAsInProject(),
