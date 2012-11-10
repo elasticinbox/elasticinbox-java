@@ -40,16 +40,19 @@ import java.util.zip.DeflaterInputStream;
 import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.ContextBuilder;
-import org.jclouds.blobstore.domain.Blob;
+import org.jclouds.blobstore.domain.BlobBuilder;
 import org.jclouds.filesystem.reference.FilesystemConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.common.utils.Assert;
+import com.elasticinbox.common.utils.IOUtils;
 import com.elasticinbox.config.Configurator;
 import com.elasticinbox.config.blob.BlobStoreProfile;
 import com.elasticinbox.core.log.JcloudsSlf4JLoggingModule;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.io.CountingInputStream;
+import com.google.common.io.FileBackedOutputStream;
 
 /**
  * This is a proxy class for jClouds Blobstore API.
@@ -72,25 +75,30 @@ public final class BlobStoreProxy
 
 	private static final String PROVIDER_FILESYSTEM = "filesystem";
 	private static final String PROVIDER_TRANSIENT = "transient";
+	private static final int MAX_MEMORY_FILE_SIZE = 102400; // 100KB
 
 	private static ConcurrentHashMap<String, BlobStoreContext> blobStoreContexts = 
 			new ConcurrentHashMap<String, BlobStoreContext>();
+
+	// ensure non-instantiability
+	private BlobStoreProxy() {
+	}
 
 	/**
 	 * Store Blob
 	 * 
 	 * @param blobName
 	 *            Blob filename including relative path
-	 * @param in
+	 * @param inputStream
 	 *            Payload
 	 * @param size
 	 *            Payload size in bytes
 	 * @return
 	 * @throws IOException 
 	 */
-	public static URI write(String blobName, InputStream in, final Long size) throws IOException
+	public static URI write(String blobName, InputStream inputStream, final Long size) throws IOException
 	{
-		Assert.notNull(in, "No data to store");
+		Assert.notNull(inputStream, "No data to store");
 
 		final String profileName = Configurator.getBlobStoreWriteProfileName(); 
 		final String container = Configurator.getBlobStoreProfile(profileName).getContainer();
@@ -101,21 +109,35 @@ public final class BlobStoreProxy
 
 		BlobStore blobStore = context.getBlobStore();
 
-		// add blob
-		Blob blob;
+		InputStream in;
 
-		if ((size > BlobStoreConstants.MIN_COMPRESS_SIZE)
-				&& BlobStoreConstants.CHUNKED_ENCODING_CAPABILITY.contains(provider))
+		// compressed stream (compressed blob size unknown)
+		if (Configurator.isBlobStoreCompressionEnabled()
+				&& (size > BlobStoreConstants.MIN_COMPRESS_SIZE))
 		{
-			// compressed stream, size unknown
-			InputStream dis = new DeflaterInputStream(in);
+			in = new DeflaterInputStream(inputStream);
 			blobName = blobName + BlobStoreConstants.COMPRESS_SUFFIX;
-			blob = blobStore.blobBuilder(blobName).payload(dis).build();
 		} else {
-			blob = blobStore.blobBuilder(blobName).payload(in).contentLength(size).build();
+			in = inputStream;
 		}
 
-		blobStore.putBlob(container, blob);
+		BlobBuilder blobBuilder = blobStore.blobBuilder(blobName);
+
+		// If cloud provider supports chunked encoding, stream directly.
+		// Otherwise, calculate compressed/encrypted stream size (e.g. AWS S3).
+		if (BlobStoreConstants.CHUNKED_ENCODING_CAPABILITY.contains(provider)) {
+			blobBuilder.payload(in);
+		} else {
+			CountingInputStream cin = new CountingInputStream(in); 
+			FileBackedOutputStream fbout = new FileBackedOutputStream(MAX_MEMORY_FILE_SIZE, true);
+			IOUtils.copy(cin, fbout);
+
+			blobBuilder.payload(fbout.getSupplier().getInput()).contentLength(cin.getCount());
+		}
+
+		// add blob
+		blobStore.putBlob(container, blobBuilder.build());
+
 		return buildURI(profileName, blobName);
 	}
 
@@ -152,7 +174,9 @@ public final class BlobStoreProxy
 	public static void delete(URI uri)
 	{
 		// check if blob was stored for the message, skip if not
-		if (uri == null) return; 
+		if (uri == null) {
+			return; 
+		}
 
 		logger.debug("Deleting object {}", uri);
 
@@ -160,7 +184,8 @@ public final class BlobStoreProxy
 		BlobStoreProfile profile = Configurator.getBlobStoreProfile(profileName);
 		String path = relativize(uri.getPath());
 		
-		if (profile.getProvider().equals(PROVIDER_FILESYSTEM)) {
+		if (profile.getProvider().equals(PROVIDER_FILESYSTEM))
+		{
 			// Following part is added as a replacement for jClouds delete due to
 			// performance issues with jClouds
 
@@ -171,8 +196,9 @@ public final class BlobStoreProxy
 			File f = new File(fileName);
 
 			// If file does not exist, skip 
-			if (!f.exists())
+			if (!f.exists()) {
 				return;
+			}
 
 			// Make sure the file is writable
 			Assert.isTrue(f.canWrite(), "File is write protected: " + fileName);
