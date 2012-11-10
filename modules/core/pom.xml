@@ -339,6 +339,12 @@
 			<version>${bundle.compress-lzf.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.sun.jersey</groupId>
+			<artifactId>jersey-core</artifactId>
+			<version>${bundle.jersey.version}</version>
+			<scope>test</scope>
+		</dependency>
 
 	</dependencies>
 
