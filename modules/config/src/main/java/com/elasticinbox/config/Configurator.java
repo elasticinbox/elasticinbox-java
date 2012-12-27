@@ -44,6 +44,7 @@ import org.yaml.snakeyaml.error.YAMLException;
 
 import com.elasticinbox.common.utils.Assert;
 import com.elasticinbox.config.blob.BlobStoreProfile;
+import com.elasticinbox.config.crypto.SymmetricKeyStorage;
 
 /**
  * Main configuration class which loads options from YAML and provides to the
@@ -59,6 +60,7 @@ public class Configurator
 	private static final Logger logger = LoggerFactory.getLogger(Configurator.class);
 	private static final String DEFAULT_CONFIGURATION = "elasticinbox.yaml";
 	private static Config conf;
+	private static SymmetricKeyStorage keyManager;
 
 	/**
 	 * Inspect the classpath to find storage configuration file
@@ -68,13 +70,15 @@ public class Configurator
 		URI uri;
 		String configUrl = System.getProperty("elasticinbox.config");
 
-		if (configUrl == null)
+		if (configUrl == null) {
 			configUrl = DEFAULT_CONFIGURATION;
+		}
 
 		try {
 			File file = new File(configUrl);
-			if(!file.canRead())
+			if(!file.canRead()) {
 				throw new ConfigurationException("Cannot read config file: " + configUrl);
+			}
 			uri = file.toURI();
 		} catch (Exception e) {
 			logger.error("Error opening logfile: ", e);
@@ -90,9 +94,10 @@ public class Configurator
 			URI uri = getStorageConfigURL();
 
 			InputStream input = null;
+			File configFile;
 			try {
-				File f = new File(uri);
-				input = new FileInputStream(f);
+				configFile = new File(uri);
+				input = new FileInputStream(configFile);
 			} catch (IOException e) {
 				logger.error("Cannot read config file: {}", e.getMessage());
 				// getStorageConfigURL should have ruled this out
@@ -109,8 +114,25 @@ public class Configurator
 
 			// verify that default blobstore profile exists
 			if (!conf.blobstore_profiles.containsKey(conf.blobstore_write_profile)) {
-				throw new ConfigurationException("BlobStore Profile '"
+				throw new ConfigurationException("Default BlobStore Profile '"
 						+ conf.blobstore_write_profile + "' not found");
+			}
+
+			if (conf.encryption.keystore != null)
+			{
+				// keystore path is relative to the config file
+				File keystoreFile = new File(configFile.getParent() + "/" + conf.encryption.keystore);
+				// initialise symmetric key storage
+				keyManager = new SymmetricKeyStorage(keystoreFile, conf.encryption.keystore_password);
+	
+				// verify that default blobstore encryption key exists
+				if (!keyManager.containsKey(conf.blobstore_default_encryption_key)) {
+					throw new ConfigurationException("Default encryption key for BlobStore '"
+							+ conf.blobstore_default_encryption_key + "' not found");
+				}
+			} else {
+				// initialize empty key store
+				keyManager = new SymmetricKeyStorage();
 			}
 		} catch (ConfigurationException e) {
 			logger.error("Fatal configuration error", e);
@@ -217,4 +239,21 @@ public class Configurator
 	public static Boolean isBlobStoreCompressionEnabled() {
 		return conf.blobstore_enable_compression;
 	}
+	
+	public static Boolean isBlobStoreEncryptionEnabled() {
+		return conf.blobstore_enable_encryption;
+	}
+
+	public static String getBlobStoreDefaultEncryptionKeyAlias() {
+		return conf.blobstore_default_encryption_key;
+	}
+
+	public static java.security.Key getEncryptionKey(String alias) {
+		return keyManager.getKey(alias);
+	}
+
+	public static java.security.Key getBlobStoreDefaultEncryptionKey() {
+		return keyManager.getKey(conf.blobstore_default_encryption_key);
+	}
+
 }

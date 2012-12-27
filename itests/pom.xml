@@ -335,7 +335,7 @@
 			<version>${bundle.logback.version}</version>
 			<scope>test</scope>
 		</dependency>
-
+		
 		<!-- LMTP -->
 		<dependency>
 			<groupId>org.apache.james.protocols</groupId>

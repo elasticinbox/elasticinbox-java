@@ -55,7 +55,12 @@ import com.elasticinbox.core.MessageDAO;
 import com.elasticinbox.core.OverQuotaException;
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.naming.BlobNameBuilder;
+import com.elasticinbox.core.blob.store.AESEncryptionHandler;
+import com.elasticinbox.core.blob.store.BlobStorage;
 import com.elasticinbox.core.blob.store.BlobStoreProxy;
+import com.elasticinbox.core.blob.store.CompressionHandler;
+import com.elasticinbox.core.blob.store.DeflateCompressionHandler;
+import com.elasticinbox.core.blob.store.EncryptionHandler;
 import com.elasticinbox.core.cassandra.persistence.*;
 import com.elasticinbox.core.cassandra.utils.BatchConstants;
 import com.elasticinbox.core.cassandra.utils.ThrottlingMutator;
@@ -71,12 +76,23 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 {
 	private final Keyspace keyspace;
 	private final static StringSerializer strSe = StringSerializer.get();
+	
+	private final BlobStorage blobStorage;
 
 	private final static Logger logger = 
 			LoggerFactory.getLogger(CassandraMessageDAO.class);
 	
-	public CassandraMessageDAO(Keyspace keyspace) {
+	public CassandraMessageDAO(Keyspace keyspace)
+	{
 		this.keyspace = keyspace;
+		
+		// Create BlobStorage instance with AES encryption and Deflate compression
+		CompressionHandler compressionHandler = 
+				Configurator.isBlobStoreCompressionEnabled() ? new DeflateCompressionHandler() : null;
+		EncryptionHandler encryptionHandler = 
+				Configurator.isBlobStoreEncryptionEnabled() ? new AESEncryptionHandler() : null;
+
+		this.blobStorage = new BlobStorage(compressionHandler, encryptionHandler);
 	}
 
 	@Override
@@ -90,7 +106,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			throws IOException
 	{
 		Message metadata = MessagePersistence.fetch(mailbox.getId(), messageId, false);
-		return new BlobDataSource(metadata.getLocation());
+		return blobStorage.read(metadata.getLocation(), metadata.getEncryptionKeyAlias());
 	}
 
 	@Override
@@ -138,7 +154,8 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		// Order is important, add to label after message written
 
 		// store blob
-		if (in != null) {
+		if (in != null)
+		{
 			try {
 				// get blob name
 				String blobName = new BlobNameBuilder()
@@ -146,7 +163,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 						.setMessageSize(message.getSize()).build();
 
 				// store message in blobstore
-				uri = BlobStoreProxy.write(blobName, in, message.getSize());
+				uri = blobStorage.write(blobName, in, message.getSize());
 				
 				// update location in metadata
 				message.setLocation(uri);
@@ -180,8 +197,9 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 					messageId, uri);
 
 			// rollback
-			if (uri != null)
+			if (uri != null) {
 				BlobStoreProxy.delete(uri);
+			}
 
 			throw new IOException("Unable to store message metadata: ", e);
 		}
@@ -191,8 +209,9 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 	public void addMarker(final Mailbox mailbox, final Set<Marker> markers,
 			final List<UUID> messageIds)
 	{
-		if(markers.isEmpty() || messageIds.isEmpty())
+		if (markers.isEmpty() || messageIds.isEmpty()) {
 			return;
+		}
 
 		Labels labels = null;
 
@@ -204,7 +223,8 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 		// build list of attributes
 		Set<String> attributes = new HashSet<String>(markers.size());
-		for (Marker marker : markers) {
+		for (Marker marker : markers)
+		{
 			String a = new StringBuilder(Marshaller.CN_MARKER_PREFIX)
 					.append(marker.toInt()).toString();
 			attributes.add(a);
@@ -217,8 +237,10 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		MessagePersistence.persistAttributes(m, mailbox.getId(), messageIds, attributes);
 
 		// decrement new message counter for each of the labels
-		if (markers.contains(Marker.SEEN)) {
-			for (Integer labelId : labels.getIds()) {
+		if (markers.contains(Marker.SEEN))
+		{
+			for (Integer labelId : labels.getIds())
+			{
 				LabelCounters labelCounters = new LabelCounters();
 				labelCounters.setUnreadMessages(labels.getLabelCounters(labelId).getUnreadMessages());
 				LabelCounterPersistence.subtract(m, mailbox.getId(), labelId, labelCounters);
@@ -233,8 +255,9 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 	public void removeMarker(final Mailbox mailbox, final Set<Marker> markers,
 			final List<UUID> messageIds)
 	{
-		if(markers.isEmpty() || messageIds.isEmpty())
+		if (markers.isEmpty() || messageIds.isEmpty()) {
 			return;
+		}
 
 		Labels labels = null;
 
@@ -246,7 +269,8 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 		// build list of attributes
 		Set<String> attributes = new HashSet<String>(markers.size());
-		for (Marker marker : markers) {
+		for (Marker marker : markers)
+		{
 			String a = new StringBuilder(Marshaller.CN_MARKER_PREFIX)
 					.append(marker.toInt()).toString();
 			attributes.add(a);
@@ -259,8 +283,10 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		MessagePersistence.deleteAttributes(m, mailbox.getId(), messageIds, attributes);
 
 		// increment new message counter for each of the labels
-		if (markers.contains(Marker.SEEN)) {
-			for (Integer labelId : labels.getIds()) {
+		if (markers.contains(Marker.SEEN))
+		{
+			for (Integer labelId : labels.getIds())
+			{
 				LabelCounters labelCounters = new LabelCounters();
 
 				// only seen messages will be marked as new, so we count only seen 
@@ -281,8 +307,9 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 	public void addLabel(final Mailbox mailbox, final Set<Integer> labelIds,
 			final List<UUID> messageIds)
 	{
-		if(labelIds.isEmpty() || messageIds.isEmpty())
+		if (labelIds.isEmpty() || messageIds.isEmpty()) {
 			return;
+		}
 
 		// build list of attributes
 		Set<String> attributes = new HashSet<String>(labelIds.size());
@@ -315,8 +342,9 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 	public void removeLabel(final Mailbox mailbox, final Set<Integer> labelIds,
 			final List<UUID> messageIds)
 	{
-		if(labelIds.isEmpty() || messageIds.isEmpty())
+		if (labelIds.isEmpty() || messageIds.isEmpty()) {
 			return;
+		}
 
 		// label "all" cannot be removed from message
 		if (labelIds.contains(ReservedLabels.ALL_MAILS.getId()))
@@ -478,7 +506,8 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		private final Map<UUID, Message> messages;
 		private final HashSet<UUID> invalidMessageIds;
 
-		public MessageAggregator(final Mailbox mailbox, final List<UUID> messageIds) {
+		public MessageAggregator(final Mailbox mailbox, final List<UUID> messageIds)
+		{
 			// get message headers
 			messages = MessagePersistence.fetch(mailbox.getId(), messageIds, false);
 
@@ -521,9 +550,11 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			{
 				Set<Integer> messageLabels = messages.get(messageId).getLabels();
 	
-				for (int labelId : messageLabels) {
-					if(!labels.containsId(labelId))
+				for (int labelId : messageLabels)
+				{
+					if(!labels.containsId(labelId)) {
 						labels.setCounters(labelId, new LabelCounters());
+					}
 	
 					labels.getLabelCounters(labelId).add(
 							messages.get(messageId).getLabelCounters());

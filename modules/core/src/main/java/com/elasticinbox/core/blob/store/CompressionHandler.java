@@ -26,48 +26,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.elasticinbox.config;
+package com.elasticinbox.core.blob.store;
 
-import java.util.List;
-import java.util.Map;
+import java.io.InputStream;
 
-import com.elasticinbox.config.blob.BlobStoreProfile;
-import com.elasticinbox.config.crypto.EncryptionSettings;
-
-public class Config
+/**
+ * Handles generic compression/uncompression. Used mainly for dependency injection.
+ * 
+ * @author Rustam Aliyev
+ */
+public interface CompressionHandler
 {
-	// Default quota settings
-	public Long mailbox_quota_bytes; // maximum mailbox size in bytes
-	public Long mailbox_quota_count; // maximum message count in mailbox
+	/**
+	 * Compress input stream
+	 * 
+	 * @param in Uncompressed input stream
+	 * @return Compressed input stream
+	 */
+	public InputStream compress(InputStream in);
 
-	// JMX monitoring
-	public Boolean enable_performance_counters;
-	public Integer performance_counters_interval;
-
-	// LMTP settings
-	public Integer lmtp_port;
-	public Integer lmtp_max_connections;
-
-	// metadata storage settings
-	public String metadata_storage_driver;
-	public Boolean store_html_message;
-	public Boolean store_plain_message;
-
-	// Cassandra settings
-	public List<String> cassandra_hosts;
-	public Boolean cassandra_autodiscovery;
-	public String cassandra_cluster_name;
-	public String cassandra_keyspace;
-
-	// Blob store settings
-	public Map<String, BlobStoreProfile> blobstore_profiles;
-	public String blobstore_write_profile;
-	public Boolean blobstore_enable_compression;
-	
-	// Blob store encryption
-	public Boolean blobstore_enable_encryption = false;
-	public String blobstore_default_encryption_key = null;
-
-	// Encryption options
-	public EncryptionSettings encryption = new EncryptionSettings();
+	/**
+	 * Uncompress input stream
+	 * 
+	 * @param in Compressed input stream
+	 * @return Uncompressed input stream
+	 */
+	public InputStream uncompress(InputStream in);
 }

@@ -64,6 +64,7 @@ public class Message
 	private String messageId;
 	private Long size;
 	private URI location;
+	private String encryptionKey;
 
 	private String plainBody;
 	private String htmlBody;
@@ -267,6 +268,21 @@ public class Message
 	@JsonIgnore
 	public void addMarker(Marker marker) {
 		this.markers.add(marker);
+	}
+
+	@JsonIgnore
+	public void setEncryptionKeyAlias(final String key) {
+		this.encryptionKey = key;
+	}
+
+	@JsonIgnore
+	public String getEncryptionKeyAlias() {
+		return this.encryptionKey;
+	}
+
+	@JsonIgnore
+	public boolean isEncrypted() {
+		return this.encryptionKey != null;
 	}
 
 	/**

@@ -31,29 +31,32 @@ package com.elasticinbox.core.blob;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.zip.InflaterInputStream;
 
 import com.elasticinbox.common.utils.Assert;
 import com.elasticinbox.core.blob.store.BlobStoreConstants;
-import com.elasticinbox.core.blob.store.BlobStoreProxy;
+import com.elasticinbox.core.blob.store.CompressionHandler;
 
 /**
  * This class builds Blob data source from the given URI. It provides methods
- * for identifying and uncompressing compressed objects.
+ * for identifying and uncompressing blobs.
  * 
  * @author Rustam Aliyev
  */
 public class BlobDataSource
 {
+	private final InputStream in;
 	private final Boolean compressed;
 	private final URI blobUri;
-	
-	public BlobDataSource(URI uri)
+	private final CompressionHandler compressionHandler;
+
+	public BlobDataSource(final URI uri, final InputStream in, final CompressionHandler ch)
 	{
 		Assert.notNull(uri.getPath(), "Invalid blob URI provided, missing URI path: " + uri.toString());
 
-		blobUri = uri;
-		compressed = uri.getPath().endsWith(BlobStoreConstants.COMPRESS_SUFFIX);
+		this.blobUri = uri;
+		this.in = in;
+		this.compressed = uri.getPath().endsWith(BlobStoreConstants.COMPRESS_SUFFIX);
+		this.compressionHandler = ch;
 	}
 
 	/**
@@ -67,35 +70,38 @@ public class BlobDataSource
 	}
 
 	/**
-	 * Returns unprocessed Blob data. E.g. if compressed, Blob will be returned
+	 * Returns unprocessed Blob data. If compressed, Blob will be returned
 	 * as binary compressed data.
+	 * <p>
+	 * For uncompressed stream use {@link #getUncompressedInputStream()}
 	 * 
 	 * @return
 	 * @throws IOException
 	 */
 	public InputStream getInputStream() throws IOException {
-		return BlobStoreProxy.read(blobUri);
+		return in;
 	}
-	
+
 	/**
-	 * Uncompresses compressed Blobs. If not compressed, original Blob will be returned.
+	 * Returns Blob data and ensures that content is always uncompressed.
+	 * If not compressed, original Blob will be returned.
 	 * <p> 
-	 * Use this method if you want to ensure that data is always text.
+	 * Use this method if you want to ensure that data is always uncompressed.
 	 * 
 	 * @return
 	 * @throws IOException
 	 */
-	public InputStream getInflatedInputStream() throws IOException
+	public InputStream getUncompressedInputStream() throws IOException
 	{
-		if (compressed) {
-			return new InflaterInputStream(getInputStream());
+		if (compressed && this.compressionHandler != null) {
+			return this.compressionHandler.uncompress(in);
 		} else {
-			return getInputStream();
+			return in;
 		}
 	}
 
 	public String getName() {
-		return BlobStoreProxy.relativize(blobUri.getPath());
+		return BlobUtils.relativize(blobUri.getPath());
 	}
 
 }
