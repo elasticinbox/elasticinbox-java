@@ -66,6 +66,7 @@ public final class Marshaller
 	public final static String CN_PLAIN_BODY = "plain";
 	public final static String CN_PARTS = "parts";
 	public final static String CN_BRI = "bri"; // Blob Resource Identifier
+	public final static String CN_ENCRYPTION_KEY = "eka"; // Encryption Key Alias
 	public final static String CN_LABEL_PREFIX = "l:";
 	public final static String CN_MARKER_PREFIX = "m:";
 
@@ -110,6 +111,8 @@ public final class Marshaller
 					message.setCc(unserializeAddress(c.getValue()));
 				} else if (c.getName().equals(CN_BCC)) {
 					message.setBcc(unserializeAddress(c.getValue()));
+				} else if (c.getName().equals(CN_ENCRYPTION_KEY)) {
+					message.setEncryptionKeyAlias(strSe.fromBytes(c.getValue()));
 				} else if (c.getName().equals(CN_BRI)) {
 					message.setLocation(URI.create(
 							strSe.fromBytes(c.getValue())));
@@ -158,32 +161,42 @@ public final class Marshaller
 	{
 		Map<String, Object> columns = new HashMap<String, Object>();
 
-		if(m.getSize() != null)
+		if (m.getSize() != null) {
 			columns.put(CN_SIZE, m.getSize());
+		}
 
-		if(m.getDate() != null)
+		if (m.getDate() != null) {
 			columns.put(CN_DATE, m.getDate());
+		}
 
-		if(m.getFrom() != null)
+		if (m.getFrom() != null) {
 			columns.put(CN_FROM, serializeAddress(m.getFrom()));
+		}
 
-		if(m.getTo() != null)
+		if (m.getTo() != null) {
 			columns.put(CN_TO, serializeAddress(m.getTo()));
+		}
 
-		if(m.getCc() != null)
+		if (m.getCc() != null) {
 			columns.put(CN_CC, serializeAddress(m.getCc()));
+		}
 
-		if(m.getBcc() != null)
+		if (m.getBcc() != null) {
 			columns.put(CN_BCC, serializeAddress(m.getBcc()));
+		}
 
-		if(m.getSubject() != null)
+		if (m.getSubject() != null) {
 			columns.put(CN_SUBJECT, m.getSubject());
+		}
 
-		if(m.getLocation() != null)
+		if (m.getLocation() != null) {
 			columns.put(CN_BRI, m.getLocation().toString());
 
-		if (m.getParts() != null)
+		}
+
+		if (m.getParts() != null) {
 			columns.put(CN_PARTS, JSONUtils.fromObject(m.getParts()));
+		}
 
 		// add markers
 		if (!m.getMarkers().isEmpty()) {
@@ -217,6 +230,11 @@ public final class Marshaller
 		// add PLAIN message text
 		if (Configurator.isStorePlainWithMetadata() && (m.getPlainBody() != null)) {
 			columns.put(CN_PLAIN_BODY, IOUtils.compress(m.getPlainBody()));
+		}
+
+		// add encryption key alias
+		if (Configurator.isBlobStoreEncryptionEnabled()) {
+			columns.put(CN_ENCRYPTION_KEY, Configurator.getBlobStoreDefaultEncryptionKeyAlias());
 		}
 
 		return mapToHColumns(columns);

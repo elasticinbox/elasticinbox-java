@@ -4,7 +4,8 @@
 
 
 Export-Package: com.elasticinbox.config,\
-	com.elasticinbox.config.blob
+	com.elasticinbox.config.blob,\
+	com.elasticinbox.config.crypto
 
 Embed-Dependency: snakeyaml;groupId=org.yaml;inline=false
 Embed-Directory: lib

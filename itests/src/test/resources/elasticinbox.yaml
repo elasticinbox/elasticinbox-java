@@ -23,8 +23,11 @@ lmtp_max_connections: 20
 # currently only "cassandra" supported
 metadata_storage_driver: cassandra
 
-# If you want to store parsed html and/or plain text of the message body
-# in the metadata storage, enable below: 
+# If you want to store parsed HTML and/or PLAIN text of the message body
+# in the metadata storage, enable below.
+#
+# Note: When no HTML message body available in HTML store mode, ElasticInbox
+# will automatically fallback to PLAIN text mode and store available PLAIN text.  
 store_html_message: true
 store_plain_message: false
 
@@ -38,6 +41,18 @@ cassandra_cluster_name: TestCluster
 cassandra_keyspace: ElasticInbox
 
 ### Blob storage settings
+#
+# Following public and private blob store providers are supported:
+#            aws-s3, cloudfiles-us, cloudfiles-uk, filesystem,
+#            azureblob, atmos (generic), synaptic-storage, scaleup-storage,
+#            cloudonestorage, walrus(generic), googlestorage, ninefold-storage,
+#            scality-rs2 (generic), hosteurope-storage, tiscali-storage,
+#            eucalyptus-partnercloud-s3, swift (generic)
+#
+# IMPORTANT: Blob store profile names should never be changed and should be
+#            identical on all ElasticInbox nodes. Profile names are stored in
+#            metadata. ElasticInbox does not verify profile configurations.
+#
 blobstore_profiles:
   itest:
     provider: transient
@@ -51,3 +66,12 @@ blobstore_write_profile: itest
 
 # compress objets writted to the blob store
 blobstore_enable_compression: true
+
+# encrypt objects written to the blob store
+blobstore_enable_encryption: true
+blobstore_default_encryption_key: testkey2
+
+### Encryption settings
+encryption:
+  keystore: elasticinbox.ks
+  keystore_password: testpass

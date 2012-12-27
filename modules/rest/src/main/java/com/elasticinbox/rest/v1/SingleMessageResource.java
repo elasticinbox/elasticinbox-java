@@ -193,7 +193,7 @@ public final class SingleMessageResource
 						.ok(blobDS.getInputStream(), MediaType.TEXT_PLAIN)
 						.header(HttpHeaders.CONTENT_ENCODING, "deflate").build();
 			} else {
-				response = Response.ok(blobDS.getInflatedInputStream(),
+				response = Response.ok(blobDS.getUncompressedInputStream(),
 						MediaType.TEXT_PLAIN).build();
 			}
 		} catch (IllegalArgumentException iae) {
@@ -260,7 +260,7 @@ public final class SingleMessageResource
 		MimePart part = null;
 
 		try {
-			rawIn = messageDAO.getRaw(mailbox, messageId).getInflatedInputStream();
+			rawIn = messageDAO.getRaw(mailbox, messageId).getUncompressedInputStream();
 			MimeParser mimeParser = new MimeParser();
 			mimeParser.parse(rawIn);
 			part = mimeParser.getMessage().getPart(partId);
@@ -305,7 +305,7 @@ public final class SingleMessageResource
 		MimePart part = null;
 
 		try {
-			rawIn = messageDAO.getRaw(mailbox, messageId).getInflatedInputStream();
+			rawIn = messageDAO.getRaw(mailbox, messageId).getUncompressedInputStream();
 			MimeParser mimeParser = new MimeParser();
 			mimeParser.parse(rawIn);
 			part = mimeParser.getMessage().getPartByContentId(contentId);

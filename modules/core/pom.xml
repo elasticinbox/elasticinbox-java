@@ -127,6 +127,10 @@
 			<scope>compile</scope>
 			<exclusions>
 				<exclusion>
+					<groupId>org.apache.cassandra</groupId>
+					<artifactId>cassandra-all</artifactId>
+				</exclusion>
+				<exclusion>
 					<groupId>com.ecyrd.speed4j</groupId>
 					<artifactId>speed4j</artifactId>
 				</exclusion>
@@ -285,11 +289,6 @@
 			<artifactId>slf4j-api</artifactId>
 			<version>${bundle.slf4j.version}</version>
 			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-log4j12</artifactId>
-			<version>${bundle.slf4j.version}</version>
 		</dependency>
 
 		<!-- Gson -->

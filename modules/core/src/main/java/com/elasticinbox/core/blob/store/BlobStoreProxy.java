@@ -33,9 +33,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.GeneralSecurityException;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.zip.DeflaterInputStream;
 
 import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
@@ -46,17 +46,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.common.utils.Assert;
-import com.elasticinbox.common.utils.IOUtils;
 import com.elasticinbox.config.Configurator;
 import com.elasticinbox.config.blob.BlobStoreProfile;
+import com.elasticinbox.core.blob.BlobUtils;
 import com.elasticinbox.core.log.JcloudsSlf4JLoggingModule;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.io.ByteStreams;
 import com.google.common.io.CountingInputStream;
 import com.google.common.io.FileBackedOutputStream;
 
 /**
  * This is a proxy class for jClouds Blobstore API.
- * 
  * <p>
  * Each blob store has its own configuration profile {@link BlobStoreProfile}
  * which contains connection information. Connections to the blob stores (such
@@ -76,29 +76,26 @@ public final class BlobStoreProxy
 	private static final String PROVIDER_FILESYSTEM = "filesystem";
 	private static final String PROVIDER_TRANSIENT = "transient";
 	private static final int MAX_MEMORY_FILE_SIZE = 102400; // 100KB
-
+	
 	private static ConcurrentHashMap<String, BlobStoreContext> blobStoreContexts = 
 			new ConcurrentHashMap<String, BlobStoreContext>();
-
-	// ensure non-instantiability
-	private BlobStoreProxy() {
-	}
 
 	/**
 	 * Store Blob
 	 * 
 	 * @param blobName
 	 *            Blob filename including relative path
-	 * @param inputStream
+	 * @param in
 	 *            Payload
 	 * @param size
 	 *            Payload size in bytes
 	 * @return
 	 * @throws IOException 
 	 */
-	public static URI write(String blobName, InputStream inputStream, final Long size) throws IOException
+	public static URI write(String blobName, InputStream in, final Long size)
+			throws IOException, GeneralSecurityException
 	{
-		Assert.notNull(inputStream, "No data to store");
+		Assert.notNull(in, "No data to store");
 
 		final String profileName = Configurator.getBlobStoreWriteProfileName(); 
 		final String container = Configurator.getBlobStoreProfile(profileName).getContainer();
@@ -108,34 +105,23 @@ public final class BlobStoreProxy
 		logger.debug("Storing blob {} on {}", blobName, profileName);
 
 		BlobStore blobStore = context.getBlobStore();
-
-		InputStream in;
-
-		// compressed stream (compressed blob size unknown)
-		if (Configurator.isBlobStoreCompressionEnabled()
-				&& (size > BlobStoreConstants.MIN_COMPRESS_SIZE))
-		{
-			in = new DeflaterInputStream(inputStream);
-			blobName = blobName + BlobStoreConstants.COMPRESS_SUFFIX;
-		} else {
-			in = inputStream;
-		}
-
 		BlobBuilder blobBuilder = blobStore.blobBuilder(blobName);
 
-		// If cloud provider supports chunked encoding, stream directly.
-		// Otherwise, calculate compressed/encrypted stream size (e.g. AWS S3).
+		// Stream directly if cloud provider supports chunked encoding.
 		if (BlobStoreConstants.CHUNKED_ENCODING_CAPABILITY.contains(provider)) {
 			blobBuilder.payload(in);
+		} else if (size != null) {
+			// use provided size
+			blobBuilder.payload(in).contentLength(size);
 		} else {
-			CountingInputStream cin = new CountingInputStream(in); 
+			// recalculate stream size if not provided (null)
+			CountingInputStream cin = new CountingInputStream(in);
 			FileBackedOutputStream fbout = new FileBackedOutputStream(MAX_MEMORY_FILE_SIZE, true);
-			IOUtils.copy(cin, fbout);
-
+			ByteStreams.copy(cin, fbout);
 			blobBuilder.payload(fbout.getSupplier().getInput()).contentLength(cin.getCount());
 		}
 
-		// add blob
+		// store blob
 		blobStore.putBlob(container, blobBuilder.build());
 
 		return buildURI(profileName, blobName);
@@ -157,7 +143,7 @@ public final class BlobStoreProxy
 		String profileName = uri.getHost();
 		String container = Configurator.getBlobStoreProfile(profileName).getContainer();
 		BlobStoreContext context = getBlobStoreContext(profileName);
-		String path = relativize(uri.getPath());
+		String path = BlobUtils.relativize(uri.getPath());
 
 		InputStream in = context.getBlobStore()
 				.getBlob(container, path)
@@ -182,7 +168,7 @@ public final class BlobStoreProxy
 
 		String profileName = uri.getHost();
 		BlobStoreProfile profile = Configurator.getBlobStoreProfile(profileName);
-		String path = relativize(uri.getPath());
+		String path = BlobUtils.relativize(uri.getPath());
 		
 		if (profile.getProvider().equals(PROVIDER_FILESYSTEM))
 		{
@@ -295,17 +281,6 @@ public final class BlobStoreProxy
 	}
 
 	/**
-	 * Make absolute path relative by dropping first forward-slash
-	 * 
-	 * @param path
-	 * @return
-	 */
-	public static String relativize(String path) {
-		String relativePath = (path.charAt(0) == '/') ? path.substring(1) : path;
-		return relativePath;
-	}
-
-	/**
 	 * Close all blob store connections
 	 */
 	public static synchronized void closeAll()
@@ -315,5 +290,5 @@ public final class BlobStoreProxy
 			blobStoreContexts.remove(profileName);
 		}
 	}
-	
+
 }

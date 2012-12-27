@@ -32,6 +32,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import com.google.common.io.ByteStreams;
+import com.google.common.io.CountingInputStream;
+import com.google.common.io.NullOutputStream;
 import com.ning.compress.lzf.LZFDecoder;
 import com.ning.compress.lzf.LZFEncoder;
 import com.ning.compress.lzf.LZFInputStream;
@@ -39,8 +42,6 @@ import com.ning.compress.lzf.LZFOutputStream;
 
 public class IOUtils
 {
-	private final static int DEFAULT_BUFFER_SIZE = 100 * 1024;	// 100K should be ok for emails
-
 	// ensure non-instantiability
 	private IOUtils() {
 	}
@@ -107,16 +108,6 @@ public class IOUtils
 		return data[0] == 'Z' && data[1] == 'V';
 	}
 
-	public static void copy(InputStream in, OutputStream out) throws IOException
-	{
-		byte[] buf = ThreadLocalByteBuffer.getBuffer();
-		int len;
-
-		while ((len = in.read(buf)) != -1) {
-			out.write(buf, 0, len);
-		}
-	}
-
 	/**
 	 * Calculate InputStream size by reading through it
 	 * 
@@ -126,14 +117,9 @@ public class IOUtils
 	 */
 	public static long getInputStreamSize(InputStream in) throws IOException
 	{
-		long size = 0L;
-		long len;
-
-		while ((len = in.skip(DEFAULT_BUFFER_SIZE)) > 0) {
-			size += len;
-		}
-
-		return size;
+		CountingInputStream cin = new CountingInputStream(in);
+		ByteStreams.copy(cin, new NullOutputStream());
+		return cin.getCount();
 	}
 	
 }

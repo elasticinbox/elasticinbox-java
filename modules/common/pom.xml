@@ -109,6 +109,13 @@
       <artifactId>slf4j-api</artifactId>
       <version>${bundle.slf4j.version}</version>
     </dependency>
+	<dependency>
+		<groupId>com.google.guava</groupId>
+		<artifactId>guava</artifactId>
+		<version>${bundle.guava.version}</version>
+		<scope>provided</scope>
+	</dependency>
+    
   </dependencies>
 
 </project>
