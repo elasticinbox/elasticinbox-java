@@ -32,12 +32,13 @@ import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.UUID;
 
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
-import org.codehaus.jackson.map.SerializationConfig.Feature;
-import org.codehaus.jackson.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 /**
  * Set of tools for dealing with JSON objects
@@ -61,7 +62,7 @@ public class JSONUtils
 	 */
 	public static <T> T toObject(byte[] value, T ref)
 	{
-		JSON_MAPPER.configure(Feature.WRITE_NULL_MAP_VALUES, false);
+		JSON_MAPPER.configure(SerializationFeature.WRITE_NULL_MAP_VALUES, false);
 
 		try {
 			return JSON_MAPPER.readValue(value, 0, value.length,
@@ -101,9 +102,9 @@ public class JSONUtils
 	 */
     public static <T> byte[] fromObject(T value)
     {
-		JSON_MAPPER.configure(Feature.WRITE_NULL_MAP_VALUES, false);
-		JSON_MAPPER.configure(Feature.WRITE_DATES_AS_TIMESTAMPS, false);
-		JSON_MAPPER.getSerializationConfig().withSerializationInclusion(Inclusion.NON_NULL);
+		JSON_MAPPER.configure(SerializationFeature.WRITE_NULL_MAP_VALUES, false);
+		JSON_MAPPER.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+		JSON_MAPPER.getSerializationConfig().withSerializationInclusion(Include.NON_NULL);
 		//JSON_MAPPER.getSerializationConfig().setDateFormat(myDateFormat);
 
         try {

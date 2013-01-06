@@ -35,11 +35,11 @@ import javax.mail.MessagingException;
 import javax.mail.Part;
 import javax.mail.internet.ContentType;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.common.utils.IOUtils;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Representation of MIME part which is referenced from and belong to MIME
