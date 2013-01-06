@@ -77,7 +77,7 @@
 	<bundle.aopalliance.version>1.0_5</bundle.aopalliance.version>
 	<bundle.net.oauth.version>20100527_1</bundle.net.oauth.version>
 	<bundle.jersey.version>1.14</bundle.jersey.version>
-	<bundle.jackson.version>1.9.9</bundle.jackson.version>
+	<bundle.jackson.version>2.1.2</bundle.jackson.version>
 	<bundle.compress-lzf.version>0.9.6</bundle.compress-lzf.version>
 	<bundle.javamail.version>1.4.5</bundle.javamail.version>
 	<bundle.java-xmlbuilder.version>0.4_1</bundle.java-xmlbuilder.version>

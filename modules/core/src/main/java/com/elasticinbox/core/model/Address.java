@@ -28,7 +28,7 @@
 
 package com.elasticinbox.core.model;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * This class represents a single e-mail address.
