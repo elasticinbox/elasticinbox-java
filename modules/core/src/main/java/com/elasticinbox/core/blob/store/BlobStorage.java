@@ -61,7 +61,22 @@ public class BlobStorage
 		this.encryptionHandler = eh;
 	}
 
-	public URI write(String blobName, final InputStream in, final Long size)
+	/**
+	 * Store blob contents, optionally compress and encrypt.
+	 * 
+	 * @param blobName
+	 *            Blob filename including relative path
+	 * @param profileName
+	 *            Blob store profile name
+	 * @param in
+	 *            Payload
+	 * @param size
+	 *            Payload size in bytes
+	 * @return
+	 * @throws IOException
+	 * @throws GeneralSecurityException
+	 */
+	public URI write(String blobName, final String profileName, final InputStream in, final Long size)
 			throws IOException, GeneralSecurityException
 	{
 		Assert.notNull(in, "No data to store");
@@ -93,7 +108,7 @@ public class BlobStorage
 			in2 = in1;
 		}
 
-		URI uri = BlobStoreProxy.write(blobName, in2, processedSize);
+		URI uri = BlobStoreProxy.write(blobName, profileName, in2, processedSize);
 		
 		return uri; 
 	}

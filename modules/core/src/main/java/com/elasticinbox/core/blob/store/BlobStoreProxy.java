@@ -85,6 +85,8 @@ public final class BlobStoreProxy
 	 * 
 	 * @param blobName
 	 *            Blob filename including relative path
+	 * @param profileName
+	 *            Blob store profile name
 	 * @param in
 	 *            Payload
 	 * @param size
@@ -92,12 +94,11 @@ public final class BlobStoreProxy
 	 * @return
 	 * @throws IOException 
 	 */
-	public static URI write(String blobName, InputStream in, final Long size)
+	public static URI write(final String blobName, final String profileName, InputStream in, final Long size)
 			throws IOException, GeneralSecurityException
 	{
 		Assert.notNull(in, "No data to store");
 
-		final String profileName = Configurator.getBlobStoreWriteProfileName(); 
 		final String container = Configurator.getBlobStoreProfile(profileName).getContainer();
 		final String provider = Configurator.getBlobStoreProfile(profileName).getProvider();
 		BlobStoreContext context = getBlobStoreContext(profileName);

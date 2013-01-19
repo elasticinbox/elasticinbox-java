@@ -127,7 +127,7 @@ public class BlobStorageTest
 		File file = new File(TEST_FILE);
 		InputStream in = new FileInputStream(file);
 		
-		blobUri = bs.write(TEMP_BLOB, in, file.length());
+		blobUri = bs.write(TEMP_BLOB, Configurator.getBlobStoreWriteProfileName(), in, file.length());
 		in.close();
 
 		return file.length(); 
