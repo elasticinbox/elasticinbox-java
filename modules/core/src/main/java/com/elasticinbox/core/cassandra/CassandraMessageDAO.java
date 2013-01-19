@@ -163,7 +163,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 						.setMessageSize(message.getSize()).build();
 
 				// store message in blobstore
-				uri = blobStorage.write(blobName, in, message.getSize());
+				uri = blobStorage.write(blobName, Configurator.getBlobStoreWriteProfileName(), in, message.getSize());
 				
 				// update location in metadata
 				message.setLocation(uri);
