@@ -60,6 +60,7 @@ public abstract class AbstractIntegrationTest
 				// Logging
 				mavenBundle().groupId("ch.qos.logback").artifactId("logback-core").versionAsInProject(),
 				mavenBundle().groupId("ch.qos.logback").artifactId("logback-classic").versionAsInProject(),
+				mavenBundle().groupId("org.slf4j").artifactId("slf4j-api").versionAsInProject(),
 	
 				// REST-Assured Bundles
 				wrappedBundle(mavenBundle().groupId("com.jayway.restassured").artifactId("rest-assured").versionAsInProject()).
@@ -82,13 +83,17 @@ public abstract class AbstractIntegrationTest
 				mavenBundle().groupId("com.google.inject").artifactId("guice").versionAsInProject(),
 				mavenBundle().groupId("org.jclouds").artifactId("jclouds-core").versionAsInProject(),
 				mavenBundle().groupId("org.jclouds").artifactId("jclouds-blobstore").versionAsInProject(),
+				mavenBundle().groupId("org.jclouds.common").artifactId("aws-common").versionAsInProject(),
+				mavenBundle().groupId("org.jclouds.provider").artifactId("aws-s3").versionAsInProject(),
+				mavenBundle().groupId("org.jclouds.api").artifactId("s3").versionAsInProject(),
 				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.aopalliance").versionAsInProject(),
 				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.javax-inject").versionAsInProject(),
 				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.oauth-commons").versionAsInProject(),
 				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.java-xmlbuilder").versionAsInProject(),
 				mavenBundle().groupId("com.google.inject.extensions").artifactId("guice-assistedinject").versionAsInProject(),
 				mavenBundle().groupId("com.google.code.gson").artifactId("gson").versionAsInProject(),
-				mavenBundle("org.99soft.guice", "rocoto", "6.1"),
+				mavenBundle().groupId("org.bouncycastle").artifactId("bcprov-jdk16").versionAsInProject(),
+				mavenBundle().groupId("org.99soft.guice").artifactId("rocoto").versionAsInProject(),
 
 				// ElasticInbox Bundles
 				mavenBundle().groupId("com.google.guava").artifactId("guava").versionAsInProject(),				
