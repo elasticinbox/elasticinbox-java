@@ -200,14 +200,15 @@
 			<type>bundle</type>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
+<!-- 		<dependency>
 			<groupId>com.fasterxml.jackson.jaxrs</groupId>
 			<artifactId>jackson-jaxrs-xml-provider</artifactId>
 			<version>${bundle.jackson.version}</version>
 			<type>bundle</type>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
+ -->
+ 		<dependency>
 		    <groupId>javax.mail</groupId>
 		    <artifactId>mail</artifactId>
 		    <version>${bundle.javamail.version}</version>
@@ -253,6 +254,27 @@
 		<dependency>
 			<groupId>org.jclouds</groupId>
 			<artifactId>jclouds-blobstore</artifactId>
+			<version>${bundle.jclouds.version}</version>
+			<type>bundle</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.jclouds.common</groupId>
+			<artifactId>aws-common</artifactId>
+			<version>${bundle.jclouds.version}</version>
+			<type>bundle</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.jclouds.provider</groupId>
+			<artifactId>aws-s3</artifactId>
+			<version>${bundle.jclouds.version}</version>
+			<type>bundle</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.jclouds.api</groupId>
+			<artifactId>s3</artifactId>
 			<version>${bundle.jclouds.version}</version>
 			<type>bundle</type>
 			<scope>provided</scope>
@@ -309,6 +331,17 @@
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
 			<version>${bundle.gson.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.99soft.guice</groupId>
+			<artifactId>rocoto</artifactId>
+			<version>6.1</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk16</artifactId>
+			<version>1.46</version>
 		</dependency>
 
 		<!-- Pax Exam Dependencies -->
