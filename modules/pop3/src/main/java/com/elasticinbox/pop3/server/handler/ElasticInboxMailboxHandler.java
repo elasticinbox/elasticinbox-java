@@ -15,6 +15,7 @@ import com.elasticinbox.core.MessageDAO;
 import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.Message;
 import com.elasticinbox.core.model.ReservedLabels;
+import com.elasticinbox.core.utils.Base64UUIDUtils;
 
 public class ElasticInboxMailboxHandler implements org.apache.james.protocols.pop3.mailbox.Mailbox 
 {
@@ -37,18 +38,18 @@ public class ElasticInboxMailboxHandler implements org.apache.james.protocols.po
 	}
 
 	@Override
-	public InputStream getMessageBody(long uid) throws IOException {
+	public InputStream getMessageBody(String uid) throws IOException {
 		return null;
 	}
 
 	@Override
-	public InputStream getMessageHeaders(long uid) throws IOException {
+	public InputStream getMessageHeaders(String uid) throws IOException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public InputStream getMessage(long uid) throws IOException {
+	public InputStream getMessage(String uid) throws IOException {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -63,7 +64,7 @@ public class ElasticInboxMailboxHandler implements org.apache.james.protocols.po
 		// convert to James Protocols list
 		for (Map.Entry<UUID, Message> entry : messages.entrySet()) {
 			MessageMetaData md = new MessageMetaData(
-					entry.getKey().timestamp(), entry.getValue().getSize());
+					Base64UUIDUtils.encode(entry.getKey()), entry.getValue().getSize());
 			list.add(md);
 		}
 
@@ -71,7 +72,7 @@ public class ElasticInboxMailboxHandler implements org.apache.james.protocols.po
 	}
 
 	@Override
-	public void remove(long... uids) throws IOException {
+	public void remove(String... uids) throws IOException {
 		logger.debug("POP3: Remove messages");
 	}
 
