@@ -30,8 +30,13 @@
 		</encoder>
 	</appender>
 
-	<!-- do not log LMTPProtocols connection info, increase log level -->
+	<!-- do not log LMTP connection info, increase log level -->
 	<logger name="com.elasticinbox.lmtp.utils.LMTPProtocolLogger" level="WARN">
+		<appender-ref ref="FILE" />
+	</logger>
+
+	<!-- do not log POP3 connection info, increase log level -->
+	<logger name="com.elasticinbox.pop3.utils.POP3ProtocolLogger" level="WARN">
 		<appender-ref ref="FILE" />
 	</logger>
 

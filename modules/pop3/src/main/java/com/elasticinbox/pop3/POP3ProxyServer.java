@@ -41,7 +41,7 @@ import com.elasticinbox.pop3.server.handler.MailboxHandlerFactory;
 import com.elasticinbox.pop3.utils.POP3ProtocolLogger;
 
 /**
- * POP3 proxy main class which sends traffic to multiple registered handlers
+ * POP3 proxy main class
  * 
  * @author Rustam Aliyev
  */

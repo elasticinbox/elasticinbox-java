@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2012 Optimax Software Ltd.
+ * Copyright (c) 2011-2013 Optimax Software Ltd.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.elasticinbox.core.utils;
+package com.elasticinbox.common.utils;
 
-import java.util.UUID;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 
-import me.prettyprint.cassandra.utils.TimeUUIDUtils;
+import org.junit.Test;
 
-//import com.google.common.io.BaseEncoding;
-
-import javax.xml.bind.DatatypeConverter;
-
-/**
- * URL safe Base64 encoding/decoding of UUID
- * <p>
- * Produces a 22 character string which is a URL safe Base64 encoded UUID.
- * </p>
- * 
- * @author Rustam Aliyev
- */
-public class Base64UUIDUtils
+public class CRLFInputStreamTest extends AbstractInputStreamTest
 {
-	public static String encode(UUID uuid)
+	@Test
+	public void test() throws IOException
 	{
-		String base64 = DatatypeConverter.printBase64Binary(TimeUUIDUtils.asByteArray(uuid));
+		String data = "line1\rline2\nline3\r\nline4\n";
+		String expected = "line1\r\nline2\r\nline3\r\nline4\r\n";
 
-		// remove padding
-		if (base64.endsWith("==")) {
-			base64 = base64.substring(0, base64.length() - 2);
-		}
-		
-		return base64;
-		
-		// TODO use with Guava 14 (Jclouds 1.6)
-//		return BaseEncoding.base64Url().omitPadding()
-//				.encode(TimeUUIDUtils.asByteArray(uuid));
-	}
+		checkRead(
+				new CRLFInputStream(new ByteArrayInputStream(data.getBytes())),
+				expected);
 
-	public static UUID decode(String encoded)
-	{
-		// TODO use with Guava 14 (Jclouds 1.6)
-//		byte[] ba = BaseEncoding.base64Url().decode(encoded);
-//		return TimeUUIDUtils.toUUID(ba);
-		
-		return TimeUUIDUtils.toUUID(DatatypeConverter.parseBase64Binary(encoded + "=="));
+//		checkReadViaArray(
+//				new CRLFInputStream(new ByteArrayInputStream(data.getBytes())),
+//				expected);
 	}
 }
