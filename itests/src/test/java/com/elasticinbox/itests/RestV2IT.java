@@ -81,6 +81,7 @@ public class RestV2IT extends AbstractIntegrationTest
 			body("'" + ReservedLabels.IMPORTANT.getId() + "'",		equalTo(ReservedLabels.IMPORTANT.getName())).
 			body("'" + ReservedLabels.NOTIFICATIONS.getId() + "'",	equalTo(ReservedLabels.NOTIFICATIONS.getName())).
 			body("'" + ReservedLabels.ATTACHMENTS.getId() + "'",	equalTo(ReservedLabels.ATTACHMENTS.getName())).
+			body("'" + ReservedLabels.POP3.getId() + "'",			equalTo(ReservedLabels.POP3.getName())).
 		when().
 			get(REST_PATH + "/mailbox");
 	}
@@ -730,13 +731,13 @@ public class RestV2IT extends AbstractIntegrationTest
 	 * @return
 	 * @throws IOException
 	 */
-	private UUID addMessage(String messageFile, Integer labelId) throws IOException
+	protected static UUID addMessage(String messageFile, Integer labelId) throws IOException
 	{
 		InputStream in = null;
 		byte[] messageBytes;
 
 		try {
-			in = this.getClass().getResourceAsStream(messageFile);
+			in = RestV2IT.class.getResourceAsStream(messageFile);
 			messageBytes = ByteStreams.toByteArray(in);
 		} finally {
 			in.close();

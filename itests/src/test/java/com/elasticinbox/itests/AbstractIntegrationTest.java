@@ -127,18 +127,21 @@ public abstract class AbstractIntegrationTest
 	 * and @AfterClass. However PaxExam does not support it at this moment (see PAXEXAM-288).
 	 * 
 	 * This method should be called at the beginning of each test manually.
+	 * @throws InterruptedException 
 	 */
 	public static synchronized void initAccount()
 	{
-		if (!initialized) {
-			// delete account
-			expect().statusCode(204).when().delete(REST_PATH);
-
-			// create account
-			expect().statusCode(201).when().post(REST_PATH);
-
-			initialized = true;
+		// delete account
+		expect().statusCode(204).when().delete(REST_PATH);
+		
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			// ignore
 		}
+
+		// create account
+		expect().statusCode(201).when().post(REST_PATH);
 	}
 
 	//@Test

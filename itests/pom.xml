@@ -384,7 +384,7 @@
 			<scope>test</scope>
 		</dependency>
 		
-		<!-- LMTP -->
+		<!-- JAMES Protocols (LMTP, POP3) -->
 		<dependency>
 			<groupId>org.apache.james.protocols</groupId>
 			<artifactId>protocols-netty</artifactId>
@@ -402,6 +402,13 @@
 		<dependency>
 			<groupId>org.apache.james.protocols</groupId>
 			<artifactId>protocols-smtp</artifactId>
+			<version>${bundle.james-protocols.version}</version>
+			<type>bundle</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.james.protocols</groupId>
+			<artifactId>protocols-pop3</artifactId>
 			<version>${bundle.james-protocols.version}</version>
 			<type>bundle</type>
 			<scope>provided</scope>
@@ -426,6 +433,12 @@
 			<version>0.1.2</version>
 			<scope>test</scope>
 		</dependency>
+        <dependency>
+            <groupId>commons-net</groupId>
+            <artifactId>commons-net</artifactId>
+            <version>3.2</version>
+            <scope>test</scope>
+        </dependency>
 	</dependencies>
 
 	<repositories>
