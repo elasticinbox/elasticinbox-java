@@ -151,5 +151,12 @@
 		<type>bundle</type>
 		<scope>provided</scope>
 	</dependency>
+	<!-- Guava -->
+	<dependency>
+		<groupId>com.google.guava</groupId>
+		<artifactId>guava</artifactId>
+		<version>${bundle.guava.version}</version>
+		<scope>provided</scope>
+	</dependency>
   </dependencies>
 </project>

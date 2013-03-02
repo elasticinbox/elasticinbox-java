@@ -69,11 +69,11 @@
 	<bundle.logback.version>1.0.9</bundle.logback.version>
 	<bundle.slf4j.version>1.7.2</bundle.slf4j.version>
 	<bundle.speed4j.version>0.13</bundle.speed4j.version>
-	<bundle.jclouds.version>1.5.4</bundle.jclouds.version>
+	<bundle.jclouds.version>1.5.5</bundle.jclouds.version>
 	<bundle.javax-inject.version>1_1</bundle.javax-inject.version>
 	<bundle.guice.version>3.0</bundle.guice.version>
 	<bundle.gson.version>2.2.2</bundle.gson.version>
-	<bundle.guava.version>14.0-rc2</bundle.guava.version>
+	<bundle.guava.version>13.0.1</bundle.guava.version>
 	<bundle.aopalliance.version>1.0_5</bundle.aopalliance.version>
 	<bundle.net.oauth.version>20100527_1</bundle.net.oauth.version>
 	<bundle.jersey.version>1.16</bundle.jersey.version>
