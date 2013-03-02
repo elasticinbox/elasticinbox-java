@@ -155,6 +155,14 @@ public class Configurator
 		return conf.lmtp_max_connections;
 	}
 
+	public static Integer getPop3Port() {
+		return conf.pop3_port;
+	}
+
+	public static Integer getPop3MaxConnections() {
+		return conf.pop3_max_connections;
+	}
+
 	public static String getMetadataStorageDriver() {
 		return (conf.metadata_storage_driver.equalsIgnoreCase("cassandra")) ? "CASSANDRA" : "UNKNOWN";
 	}
