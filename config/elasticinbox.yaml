@@ -14,10 +14,15 @@ mailbox_quota_count: 50000
 enable_performance_counters: true
 performance_counters_interval: 180
 
-### LMTP daemon settings
+### LMTP settings
 # Set port number and maximum concurrent connections.
 lmtp_port: 2400
 lmtp_max_connections: 20
+
+### POP3 settings
+# Set port number and maximum concurrent connections.
+pop3_port: 2110
+pop3_max_connections: 20
 
 ### Metadata storage driver
 # currently only "cassandra" supported

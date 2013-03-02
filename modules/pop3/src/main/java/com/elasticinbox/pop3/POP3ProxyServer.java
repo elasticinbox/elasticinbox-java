@@ -35,6 +35,7 @@ import org.apache.james.protocols.pop3.POP3Protocol;
 import org.apache.james.protocols.pop3.POP3ProtocolHandlerChain;
 import org.apache.james.protocols.netty.NettyServer;
 
+import com.elasticinbox.config.Configurator;
 import com.elasticinbox.pop3.server.POP3ServerConfig;
 import com.elasticinbox.pop3.server.handler.AuthHandler;
 import com.elasticinbox.pop3.server.handler.MailboxHandlerFactory;
@@ -61,14 +62,12 @@ public class POP3ProxyServer
 //		POP3ProtocolHandlerChain chain = new POP3ProtocolHandlerChain();
 //		chain.add(0, new PassCmdHandler(backend));
 //		chain.wireExtensibleHandlers();
-		
+
 		POP3ProtocolHandlerChain chain = new POP3ProtocolHandlerChain(new AuthHandler(backend));
 
 		server = new NettyServer(new POP3Protocol(chain, new POP3ServerConfig(), logger));
-		//TODO: add Configurator.getPop3Port()
-		server.setListenAddresses(new InetSocketAddress(2110));
-		//TODO: Configurator.getPop3MaxConnections()
-		server.setMaxConcurrentConnections(10);
+		server.setListenAddresses(new InetSocketAddress(Configurator.getPop3Port()));
+		server.setMaxConcurrentConnections(Configurator.getPop3MaxConnections());
 		server.setTimeout(POP3ServerConfig.CONNECTION_TIMEOUT);
 		server.setUseExecutionHandler(true, 16);
 		server.bind();

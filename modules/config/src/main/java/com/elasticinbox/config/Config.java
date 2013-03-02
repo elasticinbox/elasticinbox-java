@@ -48,6 +48,10 @@ public class Config
 	public Integer lmtp_port;
 	public Integer lmtp_max_connections;
 
+	// POP3 settings
+	public Integer pop3_port;
+	public Integer pop3_max_connections;
+
 	// metadata storage settings
 	public String metadata_storage_driver;
 	public Boolean store_html_message;
