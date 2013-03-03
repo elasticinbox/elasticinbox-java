@@ -47,6 +47,7 @@ public class Config
 	// LMTP settings
 	public Integer lmtp_port;
 	public Integer lmtp_max_connections;
+	public boolean lmtp_enable_pop3;
 
 	// POP3 settings
 	public Integer pop3_port;
