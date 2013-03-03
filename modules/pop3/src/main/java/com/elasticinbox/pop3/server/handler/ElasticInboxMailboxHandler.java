@@ -64,12 +64,12 @@ public class ElasticInboxMailboxHandler implements org.apache.james.protocols.po
 	private final MessageDAO dao;
 	private List<MessageMetaData> messageList;
 
-	public ElasticInboxMailboxHandler(final MessageDAO dao, final String username)
+	public ElasticInboxMailboxHandler(final MessageDAO dao, final Mailbox mailbox)
 	{
 		// initialize DAO and Mailbox
 		this.dao = dao;
-		mailbox = new Mailbox(username);
-		
+		this.mailbox = mailbox;
+
 		// initialize list of messages for the current session
 		messageList = getPOP3MessageList();
 
