@@ -1,0 +1,27 @@
+Received: by 10.194.242.74 with HTTP; Sat, 2 Mar 2013 16:48:26 -0800 (PST)
+Date: Sun, 3 Mar 2013 00:48:26 +0000
+Message-ID: <vL9dkiwWS77yPKXjjCnTQmhBxTQptHonnDQWJbUjwEnYbQ@mail.elasticinbox.com>
+Subject: Simple email
+From: Test User <test@elasticinbox.com>
+To: Test User <test@elasticinbox.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary=047d7bb04a0627b11304d6fa9919
+
+--047d7bb04a0627b11304d6fa9919
+Content-Type: text/plain; charset=UTF-8
+
+Hi,
+
+This is really simple email.
+
+That's it.
+
+--
+EI
+
+--047d7bb04a0627b11304d6fa9919
+Content-Type: text/html; charset=UTF-8
+
+<div dir="ltr"><div><div>Hi,<br><br>This is really simple email.<br><br></div>That&#39;s it.<br><br>--<br></div>EI<br></div>
+
+--047d7bb04a0627b11304d6fa9919--
