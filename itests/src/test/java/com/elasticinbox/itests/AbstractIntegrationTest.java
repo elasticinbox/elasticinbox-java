@@ -28,6 +28,7 @@ public abstract class AbstractIntegrationTest
 	static final String REST_PATH = "/rest/v2/elasticinbox.com/test";
 	static final String EMAIL_LARGE_ATT = "/01-attach-utf8.eml";
 	static final String EMAIL_REGULAR = "/01-headers-utf8.eml";
+	static final String EMAIL_SIMPLE = "/01-simple-ascii.eml";
 
 	static Boolean initialized = false;
 

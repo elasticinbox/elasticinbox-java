@@ -34,6 +34,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -53,7 +56,9 @@ import com.elasticinbox.core.utils.Base64UUIDUtils;
 import com.google.common.collect.ObjectArrays;
 
 /**
- * Integration test for POP3
+ * Integration test for POP3.
+ * 
+ * Some parts of these code are taken from Apache JAMES Protocols project.
  * 
  * @author Rustam Aliyev
  */
@@ -240,10 +245,10 @@ public class Pop3IT extends AbstractIntegrationTest
 		info = client.listMessages();
 		assertThat(info.length, equalTo(0));
 
-        // RSET. After this the deleted mark should be removed again
-        boolean resetRestult = client.reset();
+		// RSET. After this the deleted mark should be removed again
+		boolean resetRestult = client.reset();
 		assertThat(resetRestult, is(true));
-		
+
 		// LIST all messages
 		info = client.listMessages();
 		assertThat(info.length, equalTo(1));
@@ -252,4 +257,232 @@ public class Pop3IT extends AbstractIntegrationTest
 		boolean logoutSuccess = client.logout();
 		assertThat(logoutSuccess, is(true));
 	}
+	
+	@Test
+	public void testStat() throws IOException
+	{
+		initAccount();
+
+		// load messages with POP3 label
+		long mailSizeRegular = getResourceSize(EMAIL_REGULAR);
+		long mailSizeAttach = getResourceSize(EMAIL_LARGE_ATT);
+
+		Integer labelId = ReservedLabels.POP3.getId();
+		RestV2IT.addMessage(EMAIL_REGULAR, labelId);
+		RestV2IT.addMessage(EMAIL_LARGE_ATT, labelId);
+
+		// initialize POP3 client
+		POP3Client client = new POP3Client();
+		client.connect(POP3_HOST, POP3_PORT);
+
+		boolean loginSuccess = client.login(TEST_ACCOUNT, "valid");
+		assertThat(loginSuccess, is(true));
+
+		POP3MessageInfo info = client.status();
+		assertThat(info.size, equalTo((int) (mailSizeRegular + mailSizeAttach)));
+		assertThat(info.number, equalTo(2));
+
+		// Logout
+		boolean logoutSuccess = client.logout();
+		assertThat(logoutSuccess, is(true));
+	}
+	
+	@Test
+	public void testRetr() throws IOException
+	{
+		initAccount();
+
+		Integer labelId = ReservedLabels.POP3.getId();
+		RestV2IT.addMessage(EMAIL_SIMPLE, labelId);
+
+		// initialize POP3 client
+		POP3Client client = new POP3Client();
+		client.connect(POP3_HOST, POP3_PORT);
+
+		// Login
+		boolean loginSuccess = client.login(TEST_ACCOUNT, "valid");
+		assertThat(loginSuccess, is(true));
+
+		// RETR message
+		Reader retrMessage = client.retrieveMessage(1);
+		assertThat(retrMessage, notNullValue());
+
+		checkMessage(EMAIL_SIMPLE, retrMessage);
+		retrMessage.close();
+		
+        // RETR non-existing message
+		retrMessage = client.retrieveMessage(10);
+        assertThat(retrMessage, nullValue());
+        
+        // Delete and RETR the message again
+		boolean deleteResult = client.deleteMessage(1);
+		assertThat(deleteResult, is(true));
+		
+		retrMessage = client.retrieveMessage(1);
+        assertThat(retrMessage, nullValue());
+	}
+	
+	@Test
+	public void testTop() throws IOException
+	{
+		initAccount();
+
+		Integer labelId = ReservedLabels.POP3.getId();
+		RestV2IT.addMessage(EMAIL_SIMPLE, labelId);
+
+		// initialize POP3 client
+		POP3Client client = new POP3Client();
+		client.connect(POP3_HOST, POP3_PORT);
+
+		// Login
+		boolean loginSuccess = client.login(TEST_ACCOUNT, "valid");
+		assertThat(loginSuccess, is(true));
+
+		// TOP message with all lines
+		Reader topMessage = client.retrieveMessageTop(1, 1000);
+		assertThat(topMessage, notNullValue());
+		checkMessage(EMAIL_SIMPLE, topMessage);
+		topMessage.close();
+
+		// TOP message with 5 lines
+		topMessage = client.retrieveMessageTop(1, 5);
+		assertThat(topMessage, notNullValue());
+		checkMessage(EMAIL_SIMPLE, topMessage, 5);
+		topMessage.close();
+
+		// TOP non-existing message
+		topMessage = client.retrieveMessageTop(10, 10);
+		assertThat(topMessage, nullValue());
+
+		// Delete and TOP the message again
+		boolean deleteResult = client.deleteMessage(1);
+		assertThat(deleteResult, is(true));
+
+		topMessage = client.retrieveMessageTop(1, 1000);
+		assertThat(topMessage, nullValue());
+	}
+
+	private void checkMessage(String message, Reader reader) throws IOException {
+		checkMessage(message, reader, null);
+	}
+
+	private void checkMessage(String message, Reader reader, Integer limit) throws IOException
+	{
+		Reader orig;
+
+		if (limit != null) {
+			orig = new InputStreamReader(new CountingBodyInputStream(
+					this.getClass().getResourceAsStream(message), limit), "US-ASCII");
+		} else {
+			orig = new InputStreamReader(this.getClass().getResourceAsStream(message), "US-ASCII");
+		}
+
+		int i = -1;
+		int j = -1;
+
+		while (((i = reader.read()) != -1) && ((j = orig.read()) != -1)) {
+			assertThat(j, equalTo(i));
+		}
+
+		// read final byte and assert
+		j = orig.read();
+		assertThat(j, equalTo(i));
+
+		orig.close();
+	}
+
+	/**
+	 * This {@link InputStream} implementation can be used to return all message
+	 * headers and limit the body lines which will be read from the wrapped
+	 * {@link InputStream}.
+	 */
+	private final class CountingBodyInputStream extends InputStream
+	{
+		private int count = 0;
+		private int limit = -1;
+		private int lastChar;
+		private InputStream in;
+		private boolean isBody = false; // starting from header
+		private boolean isEmptyLine = false;
+
+		/**
+		 * 
+		 * @param in
+		 *            InputStream to read from
+		 * @param limit
+		 *            the lines to read. -1 is used for no limits
+		 */
+		public CountingBodyInputStream(InputStream in, int limit) {
+			this.in = in;
+			this.limit = limit;
+		}
+
+		@Override
+		public int read() throws IOException
+		{
+			if (limit != -1) {
+				if (count <= limit) {
+					int a = in.read();
+
+					// check for empty line
+					if (!isBody && isEmptyLine && lastChar == '\r' && a == '\n') {
+						// reached body
+						isBody = true;
+					}
+
+					if (lastChar == '\r' && a == '\n') {
+						// reset empty line flag
+						isEmptyLine = true;
+
+						if (isBody) {
+							count++;
+						}
+					} else if (lastChar == '\n' && a != '\r') {
+						isEmptyLine = false;
+					}
+
+					lastChar = a;
+
+					return a;
+				} else {
+					return -1;
+				}
+			} else {
+				return in.read();
+			}
+
+		}
+
+		@Override
+		public long skip(long n) throws IOException {
+			return in.skip(n);
+		}
+
+		@Override
+		public int available() throws IOException {
+			return in.available();
+		}
+
+		@Override
+		public void close() throws IOException {
+			in.close();
+		}
+
+		@Override
+		public void mark(int readlimit) {
+			// not supported
+		}
+
+		@Override
+		public void reset() throws IOException {
+			// do nothing as mark is not supported
+		}
+
+		@Override
+		public boolean markSupported() {
+			return false;
+		}
+
+	}
+
 }
