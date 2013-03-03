@@ -155,6 +155,10 @@ public class Configurator
 		return conf.lmtp_max_connections;
 	}
 
+	public static boolean isLmtpPop3Enabled() {
+		return conf.lmtp_enable_pop3;
+	}
+
 	public static Integer getPop3Port() {
 		return conf.pop3_port;
 	}

@@ -18,6 +18,8 @@ performance_counters_interval: 180
 # Set port number and maximum concurrent connections.
 lmtp_port: 2400
 lmtp_max_connections: 20
+# if enabled, messages received via LMTP will be available from POP3
+lmtp_enable_pop3: true
 
 ### POP3 settings
 # Set port number and maximum concurrent connections.

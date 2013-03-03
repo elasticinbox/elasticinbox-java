@@ -75,6 +75,8 @@ import com.google.common.collect.ObjectArrays;
 @ExamReactorStrategy(EagerSingleStagedReactorFactory.class)
 public class LmtpIT extends AbstractIntegrationTest
 {
+	private final static int LMTP_PORT = 2400;
+
 	/**
 	 * Append LMTP Specific config options
 	 * 
@@ -109,7 +111,7 @@ public class LmtpIT extends AbstractIntegrationTest
 		SMTPDeliveryAgentConfigImpl conf = new SMTPDeliveryAgentConfigImpl();
         conf.setConnectionTimeout(2);
         conf.setResponseTimeout(2);
-
+        
 		try {
 			SMTPDeliveryEnvelope transaction = new SMTPDeliveryEnvelopeImpl(
 					"rustam@elasticinbox.com",
@@ -117,7 +119,7 @@ public class LmtpIT extends AbstractIntegrationTest
 					new SMTPMessageImpl(this.getClass().getResourceAsStream(EMAIL_REGULAR)));
 
 			SMTPClientFuture<Collection<FutureResult<Iterator<DeliveryRecipientStatus>>>> future = c
-					.deliver(new InetSocketAddress(2400), conf, transaction);
+					.deliver(new InetSocketAddress(LMTP_PORT), conf, transaction);
 
 			for(Iterator<FutureResult<Iterator<DeliveryRecipientStatus>>> i = future.get().iterator(); i.hasNext();)
 			{
@@ -149,7 +151,7 @@ public class LmtpIT extends AbstractIntegrationTest
 			pathParam("messageId", messageId).
 		expect().
 			statusCode(200).and().
-			body("message.labels", hasItems(0, 1)).
+			body("message.labels", hasItems(ReservedLabels.ALL_MAILS.getId(), ReservedLabels.INBOX.getId(), ReservedLabels.POP3.getId())).
 			body("message.size", equalTo((int) getResourceSize(EMAIL_REGULAR))).
 			body("message.from.address", hasItems("rustam@elasticinbox.com")).
 			body("message.to.address", hasItems(TEST_ACCOUNT)).
