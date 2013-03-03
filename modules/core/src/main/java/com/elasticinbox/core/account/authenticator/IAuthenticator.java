@@ -26,29 +26,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.elasticinbox.core.account.validator;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+package com.elasticinbox.core.account.authenticator;
 
 import com.elasticinbox.core.model.Mailbox;
 
-/**
- * Dummy validator which will always return ACTIVE status 
- * 
- * @author Rustam Aliyev
- */
-public final class DummyValidator implements IValidator
+public interface IAuthenticator
 {
-	private static final Logger logger = LoggerFactory
-			.getLogger(DummyValidator.class);
-
-	@Override
-	public AccountStatus getAccountStatus(String username)
-	{
-		Mailbox mailbox = new Mailbox(username);
-		logger.debug("Validating " + mailbox.getId());
-		return AccountStatus.ACTIVE;
+	public enum AccountStatus {
+		ACTIVE, BLOCKED, NOT_FOUND
 	}
 
+	/**
+	 * Authenticate user with provided username/password pair.
+	 * 
+	 * @param username
+	 * @param password
+	 * @return
+	 */
+	public Mailbox authenticate(String username, String password) throws AuthenticationException;
 }

@@ -7,19 +7,16 @@ import org.apache.james.protocols.smtp.core.fastfail.AbstractValidRcptHandler;
 import com.elasticinbox.core.account.validator.IValidator;
 import com.elasticinbox.core.account.validator.IValidator.AccountStatus;
 import com.elasticinbox.core.account.validator.ValidatorFactory;
-import com.elasticinbox.core.model.Mailbox;
 
 public class ValidRcptHandler extends AbstractValidRcptHandler
 {
-	IValidator validator = ValidatorFactory.getValidator();
+	private IValidator validator = ValidatorFactory.getValidator();
 
 	@Override
 	protected boolean isValidRecipient(SMTPSession session, MailAddress recipient)
 	{
-		Mailbox mailbox = new Mailbox(recipient.toString());
-		AccountStatus status = validator.getAccountStatus(mailbox);
-		session.getLogger().debug("Validated account (" + mailbox.getId() + 
-				") status is " + status.toString());
+		AccountStatus status = validator.getAccountStatus(recipient.toString());
+		session.getLogger().debug("Validated account (" + recipient +  ") status is " + status);
 
 		return status.equals(AccountStatus.ACTIVE) ? true : false;
 	}

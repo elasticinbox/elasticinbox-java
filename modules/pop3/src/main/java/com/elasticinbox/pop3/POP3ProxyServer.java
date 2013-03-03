@@ -59,10 +59,6 @@ public class POP3ProxyServer
 	{
 		Logger logger = new POP3ProtocolLogger();
 
-//		POP3ProtocolHandlerChain chain = new POP3ProtocolHandlerChain();
-//		chain.add(0, new PassCmdHandler(backend));
-//		chain.wireExtensibleHandlers();
-
 		POP3ProtocolHandlerChain chain = new POP3ProtocolHandlerChain(new AuthHandler(backend));
 
 		server = new NettyServer(new POP3Protocol(chain, new POP3ServerConfig(), logger));
