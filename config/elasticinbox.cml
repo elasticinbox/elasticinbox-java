@@ -1,4 +1,4 @@
-# ElasticInbox Schema v1.0
+# ElasticInbox Schema v1.2
 # 
 # To create schema, first you will need to create keyspace:
 #
@@ -11,30 +11,31 @@
 #   % cassandra-cli --host 10.0.1.1 < elasticinbox.cml
 #
 
-use ElasticInbox;
+USE ElasticInbox;
 
-create column family Accounts with 
-	key_validation_class=UTF8Type and
-	rows_cached=100000 and
-	comment='Basic information about accounts';
+CREATE COLUMN FAMILY Accounts WITH 
+	key_validation_class = UTF8Type AND
+	caching = all AND
+	comment = 'Basic information about accounts';
 
-create column family MessageMetadata with 
-	column_type=Super and 
-	key_validation_class=UTF8Type and
-	comparator=TimeUUIDType and 
-	subcomparator=BytesType and
+CREATE COLUMN FAMILY MessageMetadata WITH 
+	column_type = Super AND
+	key_validation_class = UTF8Type AND
+	comparator = TimeUUIDType AND 
+	subcomparator = BytesType AND
+	caching = keys_only AND
 	comment='Message metadata including headers, labels, markers, physical location, etc.';
 
-create column family IndexLabels with
-	key_validation_class=UTF8Type and
-	comparator=TimeUUIDType and 
-	rows_cached=100000 and
-	comment='Message ID indexes grouped by labels and ordered by time';
+CREATE COLUMN FAMILY IndexLabels WITH
+	key_validation_class = UTF8Type AND
+	comparator = TimeUUIDType AND 
+	caching = all AND
+	comment = 'Message ID indexes grouped by labels and ordered by time';
 
-create column family Counters with
-	comparator='CompositeType(UTF8Type,UTF8Type,UTF8Type)' and
-	key_validation_class=UTF8Type and
-	default_validation_class=CounterColumnType and
-	replicate_on_write=true and
-	rows_cached=300000 and
-	comment='All counters for an account';
+CREATE COLUMN FAMILY Counters WITH
+	comparator = 'CompositeType(UTF8Type,UTF8Type,UTF8Type)' AND
+	key_validation_class = UTF8Type AND
+	default_validation_class = CounterColumnType AND
+	replicate_on_write = true AND
+	caching = all AND
+	comment = 'All counters for an account';
