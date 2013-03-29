@@ -205,7 +205,7 @@
 			<type>bundle</type>
 			<scope>provided</scope>
 		</dependency>
-<!-- Uncomment for OpenStack Swift
+		<!-- Enable OpenStack Swift -->
 		<dependency>
 			<groupId>org.jclouds.common</groupId>
 			<artifactId>openstack-common</artifactId>
@@ -220,7 +220,14 @@
 			<type>bundle</type>
 			<scope>provided</scope>
 		</dependency>
- -->
+		<dependency>
+			<groupId>org.jclouds.api</groupId>
+			<artifactId>openstack-keystone</artifactId>
+			<version>${bundle.jclouds.version}</version>
+			<type>bundle</type>
+			<scope>provided</scope>
+		</dependency>
+		<!-- Enable Amazon S3 -->
 		<dependency>
 			<groupId>org.jclouds.common</groupId>
 			<artifactId>aws-common</artifactId>
@@ -242,6 +249,22 @@
 			<type>bundle</type>
 			<scope>provided</scope>
 		</dependency>
+		<!-- Enable Windows Azure Blob -->
+		<dependency>
+			<groupId>org.jclouds.common</groupId>
+			<artifactId>azure-common</artifactId>
+			<version>${bundle.jclouds.version}</version>
+			<type>bundle</type>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.jclouds.provider</groupId>
+			<artifactId>azureblob</artifactId>
+			<version>${bundle.jclouds.version}</version>
+			<type>bundle</type>
+			<scope>provided</scope>
+		</dependency>
+
 		<dependency>
 			<groupId>org.apache.servicemix.bundles</groupId>
 			<artifactId>org.apache.servicemix.bundles.aopalliance</artifactId>
