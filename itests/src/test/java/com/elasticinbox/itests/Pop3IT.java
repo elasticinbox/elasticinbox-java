@@ -109,7 +109,7 @@ public class Pop3IT extends AbstractIntegrationTest
 		POP3Client client = new POP3Client();
 		client.connect(POP3_HOST, POP3_PORT);
 
-		boolean loginSuccess = client.login(TEST_ACCOUNT, "valid");
+		boolean loginSuccess = client.login(TEST_ACCOUNT, TEST_PASSWORD);
 		assertThat(loginSuccess, is(true));
 
 		// LIST all messages
@@ -169,7 +169,7 @@ public class Pop3IT extends AbstractIntegrationTest
 		client.connect(POP3_HOST, POP3_PORT);
 
 		// Login
-		boolean loginSuccess = client.login(TEST_ACCOUNT, "valid");
+		boolean loginSuccess = client.login(TEST_ACCOUNT, TEST_PASSWORD);
 		assertThat(loginSuccess, is(true));
 
 		// LIST all messages
@@ -207,7 +207,7 @@ public class Pop3IT extends AbstractIntegrationTest
 		client.connect(POP3_HOST, POP3_PORT);
 
 		// Login
-		loginSuccess = client.login(TEST_ACCOUNT, "valid");
+		loginSuccess = client.login(TEST_ACCOUNT, TEST_PASSWORD);
 		assertThat(loginSuccess, is(true));
 
 		info = client.listMessages();
@@ -230,7 +230,7 @@ public class Pop3IT extends AbstractIntegrationTest
 		client.connect(POP3_HOST, POP3_PORT);
 
 		// Login
-		boolean loginSuccess = client.login(TEST_ACCOUNT, "valid");
+		boolean loginSuccess = client.login(TEST_ACCOUNT, TEST_PASSWORD);
 		assertThat(loginSuccess, is(true));
 
 		// LIST all messages
@@ -275,7 +275,7 @@ public class Pop3IT extends AbstractIntegrationTest
 		POP3Client client = new POP3Client();
 		client.connect(POP3_HOST, POP3_PORT);
 
-		boolean loginSuccess = client.login(TEST_ACCOUNT, "valid");
+		boolean loginSuccess = client.login(TEST_ACCOUNT, TEST_PASSWORD);
 		assertThat(loginSuccess, is(true));
 
 		POP3MessageInfo info = client.status();
@@ -300,7 +300,7 @@ public class Pop3IT extends AbstractIntegrationTest
 		client.connect(POP3_HOST, POP3_PORT);
 
 		// Login
-		boolean loginSuccess = client.login(TEST_ACCOUNT, "valid");
+		boolean loginSuccess = client.login(TEST_ACCOUNT, TEST_PASSWORD);
 		assertThat(loginSuccess, is(true));
 
 		// RETR message
@@ -335,7 +335,7 @@ public class Pop3IT extends AbstractIntegrationTest
 		client.connect(POP3_HOST, POP3_PORT);
 
 		// Login
-		boolean loginSuccess = client.login(TEST_ACCOUNT, "valid");
+		boolean loginSuccess = client.login(TEST_ACCOUNT, TEST_PASSWORD);
 		assertThat(loginSuccess, is(true));
 
 		// TOP message with all lines

@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractIntegrationTest
 {
 	static final String TEST_ACCOUNT = "test@elasticinbox.com";
+	static final String TEST_PASSWORD = "valid";
 	static final String REST_PATH = "/rest/v2/elasticinbox.com/test";
 	static final String EMAIL_LARGE_ATT = "/01-attach-utf8.eml";
 	static final String EMAIL_REGULAR = "/01-headers-utf8.eml";
@@ -84,9 +85,12 @@ public abstract class AbstractIntegrationTest
 				mavenBundle().groupId("com.google.inject").artifactId("guice").versionAsInProject(),
 				mavenBundle().groupId("org.jclouds").artifactId("jclouds-core").versionAsInProject(),
 				mavenBundle().groupId("org.jclouds").artifactId("jclouds-blobstore").versionAsInProject(),
+				mavenBundle().groupId("org.jclouds.api").artifactId("filesystem").versionAsInProject(),
 				mavenBundle().groupId("org.jclouds.common").artifactId("aws-common").versionAsInProject(),
 				mavenBundle().groupId("org.jclouds.provider").artifactId("aws-s3").versionAsInProject(),
 				mavenBundle().groupId("org.jclouds.api").artifactId("s3").versionAsInProject(),
+				mavenBundle().groupId("org.jclouds.common").artifactId("azure-common").versionAsInProject(),
+				mavenBundle().groupId("org.jclouds.provider").artifactId("azureblob").versionAsInProject(),
 				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.aopalliance").versionAsInProject(),
 				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.javax-inject").versionAsInProject(),
 				mavenBundle().groupId("org.apache.servicemix.bundles").artifactId("org.apache.servicemix.bundles.oauth-commons").versionAsInProject(),
