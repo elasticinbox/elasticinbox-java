@@ -112,6 +112,18 @@ public class Configurator
 			// TODO: add config verification here
 			// ...
 
+			// verify max database blob size
+			if(conf.database_blob_max_size > DatabaseConstants.MAX_BLOB_SIZE) {
+				throw new ConfigurationException("Blobs larger than "
+						+ DatabaseConstants.MAX_BLOB_SIZE + " bytes cannot be stored in the database");
+			}
+
+			// verify that blobstore profile name is not conflicting with internal name
+			if (conf.blobstore_profiles.containsKey(DatabaseConstants.DATABASE_PROFILE)) {
+				throw new ConfigurationException("BlobStore profile name cannot be '"
+						+ DatabaseConstants.DATABASE_PROFILE + "'");
+			}
+
 			// verify that default blobstore profile exists
 			if (!conf.blobstore_profiles.containsKey(conf.blobstore_write_profile)) {
 				throw new ConfigurationException("Default BlobStore Profile '"
@@ -167,8 +179,12 @@ public class Configurator
 		return conf.pop3_max_connections;
 	}
 
-	public static String getMetadataStorageDriver() {
-		return (conf.metadata_storage_driver.equalsIgnoreCase("cassandra")) ? "CASSANDRA" : "UNKNOWN";
+	public static String getDatabaseDriver() {
+		return (conf.database_driver.equalsIgnoreCase("cassandra")) ? "CASSANDRA" : "UNKNOWN";
+	}
+	
+	public static Long getDatabaseBlobMaxSize() {
+		return conf.database_blob_max_size;
 	}
 
 	public static List<String> getCassandraHosts() {

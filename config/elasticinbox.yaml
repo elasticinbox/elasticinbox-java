@@ -26,9 +26,11 @@ lmtp_enable_pop3: true
 pop3_port: 2110
 pop3_max_connections: 20
 
-### Metadata storage driver
-# currently only "cassandra" supported
-metadata_storage_driver: cassandra
+### Database settings
+# Database used for storing metadata of accounts, labels and messages.
+# Optionally, it is possible to store blobs in the database (see database_blob_max_threshold).  
+# Currently only "cassandra" is supported.
+database_driver: cassandra
 
 # If you want to store parsed HTML and/or PLAIN text of the message body
 # in the metadata storage, enable below.
@@ -37,6 +39,11 @@ metadata_storage_driver: cassandra
 # will automatically fallback to PLAIN text mode and store available PLAIN text.  
 store_html_message: true
 store_plain_message: false
+
+# Maximum blob size in bytes which can be stored in the database.
+# Blobs larger than this value will be stored with the deafult blob profile (blobstore_write_profile).
+# Set to 0 to disable using database for blobs. Currently value can't be more than 128K.
+database_blob_max_size: 65536
 
 ### Cassandra settings
 # Specify Cassandra hosts (multiple for LB), cluster name, keyspace
@@ -85,10 +92,10 @@ blobstore_profiles:
 # only one profile can be used for writing at the same time 
 blobstore_write_profile: fs-local
 
-# compress objects written to the blob store
+# compress objects written to the blob store (including database blobs)
 blobstore_enable_compression: true
 
-# encrypt objects written to the blob store
+# encrypt objects written to the blob store (excluding database blobs)
 blobstore_enable_encryption: false
 #blobstore_default_encryption_key: mykey1
 

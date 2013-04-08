@@ -31,7 +31,7 @@ package com.elasticinbox.core.blob;
 public class BlobUtils
 {
 	/**
-	 * Make absolute path relative by dropping first forward-slash
+	 * Convert absolute path to relative by dropping first forward-slash
 	 * 
 	 * @param path
 	 * @return

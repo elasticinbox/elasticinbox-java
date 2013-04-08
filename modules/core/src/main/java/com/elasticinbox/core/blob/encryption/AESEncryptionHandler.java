@@ -26,30 +26,49 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.elasticinbox.core.blob.store;
+package com.elasticinbox.core.blob.encryption;
 
 import java.io.InputStream;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.IvParameterSpec;
 
 /**
- * Handles generic compression/uncompression. Used mainly for dependency injection.
+ * This class provides AES encryption/decryption methods.
  * 
  * @author Rustam Aliyev
  */
-public interface CompressionHandler
+public class AESEncryptionHandler implements EncryptionHandler
 {
 	/**
-	 * Compress input stream
-	 * 
-	 * @param in Uncompressed input stream
-	 * @return Compressed input stream
+	 * Use AES-CBC algorithm with PKCS5 padding
 	 */
-	public InputStream compress(InputStream in);
+	public static final String CIPHER_TRANSFORMATION = "AES/CBC/PKCS5Padding";
 
-	/**
-	 * Uncompress input stream
-	 * 
-	 * @param in Compressed input stream
-	 * @return Uncompressed input stream
-	 */
-	public InputStream uncompress(InputStream in);
+	public InputStream encrypt(InputStream in, Key key, byte[] iv)
+			throws NoSuchAlgorithmException, NoSuchPaddingException,
+			InvalidKeyException, InvalidAlgorithmParameterException, NoSuchProviderException
+	{
+		Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+		cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
+		
+		return new CipherInputStream(in, cipher);
+	}
+
+	public InputStream decrypt(InputStream in, Key key, byte[] iv)
+			throws NoSuchAlgorithmException, NoSuchPaddingException,
+			InvalidKeyException, InvalidAlgorithmParameterException, NoSuchProviderException
+	{
+		Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+		cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
+		
+		return new CipherInputStream(in, cipher);
+	}
 }

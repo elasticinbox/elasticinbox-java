@@ -54,13 +54,12 @@ import com.elasticinbox.core.IllegalLabelException;
 import com.elasticinbox.core.MessageDAO;
 import com.elasticinbox.core.OverQuotaException;
 import com.elasticinbox.core.blob.BlobDataSource;
-import com.elasticinbox.core.blob.naming.BlobNameBuilder;
-import com.elasticinbox.core.blob.store.AESEncryptionHandler;
+import com.elasticinbox.core.blob.compression.CompressionHandler;
+import com.elasticinbox.core.blob.compression.DeflateCompressionHandler;
+import com.elasticinbox.core.blob.encryption.AESEncryptionHandler;
+import com.elasticinbox.core.blob.encryption.EncryptionHandler;
 import com.elasticinbox.core.blob.store.BlobStorage;
-import com.elasticinbox.core.blob.store.BlobStoreProxy;
-import com.elasticinbox.core.blob.store.CompressionHandler;
-import com.elasticinbox.core.blob.store.DeflateCompressionHandler;
-import com.elasticinbox.core.blob.store.EncryptionHandler;
+import com.elasticinbox.core.blob.store.BlobStorageMediator;
 import com.elasticinbox.core.cassandra.persistence.*;
 import com.elasticinbox.core.cassandra.utils.BatchConstants;
 import com.elasticinbox.core.cassandra.utils.ThrottlingMutator;
@@ -92,7 +91,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		EncryptionHandler encryptionHandler = 
 				Configurator.isBlobStoreEncryptionEnabled() ? new AESEncryptionHandler() : null;
 
-		this.blobStorage = new BlobStorage(compressionHandler, encryptionHandler);
+		this.blobStorage = new BlobStorageMediator(compressionHandler, encryptionHandler);
 	}
 
 	@Override
@@ -106,7 +105,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			throws IOException
 	{
 		Message metadata = MessagePersistence.fetch(mailbox.getId(), messageId, false);
-		return blobStorage.read(metadata.getLocation(), metadata.getEncryptionKeyAlias());
+		return blobStorage.read(metadata.getLocation());
 	}
 
 	@Override
@@ -157,14 +156,10 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		if (in != null)
 		{
 			try {
-				// get blob name
-				String blobName = new BlobNameBuilder()
-						.setMailbox(mailbox).setMessageId(messageId)
-						.setMessageSize(message.getSize()).build();
+				uri = blobStorage.write(messageId, mailbox,
+						Configurator.getBlobStoreWriteProfileName(), in,
+						message.getSize());
 
-				// store message in blobstore
-				uri = blobStorage.write(blobName, Configurator.getBlobStoreWriteProfileName(), in, message.getSize());
-				
 				// update location in metadata
 				message.setLocation(uri);
 			} catch (Exception e) {
@@ -198,7 +193,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 			// rollback
 			if (uri != null) {
-				BlobStoreProxy.delete(uri);
+				blobStorage.delete(uri);
 			}
 
 			throw new IOException("Unable to store message metadata: ", e);
@@ -412,7 +407,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 	}
 
 	@Override
-	public void purge(final Mailbox mailbox, final Date age)
+	public void purge(final Mailbox mailbox, final Date age) throws IOException
 	{
 		Map<UUID, UUID> purgeIndex = null;
 
@@ -433,7 +428,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 			// delete message sources from object store
 			for(UUID messageId : messages.keySet()) {
-				BlobStoreProxy.delete(messages.get(messageId).getLocation());
+				blobStorage.delete(messages.get(messageId).getLocation());
 			}
 
 			// purge expired (older than age) messages

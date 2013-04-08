@@ -26,7 +26,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.elasticinbox.core.blob.store;
+package com.elasticinbox.core.blob.compression;
 
 import java.io.InputStream;
 import java.util.zip.DeflaterInputStream;
@@ -49,11 +49,20 @@ import java.util.zip.InflaterInputStream;
  */
 public class DeflateCompressionHandler implements CompressionHandler
 {
+	public final static String COMPRESSION_TYPE_DEFLATE = "dfl";
+
+	@Override
 	public InputStream compress(InputStream in) {
 		return new DeflaterInputStream(in);
 	}
 
+	@Override
 	public InputStream uncompress(InputStream in) {
 		return new InflaterInputStream(in);
+	}
+
+	@Override
+	public String getType() {
+		return COMPRESSION_TYPE_DEFLATE;
 	}
 }

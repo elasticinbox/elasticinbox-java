@@ -13,8 +13,7 @@ Export-Package: \
 	com.elasticinbox.core.log
 
 Private-Package: \
-	com.elasticinbox.core.blob.store,\
-	com.elasticinbox.core.blob.naming,\
+	com.elasticinbox.core.blob.*,\
 	com.elasticinbox.core.cassandra,\
 	com.elasticinbox.core.cassandra.persistence,\
 	com.elasticinbox.core.cassandra.utils

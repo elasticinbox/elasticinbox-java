@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2012 Optimax Software Ltd.
+ * Copyright (c) 2011-2013 Optimax Software Ltd.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -26,49 +26,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.elasticinbox.core.blob.store;
+package com.elasticinbox.config;
 
-import java.io.InputStream;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.Key;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.spec.IvParameterSpec;
-
-/**
- * This class provides AES encryption/decryption methods.
- * 
- * @author Rustam Aliyev
- */
-public class AESEncryptionHandler implements EncryptionHandler
+public class DatabaseConstants
 {
-	/**
-	 * Use AES-CBC algorithm with PKCS5 padding
-	 */
-	public static final String CIPHER_TRANSFORMATION = "AES/CBC/PKCS5Padding";
+	/** Maximum blob size allowed in database. 128KB */
+	public static long MAX_BLOB_SIZE = 0x20000;
 
-	public InputStream encrypt(InputStream in, Key key, byte[] iv)
-			throws NoSuchAlgorithmException, NoSuchPaddingException,
-			InvalidKeyException, InvalidAlgorithmParameterException, NoSuchProviderException
-	{
-		Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-		cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
-		
-		return new CipherInputStream(in, cipher);
-	}
+	/** Maximum blob block size. 128KB */
+	public static long BLOB_BLOCK_SIZE = 0x20000;
 
-	public InputStream decrypt(InputStream in, Key key, byte[] iv)
-			throws NoSuchAlgorithmException, NoSuchPaddingException,
-			InvalidKeyException, InvalidAlgorithmParameterException, NoSuchProviderException
-	{
-		Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-		cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
-		
-		return new CipherInputStream(in, cipher);
-	}
+	/** Reserved profile name for internal database storage (e.g. Cassandra) */
+	public static final String DATABASE_PROFILE = "db";
 }

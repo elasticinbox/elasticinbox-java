@@ -32,7 +32,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
@@ -68,10 +67,10 @@ import com.google.common.io.FileBackedOutputStream;
  * @see {@link BlobStoreContext}
  * @see <a href="http://www.jclouds.org/">jClouds</a>
  */
-public final class BlobStoreProxy
+public final class CloudStoreProxy
 {
 	private static final Logger logger = 
-			LoggerFactory.getLogger(BlobStoreProxy.class);
+			LoggerFactory.getLogger(CloudStoreProxy.class);
 
 	private static final String PROVIDER_FILESYSTEM = "filesystem";
 	private static final String PROVIDER_TRANSIENT = "transient";
@@ -94,7 +93,7 @@ public final class BlobStoreProxy
 	 * @return
 	 * @throws IOException 
 	 */
-	public static URI write(final String blobName, final String profileName, InputStream in, final Long size)
+	public static void write(final String blobName, final String profileName, InputStream in, final Long size)
 			throws IOException, GeneralSecurityException
 	{
 		Assert.notNull(in, "No data to store");
@@ -124,8 +123,6 @@ public final class BlobStoreProxy
 
 		// store blob
 		blobStore.putBlob(container, blobBuilder.build());
-
-		return buildURI(profileName, blobName);
 	}
 
 	/**
@@ -139,7 +136,7 @@ public final class BlobStoreProxy
 		// check if blob was stored for the message
 		Assert.notNull(uri, "URI cannot be null");
 
-		logger.debug("Reading object {}", uri);
+		logger.debug("Reading blob {}", uri);
 
 		String profileName = uri.getHost();
 		String container = Configurator.getBlobStoreProfile(profileName).getContainer();
@@ -165,7 +162,7 @@ public final class BlobStoreProxy
 			return; 
 		}
 
-		logger.debug("Deleting object {}", uri);
+		logger.debug("Deleting blob {}", uri);
 
 		String profileName = uri.getHost();
 		BlobStoreProfile profile = Configurator.getBlobStoreProfile(profileName);
@@ -216,7 +213,7 @@ public final class BlobStoreProxy
 		if(blobStoreContexts.containsKey(profileName)) {
 			return blobStoreContexts.get(profileName);
 		} else {
-			synchronized (BlobStoreProxy.class)
+			synchronized (CloudStoreProxy.class)
 			{
 				logger.debug("Creating new connection for '{}' blob store.", profileName);
 				
@@ -259,25 +256,6 @@ public final class BlobStoreProxy
 			}
 
 			return blobStoreContexts.get(profileName);
-		}
-	}
-
-	/**
-	 * Build {@link URI} from blobstore profile and blob path
-	 * 
-	 * @param profile blobstore profile name
-	 * @param path blob path
-	 * @return
-	 */
-	public static URI buildURI(final String profile, final String path)
-	{
-		// URI requires absolute path, add leading "/" if not already set
-		String absolutePath = (path.charAt(0) == '/') ? path : "/" + path;
-
-		try {
-			return new URI(BlobStoreConstants.BLOB_URI_SCHEMA, profile, absolutePath, null);
-		} catch (URISyntaxException e) {
-			throw new IllegalArgumentException("Invalid blob profile or path: ", e);
 		}
 	}
 
