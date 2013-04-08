@@ -38,8 +38,7 @@ import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import com.elasticinbox.core.blob.store.BlobStoreConstants;
-import com.elasticinbox.core.blob.store.BlobStoreProxy;
+import com.elasticinbox.core.blob.BlobURI;
 
 /**
  * Representation of MIME message containing message headers, labels, markers,
@@ -160,17 +159,10 @@ public class Message
 
 	public void setLocation(URI uri)
 	{
-		if (uri.getScheme().equals(BlobStoreConstants.BLOB_URI_SCHEMA)) {
-			this.location = uri;
-		} else {
-			throw new IllegalArgumentException(
-					"Invalid URI scheme specified for blob: " + uri.getScheme());
-		}
-	}
+		// validate URI, should throw exception if invalid
+		new BlobURI().fromURI(uri);
 
-	public void setLocation(String profile, String path)
-	{
-		this.location = BlobStoreProxy.buildURI(profile, path);
+		this.location = uri;
 	}
 
 	public String getPlainBody() {
@@ -268,16 +260,6 @@ public class Message
 	@JsonIgnore
 	public void addMarker(Marker marker) {
 		this.markers.add(marker);
-	}
-
-	@JsonIgnore
-	public void setEncryptionKeyAlias(final String key) {
-		this.encryptionKey = key;
-	}
-
-	@JsonIgnore
-	public String getEncryptionKeyAlias() {
-		return this.encryptionKey;
 	}
 
 	@JsonIgnore

@@ -224,8 +224,9 @@ public interface MessageDAO
 	 * 
 	 * @param mailbox
 	 * @param age
+	 * @throws IOException 
 	 */
-	public void purge(Mailbox mailbox, Date age);
+	public void purge(Mailbox mailbox, Date age) throws IOException;
 
 	/**
 	 * Calculates counters for all labels bu scanning through all messages. Used

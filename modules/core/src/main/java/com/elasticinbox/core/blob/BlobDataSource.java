@@ -32,9 +32,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 
-import com.elasticinbox.common.utils.Assert;
+import com.elasticinbox.core.blob.compression.CompressionHandler;
+import com.elasticinbox.core.blob.compression.DeflateCompressionHandler;
 import com.elasticinbox.core.blob.store.BlobStoreConstants;
-import com.elasticinbox.core.blob.store.CompressionHandler;
 
 /**
  * This class builds Blob data source from the given URI. It provides methods
@@ -45,17 +45,13 @@ import com.elasticinbox.core.blob.store.CompressionHandler;
 public class BlobDataSource
 {
 	private final InputStream in;
-	private final Boolean compressed;
-	private final URI blobUri;
+	private final BlobURI blobUri;
 	private final CompressionHandler compressionHandler;
 
 	public BlobDataSource(final URI uri, final InputStream in, final CompressionHandler ch)
 	{
-		Assert.notNull(uri.getPath(), "Invalid blob URI provided, missing URI path: " + uri.toString());
-
-		this.blobUri = uri;
+		this.blobUri = new BlobURI().fromURI(uri);
 		this.in = in;
-		this.compressed = uri.getPath().endsWith(BlobStoreConstants.COMPRESS_SUFFIX);
 		this.compressionHandler = ch;
 	}
 
@@ -65,8 +61,13 @@ public class BlobDataSource
 	 * 
 	 * @return
 	 */
-	public boolean isCompressed() {
-		return compressed;
+	public boolean isCompressed()
+	{
+		return ((blobUri.getCompression() != null && blobUri.getCompression()
+				.equals(DeflateCompressionHandler.COMPRESSION_TYPE_DEFLATE)) ||
+				// TODO: deprecated suffix based compression detection
+				// kept for backward compatibility with 0.3
+				blobUri.getName().endsWith(BlobStoreConstants.COMPRESS_SUFFIX));
 	}
 
 	/**
@@ -93,7 +94,7 @@ public class BlobDataSource
 	 */
 	public InputStream getUncompressedInputStream() throws IOException
 	{
-		if (compressed && this.compressionHandler != null) {
+		if (this.isCompressed() && this.compressionHandler != null) {
 			return this.compressionHandler.uncompress(in);
 		} else {
 			return in;
@@ -101,7 +102,7 @@ public class BlobDataSource
 	}
 
 	public String getName() {
-		return BlobUtils.relativize(blobUri.getPath());
+		return blobUri.getName();
 	}
 
 }

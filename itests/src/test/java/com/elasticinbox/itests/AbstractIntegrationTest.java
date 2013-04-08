@@ -4,7 +4,6 @@ import static com.jayway.restassured.RestAssured.expect;
 import static org.ops4j.pax.exam.CoreOptions.felix;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 import static org.ops4j.pax.exam.CoreOptions.options;
-import static org.ops4j.pax.exam.CoreOptions.repository;
 import static org.ops4j.pax.exam.CoreOptions.scanDir;
 import static org.ops4j.pax.exam.CoreOptions.systemProperty;
 import static org.ops4j.pax.exam.CoreOptions.workingDirectory;
@@ -46,7 +45,7 @@ public abstract class AbstractIntegrationTest
 				//junitBundles(),
 				felix().version("3.2.2"),
 				workingDirectory("target/paxrunner/"),
-				repository("https://repository.apache.org/snapshots/").allowSnapshots(),
+				//repository("https://repository.apache.org/snapshots/").allowSnapshots(),
 	
 				// Configs
 				systemProperty("elasticinbox.config").value("../test-classes/elasticinbox.yaml"),

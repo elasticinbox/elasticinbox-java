@@ -66,7 +66,6 @@ public final class Marshaller
 	public final static String CN_PLAIN_BODY = "plain";
 	public final static String CN_PARTS = "parts";
 	public final static String CN_BRI = "bri"; // Blob Resource Identifier
-	public final static String CN_ENCRYPTION_KEY = "eka"; // Encryption Key Alias
 	public final static String CN_LABEL_PREFIX = "l:";
 	public final static String CN_MARKER_PREFIX = "m:";
 
@@ -111,8 +110,6 @@ public final class Marshaller
 					message.setCc(unserializeAddress(c.getValue()));
 				} else if (c.getName().equals(CN_BCC)) {
 					message.setBcc(unserializeAddress(c.getValue()));
-				} else if (c.getName().equals(CN_ENCRYPTION_KEY)) {
-					message.setEncryptionKeyAlias(strSe.fromBytes(c.getValue()));
 				} else if (c.getName().equals(CN_BRI)) {
 					message.setLocation(URI.create(
 							strSe.fromBytes(c.getValue())));
@@ -230,11 +227,6 @@ public final class Marshaller
 		// add PLAIN message text
 		if (Configurator.isStorePlainWithMetadata() && (m.getPlainBody() != null)) {
 			columns.put(CN_PLAIN_BODY, IOUtils.compress(m.getPlainBody()));
-		}
-
-		// add encryption key alias
-		if (Configurator.isBlobStoreEncryptionEnabled()) {
-			columns.put(CN_ENCRYPTION_KEY, Configurator.getBlobStoreDefaultEncryptionKeyAlias());
 		}
 
 		return mapToHColumns(columns);

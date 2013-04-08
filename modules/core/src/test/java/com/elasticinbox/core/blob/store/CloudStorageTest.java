@@ -37,7 +37,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.security.GeneralSecurityException;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -46,11 +48,15 @@ import org.junit.Test;
 import com.elasticinbox.common.utils.IOUtils;
 import com.elasticinbox.config.Configurator;
 import com.elasticinbox.core.blob.BlobDataSource;
+import com.elasticinbox.core.blob.compression.DeflateCompressionHandler;
+import com.elasticinbox.core.blob.encryption.AESEncryptionHandler;
+import com.elasticinbox.core.model.Mailbox;
 
-public class BlobStorageTest
+public class CloudStorageTest
 {
 	private final static String TEST_FILE = "../../itests/src/test/resources/01-attach-utf8.eml";
-	private final static String TEMP_BLOB = "tmp-email-id-0001";
+	private final static UUID MESSAGE_ID = UUID.fromString("f1ca99e0-99a0-11e2-95f0-040cced3bd7a");
+	private final static Mailbox MAILBOX = new Mailbox("test@elasticinbox.com");
 	private URI blobUri;
 
 	@Before
@@ -67,15 +73,19 @@ public class BlobStorageTest
 	@Test
 	public void testBlobStorage() throws IOException, GeneralSecurityException
 	{
+		String expextedBlobUrl = "blob://"
+				+ Configurator.getBlobStoreWriteProfileName() + "/"
+				+ MESSAGE_ID + ":"
+				+ URLEncoder.encode(MAILBOX.getId(), "UTF-8");
+
 		// BlobStorage without encryption or compression
-		BlobStorage bs = new BlobStorage(null, null);
-		String expextedBlobUrl = "blob://"+ Configurator.getBlobStoreWriteProfileName() + "/" + TEMP_BLOB; 
+		AbstractBlobStorage bs = new CloudBlobStorage(null, null);
 
 		// Write blob
 		long origSize = testWrite(bs);
 
 		// Read blob back
-		BlobDataSource ds = bs.read(blobUri, null);
+		BlobDataSource ds = bs.read(blobUri);
 		long newSize = IOUtils.getInputStreamSize(ds.getUncompressedInputStream());
 
 		// Check written Blob URI
@@ -85,15 +95,23 @@ public class BlobStorageTest
 		assertThat(newSize, equalTo(origSize));
 
 		// Delete
-		testDelete();		
+		bs.delete(blobUri);
 	}
 
 	@Test
 	public void testBlobStorageWithEcnryptionAndCompression() throws IOException, GeneralSecurityException
 	{
+		String expextedBlobUrl = "blob://"
+				+ Configurator.getBlobStoreWriteProfileName() + "/"
+				+ MESSAGE_ID + ":"
+				+ URLEncoder.encode(MAILBOX.getId(), "UTF-8") + "?"
+				+ BlobStoreConstants.URI_PARAM_COMPRESSION + "="
+				+ DeflateCompressionHandler.COMPRESSION_TYPE_DEFLATE + "&"
+				+ BlobStoreConstants.URI_PARAM_ENCRYPTION_KEY + "="
+				+ Configurator.getBlobStoreDefaultEncryptionKeyAlias();
+
 		// BlobStorage with encryption or compression
-		BlobStorage bs = new BlobStorage(new DeflateCompressionHandler(), new AESEncryptionHandler());
-		String expextedBlobUrl = "blob://"+ Configurator.getBlobStoreWriteProfileName() + "/" + TEMP_BLOB + BlobStoreConstants.COMPRESS_SUFFIX; 
+		AbstractBlobStorage bs = new CloudBlobStorage(new DeflateCompressionHandler(), new AESEncryptionHandler());
 
 		// Write blob
 		long origSize = testWrite(bs);
@@ -102,7 +120,7 @@ public class BlobStorageTest
 		assertThat(blobUri.toString(), equalTo(expextedBlobUrl));
 
 		// Read blob back
-		BlobDataSource ds = bs.read(blobUri, Configurator.getBlobStoreDefaultEncryptionKeyAlias());
+		BlobDataSource ds = bs.read(blobUri);
 
 		// Verify that suffix matches
 		assertThat(ds.isCompressed(), equalTo(true));
@@ -112,29 +130,25 @@ public class BlobStorageTest
 		assertThat(compressedSize, lessThan(origSize));
 		
 		// Read blob back again (can't reuse same InputStream)
-		ds = bs.read(blobUri, Configurator.getBlobStoreDefaultEncryptionKeyAlias());
+		ds = bs.read(blobUri);
 		long newSize = IOUtils.getInputStreamSize(ds.getUncompressedInputStream());
 
 		// Check Blob size
 		assertThat(newSize, equalTo(origSize));
 
 		// Delete
-		testDelete();		
+		bs.delete(blobUri);
 	}
 
-	private long testWrite(BlobStorage bs) throws IOException, GeneralSecurityException
+	private long testWrite(AbstractBlobStorage bs) throws IOException, GeneralSecurityException
 	{
 		File file = new File(TEST_FILE);
 		InputStream in = new FileInputStream(file);
 		
-		blobUri = bs.write(TEMP_BLOB, Configurator.getBlobStoreWriteProfileName(), in, file.length());
+		blobUri = bs.write(MESSAGE_ID, MAILBOX, Configurator.getBlobStoreWriteProfileName(), in, file.length());
 		in.close();
 
 		return file.length(); 
 	}
 
-	private void testDelete()
-	{
-		BlobStoreProxy.delete(blobUri);
-	}
 }

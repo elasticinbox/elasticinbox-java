@@ -46,7 +46,8 @@ import org.slf4j.LoggerFactory;
 import com.elasticinbox.config.Configurator;
 import com.elasticinbox.core.AccountDAO;
 import com.elasticinbox.core.MessageDAO;
-import com.elasticinbox.core.blob.store.BlobStoreProxy;
+import com.elasticinbox.core.blob.store.BlobStorage;
+import com.elasticinbox.core.blob.store.BlobStorageMediator;
 import com.elasticinbox.core.cassandra.persistence.AccountPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelCounterPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelIndexPersistence;
@@ -61,12 +62,15 @@ public final class CassandraAccountDAO implements AccountDAO
 	private final Keyspace keyspace;
 	private final static StringSerializer strSe = StringSerializer.get();
 
+	private final BlobStorage blobStorage;
+
 	@SuppressWarnings("unused")
 	private final static Logger logger = LoggerFactory
 			.getLogger(CassandraAccountDAO.class);
 
 	public CassandraAccountDAO(Keyspace keyspace) {
 		this.keyspace = keyspace;
+		this.blobStorage = new BlobStorageMediator(null, null);
 	}
 
 	@Override
@@ -88,7 +92,7 @@ public final class CassandraAccountDAO implements AccountDAO
 	public void delete(final Mailbox mailbox) throws IOException
 	{
 		// purge all previously deleted objects
-		// TODO: we should not instantinate here
+		// TODO: we should not instantiate here
 		MessageDAO messageDAO = new CassandraMessageDAO(keyspace);
 		messageDAO.purge(mailbox, new Date());
 
@@ -110,7 +114,7 @@ public final class CassandraAccountDAO implements AccountDAO
 	
 				// delete message sources from object store
 				for(UUID messageId : messages.keySet()) {
-					BlobStoreProxy.delete(messages.get(messageId).getLocation());
+					blobStorage.delete(messages.get(messageId).getLocation());
 				}
 	
 				// set start element for the next loop

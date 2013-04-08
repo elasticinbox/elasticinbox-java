@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2012 Optimax Software Ltd.
+ * Copyright (c) 2011-2013 Optimax Software Ltd.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -32,40 +32,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
+import java.util.UUID;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.elasticinbox.common.utils.Assert;
-import com.elasticinbox.config.Configurator;
 import com.elasticinbox.core.blob.BlobDataSource;
-import com.elasticinbox.core.blob.BlobUtils;
+import com.elasticinbox.core.model.Mailbox;
 
-public class BlobStorage
+public interface BlobStorage
 {
-	private static final Logger logger = 
-			LoggerFactory.getLogger(BlobStorage.class);
-
-	private final CompressionHandler compressionHandler;
-	private final EncryptionHandler encryptionHandler;
-
-	/**
-	 * Constructor
-	 * 
-	 * @param ch Injected Compression Handler
-	 * @param eh Injected Encryption Handler
-	 */
-	public BlobStorage(CompressionHandler ch, EncryptionHandler eh) {
-		this.compressionHandler = ch;
-		this.encryptionHandler = eh;
-	}
-
 	/**
 	 * Store blob contents, optionally compress and encrypt.
 	 * 
-	 * @param blobName
-	 *            Blob filename including relative path
+	 * @param messageId
+	 *            Unique message ID
+	 * @param mailbox
+	 *            Message owner's Mailbox
 	 * @param profileName
 	 *            Blob store profile name
 	 * @param in
@@ -76,99 +56,24 @@ public class BlobStorage
 	 * @throws IOException
 	 * @throws GeneralSecurityException
 	 */
-	public URI write(String blobName, final String profileName, final InputStream in, final Long size)
-			throws IOException, GeneralSecurityException
-	{
-		Assert.notNull(in, "No data to store");
-
-		InputStream in1, in2;
-		Long processedSize = size;
-
-		// compress stream
-		if ((compressionHandler != null) && (size > BlobStoreConstants.MIN_COMPRESS_SIZE))
-		{
-			in1 = compressionHandler.compress(in);
-			blobName = blobName + BlobStoreConstants.COMPRESS_SUFFIX;
-			
-			// size changed, set to unknown to recalculate
-			processedSize = null;
-		} else {
-			in1 = in;
-		}
-
-		// encrypt stream
-		if (encryptionHandler != null)
-		{
-			byte[] iv = getCipherIVFromBlobName(blobName);
-			in2 = this.encryptionHandler.encrypt(in1, Configurator.getBlobStoreDefaultEncryptionKey(), iv);
-
-			// size changed, set to unknown to recalculate
-			processedSize = null;
-		} else {
-			in2 = in1;
-		}
-
-		URI uri = BlobStoreProxy.write(blobName, profileName, in2, processedSize);
-		
-		return uri; 
-	}
-
-	/**
-	 * Read Blob contents and decrypt
-	 * 
-	 * @param uri Blob URI
-	 * @param keyAlias Cipher Key Alias
-	 * @param uncompress Specifies if blob should be uncompressed.
-	 * @return
-	 * @throws IOException 
-	 */
-	public BlobDataSource read(final URI uri, final String keyAlias) throws IOException
-	{
-		InputStream in;
-
-		if (encryptionHandler != null && keyAlias != null)
-		{
-			try {
-				logger.debug("Decrypting object {} with key {}", uri, keyAlias);
-
-				byte[] iv = getCipherIVFromBlobName(BlobUtils.relativize(uri.getPath()));
-
-				in = this.encryptionHandler.decrypt(BlobStoreProxy.read(uri),
-						Configurator.getEncryptionKey(keyAlias), iv);
-			} catch (GeneralSecurityException gse) {
-				throw new IOException("Unable to decrypt message blob: ", gse);
-			}
-		} else {
-			in = BlobStoreProxy.read(uri);
-		}
-
-		return new BlobDataSource(uri, in, this.compressionHandler);
-	}
+	public URI write(final UUID messageId, final Mailbox mailbox, final String profileName, final InputStream in, final Long size)
+			throws IOException, GeneralSecurityException;
 	
 	/**
-	 * Generate cipher initialisation vector (IV) from Blob name.
+	 * Read blob contents and decrypt
 	 * 
-	 * IV should be unique but not necessarily secure. Since blob names are
-	 * based on Type1 UUID they are unique.
-	 * 
-	 * @param blobName
+	 * @param uri Blob URI
 	 * @return
 	 * @throws IOException 
 	 */
-	private static byte[] getCipherIVFromBlobName(final String blobName) throws IOException
-	{
-		byte[] iv;
+	public BlobDataSource read(final URI uri) throws IOException;
 
-		try {
-			byte[] nameBytes = blobName.getBytes("UTF-8");
-			MessageDigest md = MessageDigest.getInstance("MD5");
-			iv = md.digest(nameBytes);
-		} catch (Exception e) {
-			// should never happen
-			throw new IOException(e);
-		}
-
-		return iv;
-	}
+	/**
+	 * Delete blob
+	 * 
+	 * @param uri
+	 * @throws IOException
+	 */
+	public void delete(final URI uri) throws IOException;
 
 }

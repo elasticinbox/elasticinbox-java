@@ -94,7 +94,7 @@ public class Pop3IT extends AbstractIntegrationTest
 	public void testListUidl() throws IOException
 	{
 		initAccount();
-
+		
 		// load messages with POP3 label
 		long mailSizeRegular = getResourceSize(EMAIL_REGULAR);
 		long mailSizeAttach = getResourceSize(EMAIL_LARGE_ATT);

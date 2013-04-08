@@ -26,6 +26,12 @@ CREATE COLUMN FAMILY MessageMetadata WITH
 	caching = keys_only AND
 	comment='Message metadata including headers, labels, markers, physical location, etc.';
 
+CREATE COLUMN FAMILY MessageBlob WITH
+    key_validation_class = 'CompositeType(TimeUUIDType, Int32Type)' AND
+    comparator = Int32Type AND
+    caching = keys_only AND
+    comment='Chunked message blobs';
+
 CREATE COLUMN FAMILY IndexLabels WITH
 	key_validation_class = UTF8Type AND
 	comparator = TimeUUIDType AND 

@@ -75,10 +75,14 @@ public final class BlobNameBuilder
 	}
 
 	/**
-	 * Validate generated Blob name
+	 * Validate generated Blob name.
+	 * <p>
+	 * Suffix no longer used for compression identification. Keep for backward
+	 * compatibility with 0.3.
 	 * 
 	 * @param name
 	 */
+	@Deprecated
 	private final static void validateBlobName(String name) {
 		Assert.isFalse(
 				name.endsWith(BlobStoreConstants.COMPRESS_SUFFIX),

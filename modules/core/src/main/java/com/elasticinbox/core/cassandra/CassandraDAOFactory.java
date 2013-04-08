@@ -56,6 +56,7 @@ public final class CassandraDAOFactory extends DAOFactory
 
 	public final static String CF_ACCOUNTS = "Accounts";
 	public final static String CF_METADATA = "MessageMetadata";
+	public final static String CF_BLOB = "MessageBlob";
 	public final static String CF_LABEL_INDEX = "IndexLabels";
 	public final static String CF_COUNTERS = "Counters";
 

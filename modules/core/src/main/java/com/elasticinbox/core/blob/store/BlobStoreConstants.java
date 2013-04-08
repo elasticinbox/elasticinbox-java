@@ -40,13 +40,26 @@ import com.google.common.collect.ImmutableSet;
 public final class BlobStoreConstants
 {
 	/** URI schema used to identify blobs. */
-	public static final String BLOB_URI_SCHEMA = "blob";
-	
+	public static final String URI_SCHEME = "blob";
+
+	/** URI query parameter specifying compression */
+	public static final String URI_PARAM_COMPRESSION = "c";
+
+	/** URI query parameter specifying encryption key */
+	public static final String URI_PARAM_ENCRYPTION_KEY = "e";
+
+	/** URI query parameter specifying total block count */
+	public static final String URI_PARAM_BLOCK_COUNT = "b";
+
 	/** This suffix used to differentiate compressed files from not compressed. */
+	@Deprecated
 	public static final String COMPRESS_SUFFIX = ".dfl";
-	
+
 	/** Files smaller that this parameter should not be compressed. In bytes. */
 	public static final Integer MIN_COMPRESS_SIZE = 512;
+
+	/** Default block ID. Currently only single block DB operations supported. */
+	public static final int DATABASE_DEFAULT_BLOCK_ID = 0;
 
 	/**
 	 * Providers that are independently configurable. Currently invisible form jClouds.
