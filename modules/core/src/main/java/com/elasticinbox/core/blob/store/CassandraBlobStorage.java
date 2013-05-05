@@ -43,8 +43,6 @@ import org.slf4j.LoggerFactory;
 import com.elasticinbox.common.utils.Assert;
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.BlobURI;
-import com.elasticinbox.core.blob.compression.CompressionHandler;
-import com.elasticinbox.core.blob.encryption.EncryptionHandler;
 import com.elasticinbox.core.cassandra.persistence.BlobPersistence;
 import com.elasticinbox.core.model.Mailbox;
 import com.google.common.io.ByteStreams;
@@ -54,23 +52,22 @@ import com.google.common.io.ByteStreams;
  * 
  * @author Rustam Aliyev
  */
-public final class CassandraBlobStorage extends AbstractBlobStorage
+public final class CassandraBlobStorage implements BlobStorage
 {
 	private static final Logger logger = 
 			LoggerFactory.getLogger(CassandraBlobStorage.class);
 
 	/**
 	 * Constructor
-	 * 
-	 * @param ch Injected Compression Handler
-	 * @param eh Injected Encryption Handler
+	 * <p>
+	 * Cassandra blob storage does not perform compression of encryption.
 	 */
-	public CassandraBlobStorage(CompressionHandler ch, EncryptionHandler eh) {
-		super(ch, eh);
+	public CassandraBlobStorage() {
+		
 	}
 
 	@Override
-	public URI write(final UUID messageId, final Mailbox mailbox, final String profileName, final InputStream in, final Long size)
+	public BlobURI write(final UUID messageId, final Mailbox mailbox, final String profileName, final InputStream in, final Long size)
 			throws IOException, GeneralSecurityException
 	{
 		Assert.isTrue(size <= MAX_BLOB_SIZE, "Blob larger than " + MAX_BLOB_SIZE
@@ -83,22 +80,11 @@ public final class CassandraBlobStorage extends AbstractBlobStorage
 				.setProfile(DATABASE_PROFILE)
 				.setName(messageId.toString()).setBlockCount(1);
 
-		InputStream in1;
-
-		// compress stream
-		if ((compressionHandler != null) && (size > MIN_COMPRESS_SIZE))
-		{
-			in1 = compressionHandler.compress(in);
-			blobUri.setCompression(compressionHandler.getType());
-		} else {
-			in1 = in;
-		}
-
 		// store blob
 		// TODO: currently we allow only single block writes (blockid=0). in future we can split blobs to multiple blocks
-		BlobPersistence.writeBlock(messageId, DATABASE_DEFAULT_BLOCK_ID, ByteStreams.toByteArray(in1));
+		BlobPersistence.writeBlock(messageId, DATABASE_DEFAULT_BLOCK_ID, ByteStreams.toByteArray(in));
 
-		return blobUri.buildURI();
+		return blobUri;
 	}
 
 	@Override
@@ -113,11 +99,11 @@ public final class CassandraBlobStorage extends AbstractBlobStorage
 		byte[] messageBlock = BlobPersistence.readBlock(messageId, DATABASE_DEFAULT_BLOCK_ID);
 		InputStream in = ByteStreams.newInputStreamSupplier(messageBlock).getInput();
 
-		return new BlobDataSource(uri, in, this.compressionHandler);
+		return new BlobDataSource(uri, in);
 	}
 
 	@Override
-	public void delete(URI uri) throws IOException
+	public void delete(final URI uri) throws IOException
 	{
 		logger.debug("Deleting blob {}", uri);
 

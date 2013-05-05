@@ -28,10 +28,13 @@
 
 package com.elasticinbox.core.blob.store;
 
+import static com.elasticinbox.core.blob.store.BlobStoreConstants.MAX_MEMORY_FILE_SIZE;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -41,71 +44,64 @@ import com.elasticinbox.config.Configurator;
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.BlobURI;
 import com.elasticinbox.core.blob.BlobUtils;
-import com.elasticinbox.core.blob.compression.CompressionHandler;
+import com.elasticinbox.core.blob.encryption.AESEncryptionHandler;
 import com.elasticinbox.core.blob.encryption.EncryptionHandler;
 import com.elasticinbox.core.blob.naming.BlobNameBuilder;
 import com.elasticinbox.core.model.Mailbox;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.FileBackedOutputStream;
 
-public final class CloudBlobStorage extends AbstractBlobStorage
+public final class CloudBlobStorage implements BlobStorage
 {
 	private static final Logger logger = 
 			LoggerFactory.getLogger(CloudBlobStorage.class);
 
+	private final EncryptionHandler encryptionHandler;
+
 	/**
 	 * Constructor
 	 * 
-	 * @param ch Injected Compression Handler
 	 * @param eh Injected Encryption Handler
 	 */
-	public CloudBlobStorage(CompressionHandler ch, EncryptionHandler eh) {
-		super(ch, eh);
+	public CloudBlobStorage(EncryptionHandler eh) {
+		this.encryptionHandler = eh;
 	}
 
 	@Override
-	public URI write(final UUID messageId, final Mailbox mailbox, final String profileName, final InputStream in, final Long size)
+	public BlobURI write(final UUID messageId, final Mailbox mailbox, final String profileName, final InputStream in, final Long size)
 			throws IOException, GeneralSecurityException
 	{
 		// get blob name
 		String blobName = new BlobNameBuilder().setMailbox(mailbox)
 				.setMessageId(messageId).setMessageSize(size).build();
 
-		InputStream in1, in2;
-		Long processedSize = size;
+		InputStream in1;
+		Long updatedSize = size;
 
 		// prepare URI
 		BlobURI blobUri = new BlobURI()
 				.setProfile(profileName)
 				.setName(blobName);
 
-		// compress stream
-		if ((compressionHandler != null) && (size > BlobStoreConstants.MIN_COMPRESS_SIZE))
-		{
-			in1 = compressionHandler.compress(in);
-			blobUri.setCompression(compressionHandler.getType());
-			
-			// size changed, set to unknown to recalculate
-			processedSize = null;
-		} else {
-			in1 = in;
-		}
-
 		// encrypt stream
 		if (encryptionHandler != null)
 		{
 			byte[] iv = getCipherIVFromBlobName(blobName);
-			in2 = this.encryptionHandler.encrypt(in1, Configurator.getBlobStoreDefaultEncryptionKey(), iv);
+			
+			InputStream encryptedInputStream = this.encryptionHandler.encrypt(in, Configurator.getBlobStoreDefaultEncryptionKey(), iv);
+			FileBackedOutputStream fbout = new FileBackedOutputStream(MAX_MEMORY_FILE_SIZE, true);
+			
+			updatedSize = ByteStreams.copy(encryptedInputStream, fbout);
+			in1 = fbout.getSupplier().getInput();
 
 			blobUri.setEncryptionKey(Configurator.getBlobStoreDefaultEncryptionKeyAlias());
-
-			// size changed, set to unknown to recalculate
-			processedSize = null;
 		} else {
-			in2 = in1;
+			in1 = in;
 		}
 
-		CloudStoreProxy.write(blobName, profileName, in2, processedSize);
+		CloudStoreProxy.write(blobName, profileName, in1, updatedSize);
 
-		return blobUri.buildURI();
+		return blobUri;
 	}
 
 	@Override
@@ -116,14 +112,17 @@ public final class CloudBlobStorage extends AbstractBlobStorage
 		BlobURI blobUri = new BlobURI().fromURI(uri); 
 		String keyAlias = blobUri.getEncryptionKey();
 
-		if (encryptionHandler != null && keyAlias != null)
+		if (keyAlias != null)
 		{
+			// currently we only support AES encryption, use by default
+			EncryptionHandler eh = new AESEncryptionHandler();
+
 			try {
 				logger.debug("Decrypting object {} with key {}", uri, keyAlias);
 
 				byte[] iv = getCipherIVFromBlobName(BlobUtils.relativize(uri.getPath()));
 
-				in = this.encryptionHandler.decrypt(CloudStoreProxy.read(uri),
+				in = eh.decrypt(CloudStoreProxy.read(uri),
 						Configurator.getEncryptionKey(keyAlias), iv);
 			} catch (GeneralSecurityException gse) {
 				throw new IOException("Unable to decrypt message blob: ", gse);
@@ -132,12 +131,38 @@ public final class CloudBlobStorage extends AbstractBlobStorage
 			in = CloudStoreProxy.read(uri);
 		}
 
-		return new BlobDataSource(uri, in, this.compressionHandler);
+		return new BlobDataSource(uri, in);
 	}
 
 	@Override
 	public void delete(final URI uri) throws IOException
 	{
 		CloudStoreProxy.delete(uri);
+	}
+	
+	/**
+	 * Generate cipher initialisation vector (IV) from Blob name.
+	 * 
+	 * IV should be unique but not necessarily secure. Since blob names are
+	 * based on Type1 UUID they are unique.
+	 * 
+	 * @param blobName
+	 * @return
+	 * @throws IOException 
+	 */
+	private static byte[] getCipherIVFromBlobName(final String blobName) throws IOException
+	{
+		byte[] iv;
+
+		try {
+			byte[] nameBytes = blobName.getBytes("UTF-8");
+			MessageDigest md = MessageDigest.getInstance("MD5");
+			iv = md.digest(nameBytes);
+		} catch (Exception e) {
+			// should never happen
+			throw new IOException(e);
+		}
+
+		return iv;
 	}
 }

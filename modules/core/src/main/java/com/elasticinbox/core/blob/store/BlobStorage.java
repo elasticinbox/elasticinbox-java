@@ -35,6 +35,7 @@ import java.security.GeneralSecurityException;
 import java.util.UUID;
 
 import com.elasticinbox.core.blob.BlobDataSource;
+import com.elasticinbox.core.blob.BlobURI;
 import com.elasticinbox.core.model.Mailbox;
 
 public interface BlobStorage
@@ -56,9 +57,9 @@ public interface BlobStorage
 	 * @throws IOException
 	 * @throws GeneralSecurityException
 	 */
-	public URI write(final UUID messageId, final Mailbox mailbox, final String profileName, final InputStream in, final Long size)
+	public BlobURI write(final UUID messageId, final Mailbox mailbox, final String profileName, final InputStream in, final Long size)
 			throws IOException, GeneralSecurityException;
-	
+
 	/**
 	 * Read blob contents and decrypt
 	 * 

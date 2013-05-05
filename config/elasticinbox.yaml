@@ -42,8 +42,9 @@ store_plain_message: false
 
 # Maximum blob size in bytes which can be stored in the database.
 # Blobs larger than this value will be stored with the deafult blob profile (blobstore_write_profile).
-# Set to 0 to disable using database for blobs. Currently value can't be more than 128K.
-database_blob_max_size: 65536
+# If compression enabled, this threshold will be applied to a compressed blob size.
+# Set to 0 to disable using database as a blob storage. Maximum allowed value 128K.
+database_blob_max_size: 32768
 
 ### Cassandra settings
 # Specify Cassandra hosts (multiple for LB), cluster name, keyspace
@@ -88,14 +89,15 @@ blobstore_profiles:
     endpoint: /u02/domains
     container: elasticinbox
 
-# deafult profile to use for writing messages to blob storage
-# only one profile can be used for writing at the same time 
+# Deafult profile to use for writing messages to blob storage
+# only one profile can be used for writing at the same time. 
 blobstore_write_profile: fs-local
 
-# compress objects written to the blob store (including database blobs)
+# Compress objects written to the blob store (including database blobs)
 blobstore_enable_compression: true
 
-# encrypt objects written to the blob store (excluding database blobs)
+# Encrypt objects written to the blob store. Blobs stored in database are
+# never encrypted.
 blobstore_enable_encryption: false
 #blobstore_default_encryption_key: mykey1
 

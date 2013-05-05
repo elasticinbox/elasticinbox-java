@@ -79,7 +79,7 @@ public class CloudStorageTest
 				+ URLEncoder.encode(MAILBOX.getId(), "UTF-8");
 
 		// BlobStorage without encryption or compression
-		AbstractBlobStorage bs = new CloudBlobStorage(null, null);
+		BlobStorage bs = new CloudBlobStorage(null);
 
 		// Write blob
 		long origSize = testWrite(bs);
@@ -99,19 +99,19 @@ public class CloudStorageTest
 	}
 
 	@Test
-	public void testBlobStorageWithEcnryptionAndCompression() throws IOException, GeneralSecurityException
+	public void testBlobStorageWithEcnryption() throws IOException, GeneralSecurityException
 	{
 		String expextedBlobUrl = "blob://"
 				+ Configurator.getBlobStoreWriteProfileName() + "/"
 				+ MESSAGE_ID + ":"
 				+ URLEncoder.encode(MAILBOX.getId(), "UTF-8") + "?"
-				+ BlobStoreConstants.URI_PARAM_COMPRESSION + "="
-				+ DeflateCompressionHandler.COMPRESSION_TYPE_DEFLATE + "&"
+				// + BlobStoreConstants.URI_PARAM_COMPRESSION + "="
+				// + DeflateCompressionHandler.COMPRESSION_TYPE_DEFLATE + "&"
 				+ BlobStoreConstants.URI_PARAM_ENCRYPTION_KEY + "="
 				+ Configurator.getBlobStoreDefaultEncryptionKeyAlias();
 
 		// BlobStorage with encryption or compression
-		AbstractBlobStorage bs = new CloudBlobStorage(new DeflateCompressionHandler(), new AESEncryptionHandler());
+		BlobStorage bs = new CloudBlobStorage(new AESEncryptionHandler());
 
 		// Write blob
 		long origSize = testWrite(bs);
@@ -122,14 +122,7 @@ public class CloudStorageTest
 		// Read blob back
 		BlobDataSource ds = bs.read(blobUri);
 
-		// Verify that suffix matches
-		assertThat(ds.isCompressed(), equalTo(true));
-
-		// Verify that compressed size is smaller
-		long compressedSize = IOUtils.getInputStreamSize(ds.getInputStream());
-		assertThat(compressedSize, lessThan(origSize));
-		
-		// Read blob back again (can't reuse same InputStream)
+		// Read blob back again
 		ds = bs.read(blobUri);
 		long newSize = IOUtils.getInputStreamSize(ds.getUncompressedInputStream());
 
@@ -140,12 +133,12 @@ public class CloudStorageTest
 		bs.delete(blobUri);
 	}
 
-	private long testWrite(AbstractBlobStorage bs) throws IOException, GeneralSecurityException
+	private long testWrite(BlobStorage bs) throws IOException, GeneralSecurityException
 	{
 		File file = new File(TEST_FILE);
 		InputStream in = new FileInputStream(file);
 		
-		blobUri = bs.write(MESSAGE_ID, MAILBOX, Configurator.getBlobStoreWriteProfileName(), in, file.length());
+		blobUri = bs.write(MESSAGE_ID, MAILBOX, Configurator.getBlobStoreWriteProfileName(), in, file.length()).buildURI();
 		in.close();
 
 		return file.length(); 

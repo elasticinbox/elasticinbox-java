@@ -28,6 +28,8 @@
 
 package com.elasticinbox.core.blob.store;
 
+import static com.elasticinbox.core.blob.store.BlobStoreConstants.*;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,9 +52,6 @@ import com.elasticinbox.config.blob.BlobStoreProfile;
 import com.elasticinbox.core.blob.BlobUtils;
 import com.elasticinbox.core.log.JcloudsSlf4JLoggingModule;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.CountingInputStream;
-import com.google.common.io.FileBackedOutputStream;
 
 /**
  * This is a proxy class for jClouds Blobstore API.
@@ -74,7 +73,6 @@ public final class CloudStoreProxy
 
 	private static final String PROVIDER_FILESYSTEM = "filesystem";
 	private static final String PROVIDER_TRANSIENT = "transient";
-	private static final int MAX_MEMORY_FILE_SIZE = 102400; // 100KB
 	
 	private static ConcurrentHashMap<String, BlobStoreContext> blobStoreContexts = 
 			new ConcurrentHashMap<String, BlobStoreContext>();
@@ -97,29 +95,15 @@ public final class CloudStoreProxy
 			throws IOException, GeneralSecurityException
 	{
 		Assert.notNull(in, "No data to store");
+		Assert.notNull(size, "Blob size must be specified");
 
 		final String container = Configurator.getBlobStoreProfile(profileName).getContainer();
-		final String provider = Configurator.getBlobStoreProfile(profileName).getProvider();
 		BlobStoreContext context = getBlobStoreContext(profileName);
 
 		logger.debug("Storing blob {} on {}", blobName, profileName);
 
 		BlobStore blobStore = context.getBlobStore();
-		BlobBuilder blobBuilder = blobStore.blobBuilder(blobName);
-
-		// Stream directly if cloud provider supports chunked encoding.
-		if (BlobStoreConstants.CHUNKED_ENCODING_CAPABILITY.contains(provider)) {
-			blobBuilder.payload(in);
-		} else if (size != null) {
-			// use provided size
-			blobBuilder.payload(in).contentLength(size);
-		} else {
-			// recalculate stream size if not provided (null)
-			CountingInputStream cin = new CountingInputStream(in);
-			FileBackedOutputStream fbout = new FileBackedOutputStream(MAX_MEMORY_FILE_SIZE, true);
-			ByteStreams.copy(cin, fbout);
-			blobBuilder.payload(fbout.getSupplier().getInput()).contentLength(cin.getCount());
-		}
+		BlobBuilder blobBuilder = blobStore.blobBuilder(blobName).payload(in).contentLength(size);
 
 		// store blob
 		blobStore.putBlob(container, blobBuilder.build());
@@ -226,7 +210,7 @@ public final class CloudStoreProxy
 					properties.setProperty(FilesystemConstants.PROPERTY_BASEDIR, profile.getEndpoint());
 					contextBuilder.endpoint(profile.getEndpoint());
 					//properties.setProperty(PROPERTY_CREDENTIAL, "dummy");
-				} else if (BlobStoreConstants.BLOBSTORE_PROVIDERS.contains(profile.getProvider())) {
+				} else if (BLOBSTORE_PROVIDERS.contains(profile.getProvider())) {
 					if (profile.getEndpoint() != null) {
 						contextBuilder.endpoint(profile.getEndpoint());
 					}
