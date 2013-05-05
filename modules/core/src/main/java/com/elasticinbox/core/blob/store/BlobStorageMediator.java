@@ -28,11 +28,16 @@
 
 package com.elasticinbox.core.blob.store;
 
+import static com.elasticinbox.core.blob.store.BlobStoreConstants.*;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.security.GeneralSecurityException;
 import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.common.utils.Assert;
 import com.elasticinbox.config.Configurator;
@@ -40,54 +45,117 @@ import com.elasticinbox.config.DatabaseConstants;
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.BlobURI;
 import com.elasticinbox.core.blob.compression.CompressionHandler;
+import com.elasticinbox.core.blob.compression.DeflateCompressionHandler;
 import com.elasticinbox.core.blob.encryption.EncryptionHandler;
 import com.elasticinbox.core.model.Mailbox;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.FileBackedOutputStream;
 
 /**
- * Blob storage mediator is an abstraction layer which contains logic which
+ * Blob storage mediator is an abstraction layer containing logic which
  * determines where to store or how to access given blob.
  * 
  * @author Rustam Aliyev
  */
 public final class BlobStorageMediator implements BlobStorage
 {
+	private static final Logger logger = 
+			LoggerFactory.getLogger(BlobStorageMediator.class);
+
+	protected final CompressionHandler compressionHandler;
+
 	private BlobStorage cloudBlobStorage;
 	private BlobStorage dbBlobStorage;
 
-	public BlobStorageMediator(CompressionHandler ch, EncryptionHandler eh) {
-		cloudBlobStorage = new CloudBlobStorage(ch, eh);
-		dbBlobStorage = new CassandraBlobStorage(ch, eh);
+	/**
+	 * Initialise mediator with compression and encryption handlers for writes.
+	 * To disable compression/encryption set value to null.
+	 * 
+	 * @param ch
+	 *            Injected compression handler
+	 * @param eh
+	 *            Injected encryption handler
+	 */
+	public BlobStorageMediator(final CompressionHandler ch, final EncryptionHandler eh)
+	{
+		this.compressionHandler = ch;
+		cloudBlobStorage = new CloudBlobStorage(eh);
+		dbBlobStorage = new CassandraBlobStorage();
 	}
-
-	public URI write(UUID messageId, Mailbox mailbox, String profileName,
-			InputStream in, Long size) throws IOException,
+	
+	public BlobURI write(final UUID messageId, final Mailbox mailbox, final String profileName,
+			final InputStream in, final Long size) throws IOException,
 			GeneralSecurityException
 	{
 		Assert.notNull(in, "No data to store");
 
-		if (size <= Configurator.getDatabaseBlobMaxSize()) {
-			return dbBlobStorage.write(messageId, mailbox, null, in, size);
+		BlobURI blobUri;
+		InputStream in1;
+		Long updatedSize = size;
+		boolean compressed = false;
+
+		// compress stream and calculate compressed size
+		if ((compressionHandler != null) && (size > MIN_COMPRESS_SIZE))
+		{
+			InputStream compressedInputStream = compressionHandler.compress(in); 
+			FileBackedOutputStream fbout = new FileBackedOutputStream(MAX_MEMORY_FILE_SIZE, true);
+			updatedSize = ByteStreams.copy(compressedInputStream, fbout);
+			in1 = fbout.getSupplier().getInput();
+			compressed = true;
 		} else {
-			return cloudBlobStorage.write(messageId, mailbox, Configurator.getBlobStoreWriteProfileName(), in, size);
+			in1 = in;
 		}
+
+		if (updatedSize <= Configurator.getDatabaseBlobMaxSize())
+		{
+			logger.debug(
+					"Storing Blob in the database because size ({}KB) was less than database threshold {}KB",
+					updatedSize, Configurator.getDatabaseBlobMaxSize());
+			blobUri = dbBlobStorage.write(messageId, mailbox, null, in1, updatedSize);
+		} else {
+			logger.debug(
+					"Storing Blob in the cloud because size ({}KB) was greater than database threshold {}KB",
+					updatedSize, Configurator.getDatabaseBlobMaxSize());
+			blobUri = cloudBlobStorage.write(messageId, mailbox, Configurator.getBlobStoreWriteProfileName(), in1, updatedSize);
+		}
+
+		// add compression information to the blob URI
+		if (compressed) {
+			blobUri.setCompression(compressionHandler.getType());
+		}
+
+		return blobUri;
 	}
 
-	public BlobDataSource read(URI uri) throws IOException
+	public BlobDataSource read(final URI uri) throws IOException
 	{
 		// check if blob was stored for the message
 		Assert.notNull(uri, "URI cannot be null");
 
-		boolean isDbProfile = new BlobURI().fromURI(uri).getProfile()
-				.equals(DatabaseConstants.DATABASE_PROFILE);
+		BlobDataSource blobDS;
+		BlobURI blobUri = new BlobURI().fromURI(uri);
 
-		if (isDbProfile) {
-			return dbBlobStorage.read(uri);
+		if (blobUri.getProfile().equals(DatabaseConstants.DATABASE_PROFILE)) {
+			blobDS = dbBlobStorage.read(uri);
 		} else {
-			return cloudBlobStorage.read(uri);
+			blobDS = cloudBlobStorage.read(uri);
+		}
+
+		// if compressed, add compression handler to data source
+		if ((blobUri.getCompression() != null && blobUri.getCompression()
+				.equals(DeflateCompressionHandler.COMPRESSION_TYPE_DEFLATE)) ||
+				// TODO: deprecated suffix based compression detection
+				// kept for backward compatibility with 0.3
+				blobUri.getName().endsWith(BlobStoreConstants.COMPRESS_SUFFIX))
+		{
+			CompressionHandler ch = new DeflateCompressionHandler();
+			return new BlobDataSource(uri, blobDS.getInputStream(), ch);
+		} else {
+			return blobDS;
 		}
 	}
 
-	public void delete(URI uri) throws IOException
+	public void delete(final URI uri) throws IOException
 	{
 		// check if blob was stored for the message, silently skip otherwise
 		if (uri == null) {

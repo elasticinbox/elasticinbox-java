@@ -56,10 +56,13 @@ public final class BlobStoreConstants
 	public static final String COMPRESS_SUFFIX = ".dfl";
 
 	/** Files smaller that this parameter should not be compressed. In bytes. */
-	public static final Integer MIN_COMPRESS_SIZE = 512;
+	public static final Integer MIN_COMPRESS_SIZE = 256;
 
 	/** Default block ID. Currently only single block DB operations supported. */
 	public static final int DATABASE_DEFAULT_BLOCK_ID = 0;
+
+	/** Threshold for switching from memory to file based buffering **/ 
+	public static final int MAX_MEMORY_FILE_SIZE = 204800; // 200KB
 
 	/**
 	 * Providers that are independently configurable. Currently invisible form jClouds.

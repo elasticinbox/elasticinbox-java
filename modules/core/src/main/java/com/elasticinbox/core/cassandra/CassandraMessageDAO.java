@@ -157,16 +157,17 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		{
 			try {
 				uri = blobStorage.write(messageId, mailbox,
-						Configurator.getBlobStoreWriteProfileName(), in,
-						message.getSize());
+						Configurator.getBlobStoreWriteProfileName(), in, message.getSize())
+						.buildURI();
 
 				// update location in metadata
 				message.setLocation(uri);
 			} catch (Exception e) {
 				throw new IOException("Failed to store blob: ", e);
 			} finally {
-				if(in != null) 
+				if (in != null) {
 					in.close();
+				}
 			}
 		}
 

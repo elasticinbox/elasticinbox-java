@@ -48,6 +48,11 @@ public class BlobDataSource
 	private final BlobURI blobUri;
 	private final CompressionHandler compressionHandler;
 
+	public BlobDataSource(final URI uri, final InputStream in)
+	{
+		this(uri, in, null);
+	}
+
 	public BlobDataSource(final URI uri, final InputStream in, final CompressionHandler ch)
 	{
 		this.blobUri = new BlobURI().fromURI(uri);
@@ -63,11 +68,7 @@ public class BlobDataSource
 	 */
 	public boolean isCompressed()
 	{
-		return ((blobUri.getCompression() != null && blobUri.getCompression()
-				.equals(DeflateCompressionHandler.COMPRESSION_TYPE_DEFLATE)) ||
-				// TODO: deprecated suffix based compression detection
-				// kept for backward compatibility with 0.3
-				blobUri.getName().endsWith(BlobStoreConstants.COMPRESS_SUFFIX));
+		return (this.compressionHandler != null);
 	}
 
 	/**
@@ -94,7 +95,7 @@ public class BlobDataSource
 	 */
 	public InputStream getUncompressedInputStream() throws IOException
 	{
-		if (this.isCompressed() && this.compressionHandler != null) {
+		if (this.isCompressed()) {
 			return this.compressionHandler.uncompress(in);
 		} else {
 			return in;

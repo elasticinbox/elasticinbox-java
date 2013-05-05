@@ -49,7 +49,6 @@ import com.elasticinbox.config.Configurator;
 import com.elasticinbox.config.DatabaseConstants;
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.compression.DeflateCompressionHandler;
-import com.elasticinbox.core.blob.encryption.AESEncryptionHandler;
 import com.elasticinbox.core.model.Mailbox;
 
 public class CassandraStorageTest
@@ -80,7 +79,7 @@ public class CassandraStorageTest
 				+ BlobStoreConstants.URI_PARAM_BLOCK_COUNT + "=1";
 
 		// BlobStorage without encryption or compression
-		AbstractBlobStorage bs = new CassandraBlobStorage(null, null);
+		BlobStorage bs = new CassandraBlobStorage();
 
 		// Write blob
 		long origSize = testWrite(bs, TEST_FILE);
@@ -103,58 +102,18 @@ public class CassandraStorageTest
 	public void testLargeBlobStorage() throws IOException, GeneralSecurityException
 	{
 		// BlobStorage without encryption or compression
-		AbstractBlobStorage bs = new CassandraBlobStorage(null, null);
+		BlobStorage bs = new CassandraBlobStorage();
 
 		// Write blob which is too large for DB storage. Should throw exception.
 		testWrite(bs, TEST_LARGE_FILE);
 	}
 
-	@Test
-	public void testBlobStorageWithEcnryptionAndCompression() throws IOException, GeneralSecurityException
-	{
-		String expextedBlobUrl = "blob://"
-				+ DatabaseConstants.DATABASE_PROFILE + "/"
-				+ MESSAGE_ID + "?"
-				+ BlobStoreConstants.URI_PARAM_COMPRESSION + "="
-				+ DeflateCompressionHandler.COMPRESSION_TYPE_DEFLATE + "&"
-				+ BlobStoreConstants.URI_PARAM_BLOCK_COUNT + "=1";
-
-		// BlobStorage with encryption or compression
-		AbstractBlobStorage bs = new CassandraBlobStorage(new DeflateCompressionHandler(), new AESEncryptionHandler());
-
-		// Write blob
-		long origSize = testWrite(bs, TEST_FILE);
-
-		// Check Blob URI
-		assertThat(blobUri.toString(), equalTo(expextedBlobUrl));
-
-		// Read blob back
-		BlobDataSource ds = bs.read(blobUri);
-
-		// Verify that suffix matches
-		assertThat(ds.isCompressed(), equalTo(true));
-
-		// Verify that compressed size is smaller
-		long compressedSize = IOUtils.getInputStreamSize(ds.getInputStream());
-		assertThat(compressedSize, lessThan(origSize));
-		
-		// Read blob back again (can't reuse same InputStream)
-		ds = bs.read(blobUri);
-		long newSize = IOUtils.getInputStreamSize(ds.getUncompressedInputStream());
-
-		// Check Blob size
-		assertThat(newSize, equalTo(origSize));
-
-		// Delete
-		bs.delete(blobUri);		
-	}
-
-	private long testWrite(AbstractBlobStorage bs, String filename) throws IOException, GeneralSecurityException
+	private long testWrite(BlobStorage bs, String filename) throws IOException, GeneralSecurityException
 	{
 		File file = new File(filename);
 		InputStream in = new FileInputStream(file);
 		
-		blobUri = bs.write(MESSAGE_ID, MAILBOX, Configurator.getBlobStoreWriteProfileName(), in, file.length());
+		blobUri = bs.write(MESSAGE_ID, MAILBOX, Configurator.getBlobStoreWriteProfileName(), in, file.length()).buildURI();
 		in.close();
 
 		return file.length(); 
