@@ -303,12 +303,16 @@ public class Message
 	public LabelCounters getLabelCounters()
 	{
 		LabelCounters lc = new LabelCounters();
-
-		lc.setTotalBytes(this.size);
+		
 		lc.setTotalMessages(1L);
 
-		if(this.markers == null || !this.markers.contains(Marker.SEEN))
+		if (this.size != null) {
+			lc.setTotalBytes(this.size);
+		}
+
+		if (this.markers == null || !this.markers.contains(Marker.SEEN)) {
 			lc.setUnreadMessages(1L);
+		}
 
 		return lc;
 	}
