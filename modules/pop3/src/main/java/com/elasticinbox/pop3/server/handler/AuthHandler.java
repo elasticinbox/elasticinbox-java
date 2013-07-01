@@ -34,6 +34,7 @@ import org.apache.james.protocols.pop3.core.AbstractPassCmdHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ecyrd.speed4j.StopWatch;
 import com.elasticinbox.core.account.authenticator.AuthenticationException;
 import com.elasticinbox.core.account.authenticator.AuthenticatorFactory;
 import com.elasticinbox.core.account.authenticator.IAuthenticator;
@@ -41,6 +42,7 @@ import com.elasticinbox.core.account.validator.IValidator;
 import com.elasticinbox.core.account.validator.ValidatorFactory;
 import com.elasticinbox.core.account.validator.IValidator.AccountStatus;
 import com.elasticinbox.core.model.Mailbox;
+import com.elasticinbox.pop3.Activator;
 
 /**
  * POP3 Authentication Handler (AUTH)
@@ -69,6 +71,8 @@ public final class AuthHandler extends AbstractPassCmdHandler
 		logger.debug("POP3: Authenticating session {}, user {}, pass {}",
 				new Object[] { session.getSessionID(), username, password });
 
+		StopWatch stopWatch = Activator.getDefault().getStopWatch();
+
 		try {
 			// authenticate mailbox, if failed return null
 			AccountStatus status = validator.getAccountStatus(username);
@@ -81,12 +85,16 @@ public final class AuthHandler extends AbstractPassCmdHandler
 			// authenticate user with password
 			mailbox = authenticator.authenticate(username, password);
 	
+			stopWatch.stop("AUTH.success");
+
 			// return POP3 handler for mailbox
 			return backend.getMailboxHander(mailbox);
 		} catch (IllegalArgumentException iae) {
+			stopWatch.stop("AUTH.fail");
 			logger.debug("POP3 Authentication failed. Invalid username [{}]: {}", username, iae.getMessage());
 			return null;
 		} catch (AuthenticationException ae) {
+			stopWatch.stop("AUTH.fail");
 			logger.debug("POP3 Authentication failed. Invalid username [{}] or password [{}]", username, password);
 			return null;
 		}
