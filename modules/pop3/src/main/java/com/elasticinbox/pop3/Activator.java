@@ -39,7 +39,6 @@ import com.ecyrd.speed4j.log.PeriodicalLog;
 import com.ecyrd.speed4j.log.Slf4jLog;
 import com.elasticinbox.config.Configurator;
 import com.elasticinbox.pop3.server.handler.MailboxHandlerFactory;
-import com.elasticinbox.pop3.utils.LoggingPeriodicalLog;
 
 public class Activator implements BundleActivator
 {
@@ -62,12 +61,12 @@ public class Activator implements BundleActivator
 
 		// Setup performance logger for POP3
 		if(Configurator.isPerformanceCountersEnabled()) {
-			LoggingPeriodicalLog pLog = new LoggingPeriodicalLog();
+			PeriodicalLog pLog = new PeriodicalLog();
 			pLog.setName(SPEED4J_LOG_NAME);
 			pLog.setMode(PeriodicalLog.Mode.JMX_ONLY);
 			pLog.setMaxQueueSize(250000);
 			pLog.setPeriod(Configurator.getPerformanceCountersInterval());
-			pLog.setJmx("DELIVERY.success,DELIVERY.discard,DELIVERY.defer,DELIVERY.defer_failure,DELIVERY.reject_overQuota,DELIVERY.reject_nonExistent");
+			pLog.setJmx("AUTH.success,AUTH.fail");
 			pLog.setSlf4jLogname("com.elasticinbox.speed4j.pop3.PeriodicalLogger");
 			stopWatchFactory = StopWatchFactory.getInstance(pLog);
 		} else {
