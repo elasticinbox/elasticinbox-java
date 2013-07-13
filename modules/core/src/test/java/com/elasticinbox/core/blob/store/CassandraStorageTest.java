@@ -29,7 +29,6 @@
 package com.elasticinbox.core.blob.store;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
@@ -48,7 +47,6 @@ import com.elasticinbox.common.utils.IOUtils;
 import com.elasticinbox.config.Configurator;
 import com.elasticinbox.config.DatabaseConstants;
 import com.elasticinbox.core.blob.BlobDataSource;
-import com.elasticinbox.core.blob.compression.DeflateCompressionHandler;
 import com.elasticinbox.core.model.Mailbox;
 
 public class CassandraStorageTest
