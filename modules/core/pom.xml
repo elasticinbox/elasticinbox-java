@@ -388,6 +388,13 @@
 			<version>${bundle.jersey.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>commons-codec</groupId>
+			<artifactId>commons-codec</artifactId>
+			<version>1.8</version>
+			<scope>test</scope>
+		</dependency>
+            
 
 	</dependencies>
 

@@ -214,21 +214,11 @@ public final class MimeParser
 			throws MimeParserException
 	{
 		Assert.notNull(this.mimeMessage, "No message was processed. Initialize first.");
-		message.getPartByContentId(contentId); // make sure that part exists, otherwise IAE will be thrown
+		
+		// lookup part ID and make sure that part exists. IAE will be thrown otherwise.
+		String partId = message.getPartByContentId(contentId).getPartId();
 
-		MimeMultipart mp;
-		InputStream in = null;
-
-		try {
-			mp = (MimeMultipart) this.mimeMessage.getContent();
-			in = mp.getBodyPart("<"+contentId+">").getInputStream();
-		} catch (IOException e) {
-			throw new MimeParserException("Unable to extract attachment from the message: " + e.getMessage());
-		} catch (MessagingException e) {
-			throw new IllegalArgumentException("Message does not contain part with Content-ID " + contentId);
-		}
-
-		return in;
+		return getInputStreamByPartId(partId);
 	}
 
 	/**
