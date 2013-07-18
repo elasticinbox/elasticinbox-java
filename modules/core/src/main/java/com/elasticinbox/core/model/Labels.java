@@ -123,8 +123,14 @@ public class Labels
 	 */
 	public void incrementCounters(final int labelId, LabelCounters counters)
 	{
-		if (!this.counters.containsKey(labelId)) {
+		if (!this.counters.containsKey(labelId))
+		{
 			this.counters.put(labelId, counters);
+
+			// also initialize label with empty name
+			if (!this.labels.containsKey(labelId)) {
+				this.labels.put(labelId, "");
+			}
 		} else {
 			this.counters.get(labelId).add(counters);
 		}
@@ -224,5 +230,11 @@ public class Labels
 		}
 
 		return metadata;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return toJson().toString();
 	}
 }

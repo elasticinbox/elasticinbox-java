@@ -26,55 +26,42 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.elasticinbox.core.message;
+package com.elasticinbox.core.model;
 
 import static org.junit.Assert.*;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
-
-import org.apache.commons.codec.digest.DigestUtils;
+import org.junit.AfterClass;
 import org.junit.Test;
 
-import com.elasticinbox.core.model.Message;
-import com.elasticinbox.core.model.MimePart;
+public class LabelsTest {
 
-public class MimeParserTest
-{
-	private final static String TEST_INLINE_ATTACH_FILE = "../../itests/src/test/resources/03-inline-attach.eml";
+	@AfterClass
+	public static void tearDownAfterClass() throws Exception {
+	}
 
-	/**
-	 * Loop through message parts and check if retrieval by PartId is consistent
-	 * with retrieval by ContentId.
-	 * 
-	 * @throws IOException
-	 * @throws MimeParserException
-	 */
 	@Test
-	public void testGetInputStreamByPartIdAndContentId() throws IOException, MimeParserException
+	public void testIncrementCounters()
 	{
-		File file = new File(TEST_INLINE_ATTACH_FILE);
-		InputStream in = new FileInputStream(file);
-
-		MimeParser mp = new MimeParser(in);
-		Message message = mp.getMessage();
+		Labels labels = new Labels();
 		
-		Map<String, MimePart> parts = message.getParts();
+		LabelCounters lc = new LabelCounters();
+		lc.setTotalMessages(120L);
+		lc.setTotalBytes(1024000L);
+		lc.setUnreadMessages(32L);
 		
-		for (String partId : parts.keySet())
-		{
-			MimePart part = parts.get(partId);
-			InputStream attachmentContentByPartId = mp.getInputStreamByPartId(partId);
-			String attachmentHashByPartId = DigestUtils.md5Hex(attachmentContentByPartId);
-			
-			InputStream attachmentContentByContentId = mp.getInputStreamByContentId(part.getContentId());
-			String attachmentHashByContentId = DigestUtils.md5Hex(attachmentContentByContentId);
-			
-			assertEquals(attachmentHashByPartId, attachmentHashByContentId);
-		}
+		LabelCounters diff = new LabelCounters();
+		diff.setTotalMessages(19L);
+		diff.setTotalBytes(24000L);
+		diff.setUnreadMessages(5L);
+		
+		// increment initialized label
+		labels.add(1, ReservedLabels.INBOX.getName());
+		labels.setCounters(1, lc);
+		labels.incrementCounters(1, diff);
+		
+		assertEquals(labels.getLabelCounters(1).getTotalMessages().intValue(), 120+19);
+		assertEquals(labels.getLabelCounters(1).getTotalBytes().intValue(), 1024000+24000);
+		assertEquals(labels.getLabelCounters(1).getUnreadMessages().intValue(), 32+5);
 	}
 
 }
