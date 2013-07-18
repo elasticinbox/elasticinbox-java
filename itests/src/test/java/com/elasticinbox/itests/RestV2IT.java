@@ -722,6 +722,107 @@ public class RestV2IT extends AbstractIntegrationTest
 
 		logger.info("Counters Test OK");
 	}
+	
+	@Test
+	public void mailboxCountersScrubTest() throws IOException
+	{
+		initAccount();
+
+		Map<String, UUID> messages = new HashMap<String, UUID>();
+		LabelCounters inboxCounters = new LabelCounters();
+		LabelCounters notifCounters = new LabelCounters();
+		LabelCounters trashCounters = new LabelCounters();
+		LabelCounters spamCounters = new LabelCounters();
+
+		// INBOX: add 5 messages, mark 2 as unread
+		messages.put("inbox1",  addMessage(EMAIL_REGULAR, ReservedLabels.INBOX.getId()));
+		messages.put("inbox2",  addMessage(EMAIL_REGULAR, ReservedLabels.INBOX.getId()));
+		messages.put("inbox3",  addMessage(EMAIL_REGULAR, ReservedLabels.INBOX.getId()));
+		messages.put("inbox4",  addMessage(EMAIL_REGULAR, ReservedLabels.INBOX.getId()));
+		messages.put("inbox5",  addMessage(EMAIL_REGULAR, ReservedLabels.INBOX.getId()));
+		markAsRead(messages.get("inbox4"));
+		markAsRead(messages.get("inbox5"));
+		inboxCounters.setTotalMessages(5L);
+		inboxCounters.setUnreadMessages(3L);
+
+		// NOTIFICATIONS: add 3 messages, mark 1 as read
+		messages.put("notif1",  addMessage(EMAIL_REGULAR, ReservedLabels.NOTIFICATIONS.getId()));
+		messages.put("notif2",  addMessage(EMAIL_REGULAR, ReservedLabels.NOTIFICATIONS.getId()));
+		messages.put("notif3",  addMessage(EMAIL_REGULAR, ReservedLabels.NOTIFICATIONS.getId()));
+		markAsRead(messages.get("notif2"));
+		notifCounters.setTotalMessages(3L);
+		notifCounters.setUnreadMessages(2L);
+
+		// SPAM: add 5 messages, keep all unread
+		messages.put("spam1",  addMessage(EMAIL_REGULAR, ReservedLabels.SPAM.getId()));
+		messages.put("spam2",  addMessage(EMAIL_REGULAR, ReservedLabels.SPAM.getId()));
+		messages.put("spam3",  addMessage(EMAIL_REGULAR, ReservedLabels.SPAM.getId()));
+		messages.put("spam4",  addMessage(EMAIL_REGULAR, ReservedLabels.SPAM.getId()));
+		messages.put("spam5",  addMessage(EMAIL_REGULAR, ReservedLabels.SPAM.getId()));
+		spamCounters.setTotalMessages(5L);
+		spamCounters.setUnreadMessages(5L);
+
+		// TRASH: add 4 messages, mark 2 as read
+		messages.put("trash1",  addMessage(EMAIL_REGULAR, ReservedLabels.TRASH.getId()));
+		messages.put("trash2",  addMessage(EMAIL_REGULAR, ReservedLabels.TRASH.getId()));
+		messages.put("trash3",  addMessage(EMAIL_REGULAR, ReservedLabels.TRASH.getId()));
+		messages.put("trash4",  addMessage(EMAIL_REGULAR, ReservedLabels.TRASH.getId()));
+		markAsRead(messages.get("trash1"));
+		markAsRead(messages.get("trash3"));
+		trashCounters.setTotalMessages(4L);
+		trashCounters.setUnreadMessages(2L);
+
+		// check label counters
+		expect().
+			statusCode(200).and().
+			body("'" + ReservedLabels.INBOX.getId() + "'.total", 
+					equalTo(inboxCounters.getTotalMessages().intValue())).
+			body("'" + ReservedLabels.INBOX.getId() + "'.unread", 
+					equalTo(inboxCounters.getUnreadMessages().intValue())).
+			body("'" + ReservedLabels.NOTIFICATIONS.getId() + "'.total", 
+					equalTo(notifCounters.getTotalMessages().intValue())).
+			body("'" + ReservedLabels.NOTIFICATIONS.getId() + "'.unread", 
+					equalTo(notifCounters.getUnreadMessages().intValue())).
+			body("'" + ReservedLabels.SPAM.getId() + "'.total", 
+					equalTo(spamCounters.getTotalMessages().intValue())).
+			body("'" + ReservedLabels.SPAM.getId() + "'.unread", 
+					equalTo(spamCounters.getUnreadMessages().intValue())).
+			body("'" + ReservedLabels.TRASH.getId() + "'.total", 
+					equalTo(trashCounters.getTotalMessages().intValue())).
+			body("'" + ReservedLabels.TRASH.getId() + "'.unread", 
+					equalTo(trashCounters.getUnreadMessages().intValue())).
+		when().
+			get(REST_PATH + "/mailbox?metadata=true").asString();
+
+		// scrub label counters
+		expect().
+			statusCode(204).
+		when().
+			post(REST_PATH + "/mailbox/scrub/counters");
+
+		// check label counters after scrub
+		expect().
+			statusCode(200).and().
+			body("'" + ReservedLabels.INBOX.getId() + "'.total", 
+					equalTo(inboxCounters.getTotalMessages().intValue())).
+			body("'" + ReservedLabels.INBOX.getId() + "'.unread", 
+					equalTo(inboxCounters.getUnreadMessages().intValue())).
+			body("'" + ReservedLabels.NOTIFICATIONS.getId() + "'.total", 
+					equalTo(notifCounters.getTotalMessages().intValue())).
+			body("'" + ReservedLabels.NOTIFICATIONS.getId() + "'.unread", 
+					equalTo(notifCounters.getUnreadMessages().intValue())).
+			body("'" + ReservedLabels.SPAM.getId() + "'.total", 
+					equalTo(spamCounters.getTotalMessages().intValue())).
+			body("'" + ReservedLabels.SPAM.getId() + "'.unread", 
+					equalTo(spamCounters.getUnreadMessages().intValue())).
+			body("'" + ReservedLabels.TRASH.getId() + "'.total", 
+					equalTo(trashCounters.getTotalMessages().intValue())).
+			body("'" + ReservedLabels.TRASH.getId() + "'.unread", 
+					equalTo(trashCounters.getUnreadMessages().intValue())).
+		when().
+			get(REST_PATH + "/mailbox?metadata=true").asString();
+
+	}
 
 	/**
 	 * Adds message throught REST API and returns new message UUID
@@ -753,6 +854,23 @@ public class RestV2IT extends AbstractIntegrationTest
 				post(REST_PATH + "/mailbox/message?label={labelId}");
 
 		return UUID.fromString( with(response.asString()).getString("id") );
+	}
+	
+	/**
+	 * Mark given message as read (add SEEN marker)
+	 * 
+	 * @param messageId
+	 */
+	private static void markAsRead(UUID messageId)
+	{
+		// assign labels and marker to the message
+		given().
+			pathParam("messageId", messageId.toString()).
+			pathParam("seenMarker", Marker.SEEN.toString().toLowerCase()).
+		expect().
+			statusCode(204).
+		when().
+			put(REST_PATH + "/mailbox/message/{messageId}?addmarker={seenMarker}");
 	}
 
 	/**
