@@ -57,7 +57,7 @@ import me.prettyprint.hector.api.query.SliceQuery;
 
 public final class LabelIndexPersistence
 {
-	protected final static String COMPOSITE_KEY_DELIMITER = ":";
+	private final static String COMPOSITE_KEY_DELIMITER = ":";
 
 	private final static StringSerializer strSe = StringSerializer.get();
 	private final static UUIDSerializer uuidSe = UUIDSerializer.get();
@@ -74,32 +74,57 @@ public final class LabelIndexPersistence
 	 * @param labels
 	 * @throws IOException 
 	 */
-	public static void add(Mutator<String> m, final String mailbox,
+	public static void add(Mutator<String> mutator, final String mailbox,
 			final List<UUID> messageIds, final Set<Integer> labels)
 			throws HectorException
 	{
 		// insert value
 		for (Integer label : labels)
 		{
-			// unique label key as "john@example.com:1" 
-			String indexKey = new StringBuilder(mailbox)
-					.append(COMPOSITE_KEY_DELIMITER).append(label).toString();
+			String indexKey = getLabelKey(mailbox, label);
 
 			for (UUID messageId : messageIds) {
 				logger.debug("Adding message {} to index {}", messageId, indexKey);
 
-				m.addInsertion(indexKey, CF_LABEL_INDEX,
+				mutator.addInsertion(indexKey, CF_LABEL_INDEX,
 						createColumn(messageId, new byte[0], uuidSe, byteSe));
 			}
 		}
 	}
 
+	/**
+	 * Add message ID to label indexes
+	 * 
+	 * @param mailbox
+	 * @param messageIds
+	 * @param labels
+	 * @throws IOException 
+	 */
 	public static void add(Mutator<String> mutator, final String mailbox, final UUID messageId,
 			final Set<Integer> labels) throws HectorException
 	{
 		final List<UUID> messageIds = new ArrayList<UUID>(1);
 		messageIds.add(messageId);
 		add(mutator, mailbox, messageIds, labels);
+	}
+
+	/**
+	 * Add message to label index
+	 * 
+	 * @param mutator
+	 * @param mailbox
+	 * @param messageId
+	 * @param labelId
+	 * @throws HectorException
+	 */
+	public static void add(Mutator<String> mutator, final String mailbox, final UUID messageId,
+			final int labelId) throws HectorException
+	{
+		String indexKey = getLabelKey(mailbox, labelId);
+		logger.debug("Adding message {} to index {}", messageId, indexKey);
+
+		mutator.addInsertion(indexKey, CF_LABEL_INDEX,
+				createColumn(messageId, new byte[0], uuidSe, byteSe));
 	}
 
 	/**
@@ -115,8 +140,7 @@ public final class LabelIndexPersistence
 	{
 		for (Integer label : labels) {
 
-			String indexKey = new StringBuilder(mailbox)
-					.append(COMPOSITE_KEY_DELIMITER).append(label).toString();
+			String indexKey = getLabelKey(mailbox, label);
 
 			for (UUID messageId : messageIds) {
 				logger.debug("Removing message-id {} from index {}", messageId, indexKey);
@@ -142,8 +166,7 @@ public final class LabelIndexPersistence
 	{
 		List<UUID> messageIds = new ArrayList<UUID>(count);
 
-		String key = new StringBuilder(mailbox).append(COMPOSITE_KEY_DELIMITER)
-				.append(labelId).toString();
+		String key = getLabelKey(mailbox, labelId);
 
 		// Create a query
 		SliceQuery<String, UUID, byte[]> q = 
@@ -178,8 +201,7 @@ public final class LabelIndexPersistence
 	public static void deleteIndex(Mutator<String> mutator,
 			final String mailbox, final Integer labelId)
 	{
-		String key = new StringBuilder(mailbox).append(COMPOSITE_KEY_DELIMITER)
-				.append(labelId).toString();
+		String key = getLabelKey(mailbox, labelId);
 		mutator.addDeletion(key, CF_LABEL_INDEX, null, strSe);
 	}
 
@@ -199,8 +221,29 @@ public final class LabelIndexPersistence
 		}
 
 		// delete purge index
-		String key = new StringBuilder(mailbox).append(COMPOSITE_KEY_DELIMITER)
-				.append(PurgeIndexPersistence.PURGE_LABEL_ID).toString();
+		String key = getLabelKey(mailbox, PurgeIndexPersistence.PURGE_LABEL_ID);
 		mutator.addDeletion(key, CF_LABEL_INDEX, null, strSe);
+	}
+
+	/**
+	 * Generates unique label key as "john@example.com:123".
+	 * 
+	 * @param mailbox
+	 * @param label
+	 * @return
+	 */
+	static String getLabelKey(final String mailbox, final int label) {
+		return getLabelKey(mailbox, Integer.toString(label));
+	}
+
+	/**
+	 * Generates unique label key as "john@example.com:label".
+	 * 
+	 * @param mailbox
+	 * @param label
+	 * @return
+	 */
+	static String getLabelKey(final String mailbox, final String label) {
+		return mailbox + COMPOSITE_KEY_DELIMITER + label;
 	}
 }

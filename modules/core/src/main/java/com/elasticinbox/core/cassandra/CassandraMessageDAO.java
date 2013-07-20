@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2012 Optimax Software Ltd.
+ * Copyright (c) 2011-2013 Optimax Software Ltd.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -69,7 +69,6 @@ import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.Marker;
 import com.elasticinbox.core.model.Message;
 import com.elasticinbox.core.model.ReservedLabels;
-import com.google.common.collect.Iterables;
 
 public final class CassandraMessageDAO extends AbstractMessageDAO implements MessageDAO
 {
@@ -445,33 +444,25 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 	}
 
 	@Override
-	public Labels calculateCounters(final Mailbox mailbox)
+	public Labels scrub(final Mailbox mailbox, final boolean rebuildIndex)
 	{
 		Labels labels = new Labels();
 		Map<UUID, Message> messages;
-		Map<UUID, UUID> purgeIndex;
-		Set<UUID> deletedMessages = new HashSet<UUID>();
-
+		Set<UUID> purgePendingMessages = new HashSet<UUID>();
+		
+		// initiate throttling mutator 
+		Mutator<String> mutator = new ThrottlingMutator<String>(keyspace, strSe,
+				BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
+		
 		logger.debug("Recalculating counters for {}", mailbox);
 
-		// get deleted message IDs from purge queue
-		// deleted messages should be excluded during calculation
-		UUID start = TimeUUIDUtils.getUniqueTimeUUIDinMillis();
-		do {
-			purgeIndex = PurgeIndexPersistence.get(
-					mailbox.getId(), start, BatchConstants.BATCH_READS);
+		// Get message IDs pending purge. Such messages should be excluded during calculation.
+		purgePendingMessages = PurgeIndexPersistence.getAll(mailbox.getId());
 
-			if (!purgeIndex.isEmpty()) {
-				deletedMessages.addAll(purgeIndex.values());
-				start = Iterables.getLast(purgeIndex.keySet());
-			}
-		}
-		while (purgeIndex.size() >= BatchConstants.BATCH_READS);
-
-		logger.debug("Found {} messages pending purge. Will exclude them from calculations.", deletedMessages.size());
+		logger.debug("Found {} messages pending purge. Will exclude them from calculations.", purgePendingMessages.size());
 		
 		// reset start, read messages and calculate label counters
-		start = TimeUUIDUtils.getUniqueTimeUUIDinMillis();
+		UUID start = TimeUUIDUtils.getUniqueTimeUUIDinMillis();
 		do {
 			messages = MessagePersistence.getRange(
 					mailbox.getId(), start, BatchConstants.BATCH_READS);
@@ -481,19 +472,28 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 				start = messageId; // shift next query start
 
 				// skip messages from purge queue
-				if (deletedMessages.contains(messageId)) continue;
+				if (purgePendingMessages.contains(messageId)) continue;
 
 				Message message = messages.get(messageId);
 
 				// add counters for each of the labels
 				for (int labelId : message.getLabels()) {
 					labels.incrementCounters(labelId, message.getLabelCounters());
+
+					if (rebuildIndex) {
+						// add message ID to the label index
+						LabelIndexPersistence.add(mutator, mailbox.getId(), messageId, labelId);
+					}
 				}
 
-				logger.debug("Counters state after message {} is {}", messageId, labels.toString());
+				logger.debug("Counters state after message {} is {}", messageId, labels.toString());				
 			}
+			
 		}
 		while (messages.size() >= BatchConstants.BATCH_READS);
+
+		// commit remaining items
+		mutator.execute();
 
 		return labels;
 	}

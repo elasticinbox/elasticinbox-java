@@ -72,15 +72,36 @@ public class ScrubResource
 	@POST
 	@Path("counters")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response scrubIndex(
+	public Response scrubCounters(
 			@PathParam("user") final String user,
 			@PathParam("domain") final String domain)
 	{
 		Mailbox mailbox = new Mailbox(user, domain);
-		
-		Labels calculatedCounters = messageDAO.calculateCounters(mailbox);
+
+		Labels calculatedCounters = messageDAO.scrub(mailbox, false);
 		labelDAO.setCounters(mailbox, calculatedCounters);
-		
+
+		return Response.noContent().build();
+	}
+
+	/**
+	 * Scrub mailbox, rebuild indexes and recalculate counters
+	 * 
+	 * @param account
+	 * @return
+	 */
+	@POST
+	@Path("indexes")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response scrubIndexes(
+			@PathParam("user") final String user,
+			@PathParam("domain") final String domain)
+	{
+		Mailbox mailbox = new Mailbox(user, domain);
+
+		Labels calculatedCounters = messageDAO.scrub(mailbox, true);
+		labelDAO.setCounters(mailbox, calculatedCounters);
+
 		return Response.noContent().build();
 	}
 

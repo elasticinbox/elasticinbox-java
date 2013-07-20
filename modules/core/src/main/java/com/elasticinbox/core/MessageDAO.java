@@ -229,10 +229,16 @@ public interface MessageDAO
 	public void purge(Mailbox mailbox, Date age) throws IOException;
 
 	/**
-	 * Calculates counters for all labels bu scanning through all messages. Used
-	 * for scrub operation.
+	 * Scrub operation recalculates counters and optionally rebuilds indexes for
+	 * all labels by scanning through all messages in given mailbox.
 	 * 
+	 * Recalculated counters are returned but not actually updated in metadata
+	 * store. Label indexes, on the other hand, are actually updated with
+	 * message IDs by this operation.
+	 * 
+	 * @param mailbox
+	 * @param rebuildIndex
 	 * @return
 	 */
-	public Labels calculateCounters(Mailbox mailbox);
+	public Labels scrub(Mailbox mailbox, boolean rebuildIndex);
 }
