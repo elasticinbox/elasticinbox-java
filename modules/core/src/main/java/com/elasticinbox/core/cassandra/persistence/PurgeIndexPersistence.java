@@ -34,15 +34,19 @@ import static me.prettyprint.hector.api.factory.HFactory.createSliceQuery;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.core.cassandra.CassandraDAOFactory;
+import com.elasticinbox.core.cassandra.utils.BatchConstants;
+import com.google.common.collect.Iterables;
 
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.serializers.UUIDSerializer;
@@ -74,13 +78,10 @@ public final class PurgeIndexPersistence
 			final List<UUID> messageIds)
 	{
 		UUID timeuuid;
+		String indexKey = LabelIndexPersistence.getLabelKey(mailbox, PURGE_LABEL_ID);
 
-		// unique purge label key as "john@example.com:purge" 
-		String indexKey = new StringBuilder(mailbox.toLowerCase())
-				.append(LabelIndexPersistence.COMPOSITE_KEY_DELIMITER)
-				.append(PURGE_LABEL_ID).toString();
-
-		for (UUID messageId : messageIds) {
+		for (UUID messageId : messageIds)
+		{
 			timeuuid = TimeUUIDUtils.getUniqueTimeUUIDinMillis();
 
 			mutator.addInsertion(indexKey, CF_LABEL_INDEX,
@@ -113,10 +114,7 @@ public final class PurgeIndexPersistence
 			final int count)
 	{
 		Map<UUID, UUID> messageIds = new LinkedHashMap<UUID, UUID>(count);
-
-		String key = new StringBuilder(mailbox)
-				.append(LabelIndexPersistence.COMPOSITE_KEY_DELIMITER)
-				.append(PURGE_LABEL_ID).toString();
+		String key = LabelIndexPersistence.getLabelKey(mailbox, PURGE_LABEL_ID);
 
 		// Create a query
 		SliceQuery<String, UUID, UUID> q = createSliceQuery(
@@ -131,7 +129,8 @@ public final class PurgeIndexPersistence
 		QueryResult<ColumnSlice<UUID, UUID>> r = q.execute();
 
 		// read message ids from the result
-		for (HColumn<UUID, UUID> c : r.get().getColumns()) {
+		for (HColumn<UUID, UUID> c : r.get().getColumns())
+		{
 			if ((c != null) && (c.getValue() != null)) {
 				messageIds.put(c.getName(), c.getValue());
 			}
@@ -139,8 +138,33 @@ public final class PurgeIndexPersistence
 
 		return messageIds;
 	}
-	
-	
+
+	/**
+	 * Get all message IDs pending purge
+	 * 
+	 * @param mailbox
+	 * @return
+	 */
+	public static Set<UUID> getAll(final String mailbox)
+	{
+		Map<UUID, UUID> purgeIndex;
+		Set<UUID> pendingMessages = new HashSet<UUID>();
+
+		// get all message IDs from purge queue
+		UUID start = TimeUUIDUtils.getUniqueTimeUUIDinMillis();
+		do {
+			purgeIndex = PurgeIndexPersistence.get(
+					mailbox, start, BatchConstants.BATCH_READS);
+
+			if (!purgeIndex.isEmpty()) {
+				pendingMessages.addAll(purgeIndex.values());
+				start = Iterables.getLast(purgeIndex.keySet());
+			}
+		}
+		while (purgeIndex.size() >= BatchConstants.BATCH_READS);
+
+		return pendingMessages;
+	}
 
 	/**
 	 * Remove all message IDs from purge index deleted before given date
@@ -168,11 +192,10 @@ public final class PurgeIndexPersistence
 	public static void remove(Mutator<String> mutator, final String mailbox,
 			final Collection<UUID> purgeIndexIds)
 	{
-		String indexKey = new StringBuilder(mailbox)
-				.append(LabelIndexPersistence.COMPOSITE_KEY_DELIMITER)
-				.append(PURGE_LABEL_ID).toString();
+		String indexKey = LabelIndexPersistence.getLabelKey(mailbox, PURGE_LABEL_ID);
 
-		for (UUID purgeIndexId : purgeIndexIds) {
+		for (UUID purgeIndexId : purgeIndexIds)
+		{
 			logger.debug("Removing purge index ID {} from {}", purgeIndexId, indexKey);
 			mutator.addDeletion(indexKey, CF_LABEL_INDEX, purgeIndexId, uuidSe);
 		}
