@@ -26,47 +26,49 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.elasticinbox.core.cassandra.utils;
+package com.elasticinbox.core.encryption;
 
-import me.prettyprint.cassandra.connection.HOpTimer;
+import java.io.InputStream;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 
-import com.ecyrd.speed4j.StopWatch;
-import com.ecyrd.speed4j.StopWatchFactory;
-import com.ecyrd.speed4j.log.PeriodicalLog;
-import com.elasticinbox.config.Configurator;
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.IvParameterSpec;
 
 /**
- * Implementation of {@link HOpTimer} for JMX performance counters without
- * speed4j.properties file.
+ * This class provides AES encryption/decryption methods.
  * 
  * @author Rustam Aliyev
  */
-public final class Speed4jOpTimer implements HOpTimer
+public class AESEncryptionHandler implements EncryptionHandler
 {
-	private final StopWatchFactory stopWatchFactory;
+	/**
+	 * Use AES-CBC algorithm with PKCS5 padding
+	 */
+	public static final String CIPHER_TRANSFORMATION = "AES/CBC/PKCS5Padding";
 
-	public Speed4jOpTimer()
+	public InputStream encrypt(InputStream in, Key key, byte[] iv)
+			throws NoSuchAlgorithmException, NoSuchPaddingException,
+			InvalidKeyException, InvalidAlgorithmParameterException, NoSuchProviderException
 	{
-		// Instantiate a new Periodical logger
-		PeriodicalLog pLog = new PeriodicalLog();
-		pLog.setName("ElasticInbox-Hector");
-		pLog.setPeriod(Configurator.getPerformanceCountersInterval());
-		//pLog.setJmx()
-				//PeriodicalLog.Mode.JMX_ONLY);
-		//pLog.setMaxQueueSize(250000);
-		pLog.setJmx("READ.success,WRITE.success,READ.fail,WRITE.fail,META_READ.success,META_READ.fail");
-		pLog.setSlf4jLogname("com.elasticinbox.speed4j.cassandra.HectorPeriodicalLogger");
-		stopWatchFactory = StopWatchFactory.getInstance(pLog);
+		Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+		cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
+		
+		return new CipherInputStream(in, cipher);
 	}
 
-	@Override
-	public Object start(String tagName) {
-		return stopWatchFactory.getStopWatch(tagName);
+	public InputStream decrypt(InputStream in, Key key, byte[] iv)
+			throws NoSuchAlgorithmException, NoSuchPaddingException,
+			InvalidKeyException, InvalidAlgorithmParameterException, NoSuchProviderException
+	{
+		Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+		cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
+		
+		return new CipherInputStream(in, cipher);
 	}
-
-	@Override
-	public void stop(Object token, String tagName, boolean success) {
-		((StopWatch) token).stop(tagName.concat(success ? ".success" : ".fail"));
-	}
-
 }

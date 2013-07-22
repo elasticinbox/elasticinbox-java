@@ -46,7 +46,7 @@ import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.BlobURI;
 import com.elasticinbox.core.blob.compression.CompressionHandler;
 import com.elasticinbox.core.blob.compression.DeflateCompressionHandler;
-import com.elasticinbox.core.blob.encryption.EncryptionHandler;
+import com.elasticinbox.core.encryption.EncryptionHandler;
 import com.elasticinbox.core.model.Mailbox;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.FileBackedOutputStream;
@@ -57,10 +57,15 @@ import com.google.common.io.FileBackedOutputStream;
  * 
  * @author Rustam Aliyev
  */
-public final class BlobStorageMediator implements BlobStorage
+public final class BlobStorageMediator extends BlobStorage
 {
 	private static final Logger logger = 
 			LoggerFactory.getLogger(BlobStorageMediator.class);
+
+	protected static byte[] getCipherIVFromBlobName(final String blobName)
+			throws IOException {
+		return null;
+	}
 
 	protected final CompressionHandler compressionHandler;
 
@@ -80,7 +85,7 @@ public final class BlobStorageMediator implements BlobStorage
 	{
 		this.compressionHandler = ch;
 		cloudBlobStorage = new CloudBlobStorage(eh);
-		dbBlobStorage = new CassandraBlobStorage();
+		dbBlobStorage = new CassandraBlobStorage(eh);
 	}
 	
 	public BlobURI write(final UUID messageId, final Mailbox mailbox, final String profileName,
