@@ -41,21 +41,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.common.utils.Assert;
+import com.elasticinbox.config.Configurator;
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.BlobURI;
+import com.elasticinbox.core.blob.naming.BlobNameBuilder;
+import com.elasticinbox.core.encryption.EncryptionHandler;
 import com.elasticinbox.core.cassandra.persistence.BlobPersistence;
 import com.elasticinbox.core.model.Mailbox;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.FileBackedOutputStream;
 
 /**
  * Blob storage proxy for Cassandra
  * 
  * @author Rustam Aliyev
  */
-public final class CassandraBlobStorage implements BlobStorage
-{
-	private static final Logger logger = 
-			LoggerFactory.getLogger(CassandraBlobStorage.class);
+public final class CassandraBlobStorage extends BlobStorage {
+	private static final Logger logger = LoggerFactory
+			.getLogger(CassandraBlobStorage.class);
+
+	protected static byte[] getCipherIVFromBlobName(final String blobName)
+			throws IOException {
+		return null;
+	}
 
 	/**
 	 * Constructor
@@ -63,55 +71,93 @@ public final class CassandraBlobStorage implements BlobStorage
 	 * Cassandra blob storage does not perform compression of encryption.
 	 */
 	public CassandraBlobStorage() {
-		
+
+	}
+
+	/**
+	 * Constructor
+	 * 
+	 * @param eh
+	 *            Injected Encryption Handler
+	 */
+	public CassandraBlobStorage(EncryptionHandler eh) {
+		encryptionHandler = eh;
 	}
 
 	@Override
-	public BlobURI write(final UUID messageId, final Mailbox mailbox, final String profileName, final InputStream in, final Long size)
-			throws IOException, GeneralSecurityException
-	{
-		Assert.isTrue(size <= MAX_BLOB_SIZE, "Blob larger than " + MAX_BLOB_SIZE
-				+ " bytes can't be stored in Cassandra. Provided blob size: " + size + " bytes");
+	public BlobURI write(final UUID messageId, final Mailbox mailbox,
+			final String profileName, final InputStream in, final Long size)
+			throws IOException, GeneralSecurityException {
+		Assert.isTrue(size <= MAX_BLOB_SIZE, "Blob larger than "
+				+ MAX_BLOB_SIZE
+				+ " bytes can't be stored in Cassandra. Provided blob size: "
+				+ size + " bytes");
 
 		logger.debug("Storing blob {} in Cassandra", messageId);
+		// get blob name
+		String blobName = new BlobNameBuilder().setMailbox(mailbox)
+				.setMessageId(messageId).setMessageSize(size).build();
 
+		
 		// prepare URI
-		BlobURI blobUri = new BlobURI()
-				.setProfile(DATABASE_PROFILE)
+		BlobURI blobUri = new BlobURI().setProfile(DATABASE_PROFILE)
 				.setName(messageId.toString()).setBlockCount(1);
 
+		InputStream in1;
+		// encrypt stream
+		if (encryptionHandler != null)
+		{
+			Long updatedSize = size;
+			byte[] iv = getCipherIVFromBlobName(blobName);
+			
+			InputStream encryptedInputStream = this.encryptionHandler.encrypt(in, Configurator.getBlobStoreDefaultEncryptionKey(), iv);
+			FileBackedOutputStream fbout = new FileBackedOutputStream(MAX_MEMORY_FILE_SIZE, true);
+			
+			updatedSize = ByteStreams.copy(encryptedInputStream, fbout);
+			in1 = fbout.getSupplier().getInput();
+
+			blobUri.setEncryptionKey(Configurator.getBlobStoreDefaultEncryptionKeyAlias());
+		} else {
+			in1 = in;
+		}
+		
 		// store blob
-		// TODO: currently we allow only single block writes (blockid=0). in future we can split blobs to multiple blocks
-		BlobPersistence.writeBlock(messageId, DATABASE_DEFAULT_BLOCK_ID, ByteStreams.toByteArray(in));
+		// TODO: currently we allow only single block writes (blockid=0). in
+		// future we can split blobs to multiple blocks
+		BlobPersistence.writeBlock(messageId, DATABASE_DEFAULT_BLOCK_ID,
+				ByteStreams.toByteArray(in1));
 
 		return blobUri;
 	}
 
 	@Override
-	public BlobDataSource read(final URI uri) throws IOException
-	{
+	public BlobDataSource read(final URI uri) throws IOException {
 		logger.debug("Reading blob {} from Cassandra", uri);
 
 		BlobURI blobUri = new BlobURI().fromURI(uri);
-		Assert.isTrue(blobUri.getProfile().equals(DATABASE_PROFILE), "Blob store profile does not match database.");
+		Assert.isTrue(blobUri.getProfile().equals(DATABASE_PROFILE),
+				"Blob store profile does not match database.");
 
 		UUID messageId = UUID.fromString(blobUri.getName());
-		byte[] messageBlock = BlobPersistence.readBlock(messageId, DATABASE_DEFAULT_BLOCK_ID);
-		InputStream in = ByteStreams.newInputStreamSupplier(messageBlock).getInput();
+		byte[] messageBlock = BlobPersistence.readBlock(messageId,
+				DATABASE_DEFAULT_BLOCK_ID);
+		InputStream in = ByteStreams.newInputStreamSupplier(messageBlock)
+				.getInput();
 
 		return new BlobDataSource(uri, in);
 	}
 
 	@Override
-	public void delete(final URI uri) throws IOException
-	{
+	public void delete(final URI uri) throws IOException {
 		logger.debug("Deleting blob {}", uri);
 
 		BlobURI blobUri = new BlobURI().fromURI(uri);
-		Assert.isTrue(blobUri.getProfile().equals(DATABASE_PROFILE), "Blob store profile does not match database.");
+		Assert.isTrue(blobUri.getProfile().equals(DATABASE_PROFILE),
+				"Blob store profile does not match database.");
 
 		UUID messageId = UUID.fromString(blobUri.getName());
-		BlobPersistence.deleteBlock(messageId, BlobStoreConstants.DATABASE_DEFAULT_BLOCK_ID);
+		BlobPersistence.deleteBlock(messageId,
+				BlobStoreConstants.DATABASE_DEFAULT_BLOCK_ID);
 	}
-	
+
 }

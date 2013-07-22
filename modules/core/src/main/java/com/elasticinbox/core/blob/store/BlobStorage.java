@@ -32,14 +32,44 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
 import java.util.UUID;
 
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.BlobURI;
+import com.elasticinbox.core.encryption.EncryptionHandler;
 import com.elasticinbox.core.model.Mailbox;
 
-public interface BlobStorage
-{
+public abstract class BlobStorage {
+
+	/**
+	 * Generate cipher initialisation vector (IV) from Blob name.
+	 * 
+	 * IV should be unique but not necessarily secure. Since blob names are
+	 * based on Type1 UUID they are unique.
+	 * 
+	 * @param blobName
+	 * @return
+	 * @throws IOException
+	 */
+	protected static byte[] getCipherIVFromBlobName(final String blobName)
+			throws IOException {
+		byte[] iv;
+
+		try {
+			byte[] nameBytes = blobName.getBytes("UTF-8");
+			MessageDigest md = MessageDigest.getInstance("MD5");
+			iv = md.digest(nameBytes);
+		} catch (Exception e) {
+			// should never happen
+			throw new IOException(e);
+		}
+
+		return iv;
+	}
+
+	protected EncryptionHandler encryptionHandler;
+
 	/**
 	 * Store blob contents, optionally compress and encrypt.
 	 * 
@@ -57,17 +87,19 @@ public interface BlobStorage
 	 * @throws IOException
 	 * @throws GeneralSecurityException
 	 */
-	public BlobURI write(final UUID messageId, final Mailbox mailbox, final String profileName, final InputStream in, final Long size)
+	public abstract BlobURI write(final UUID messageId, final Mailbox mailbox,
+			final String profileName, final InputStream in, final Long size)
 			throws IOException, GeneralSecurityException;
 
 	/**
 	 * Read blob contents and decrypt
 	 * 
-	 * @param uri Blob URI
+	 * @param uri
+	 *            Blob URI
 	 * @return
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	public BlobDataSource read(final URI uri) throws IOException;
+	public abstract BlobDataSource read(final URI uri) throws IOException;
 
 	/**
 	 * Delete blob
@@ -75,6 +107,6 @@ public interface BlobStorage
 	 * @param uri
 	 * @throws IOException
 	 */
-	public void delete(final URI uri) throws IOException;
+	public abstract void delete(final URI uri) throws IOException;
 
 }

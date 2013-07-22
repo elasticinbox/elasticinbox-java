@@ -26,7 +26,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.elasticinbox.core.blob.encryption;
+package com.elasticinbox.core.encryption;
 
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
