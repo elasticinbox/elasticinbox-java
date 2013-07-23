@@ -35,7 +35,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
 import java.net.URI;
 import java.security.GeneralSecurityException;
 import java.util.UUID;
@@ -131,6 +130,7 @@ public class CassandraStorageTest
 
 		// Read blob back
 		BlobDataSource ds = bs.read(blobUri);
+		
 		long newSize = IOUtils.getInputStreamSize(ds.getUncompressedInputStream());
 
 		// Check written Blob size
@@ -139,6 +139,7 @@ public class CassandraStorageTest
 		// Delete
 		bs.delete(blobUri);		
 	}
+	
 	private long testWrite(BlobStorage bs, String filename) throws IOException, GeneralSecurityException
 	{
 		File file = new File(filename);
