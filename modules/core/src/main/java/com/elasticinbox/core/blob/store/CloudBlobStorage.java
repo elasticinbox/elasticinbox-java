@@ -50,24 +50,24 @@ import com.elasticinbox.core.model.Mailbox;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.FileBackedOutputStream;
 
-public final class CloudBlobStorage extends BlobStorage
-{
-	private static final Logger logger = 
-			LoggerFactory.getLogger(CloudBlobStorage.class);
+public final class CloudBlobStorage extends BlobStorage {
+	private static final Logger logger = LoggerFactory
+			.getLogger(CloudBlobStorage.class);
 
 	/**
 	 * Constructor
 	 * 
-	 * @param eh Injected Encryption Handler
+	 * @param eh
+	 *            Injected Encryption Handler
 	 */
 	public CloudBlobStorage(EncryptionHandler eh) {
 		encryptionHandler = eh;
 	}
 
 	@Override
-	public BlobURI write(final UUID messageId, final Mailbox mailbox, final String profileName, final InputStream in, final Long size)
-			throws IOException, GeneralSecurityException
-	{
+	public BlobURI write(final UUID messageId, final Mailbox mailbox,
+			final String profileName, final InputStream in, final Long size)
+			throws IOException, GeneralSecurityException {
 		// get blob name
 		String blobName = new BlobNameBuilder().setMailbox(mailbox)
 				.setMessageId(messageId).setMessageSize(size).build();
@@ -76,22 +76,23 @@ public final class CloudBlobStorage extends BlobStorage
 		Long updatedSize = size;
 
 		// prepare URI
-		BlobURI blobUri = new BlobURI()
-				.setProfile(profileName)
-				.setName(blobName);
+		BlobURI blobUri = new BlobURI().setProfile(profileName).setName(
+				blobName);
 
 		// encrypt stream
-		if (encryptionHandler != null)
-		{
-			byte[] iv = getCipherIVFromBlobName(blobName);
-			
-			InputStream encryptedInputStream = this.encryptionHandler.encrypt(in, Configurator.getBlobStoreDefaultEncryptionKey(), iv);
-			FileBackedOutputStream fbout = new FileBackedOutputStream(MAX_MEMORY_FILE_SIZE, true);
-			
+		if (encryptionHandler != null) {
+			byte[] iv = AESEncryptionHandler.getCipherIVFromBlobName(blobName);
+
+			InputStream encryptedInputStream = this.encryptionHandler.encrypt(
+					in, Configurator.getBlobStoreDefaultEncryptionKey(), iv);
+			FileBackedOutputStream fbout = new FileBackedOutputStream(
+					MAX_MEMORY_FILE_SIZE, true);
+
 			updatedSize = ByteStreams.copy(encryptedInputStream, fbout);
 			in1 = fbout.getSupplier().getInput();
 
-			blobUri.setEncryptionKey(Configurator.getBlobStoreDefaultEncryptionKeyAlias());
+			blobUri.setEncryptionKey(Configurator
+					.getBlobStoreDefaultEncryptionKeyAlias());
 		} else {
 			in1 = in;
 		}
@@ -102,22 +103,22 @@ public final class CloudBlobStorage extends BlobStorage
 	}
 
 	@Override
-	public BlobDataSource read(final URI uri) throws IOException
-	{
+	public BlobDataSource read(final URI uri) throws IOException {
 		InputStream in;
-		
-		BlobURI blobUri = new BlobURI().fromURI(uri); 
+
+		BlobURI blobUri = new BlobURI().fromURI(uri);
 		String keyAlias = blobUri.getEncryptionKey();
 
-		if (keyAlias != null)
-		{
+		if (keyAlias != null) {
 			// currently we only support AES encryption, use by default
 			EncryptionHandler eh = new AESEncryptionHandler();
 
 			try {
 				logger.debug("Decrypting object {} with key {}", uri, keyAlias);
 
-				byte[] iv = getCipherIVFromBlobName(BlobUtils.relativize(uri.getPath()));
+				byte[] iv = AESEncryptionHandler
+						.getCipherIVFromBlobName(BlobUtils.relativize(uri
+								.getPath()));
 
 				in = eh.decrypt(CloudStoreProxy.read(uri),
 						Configurator.getEncryptionKey(keyAlias), iv);
@@ -132,8 +133,7 @@ public final class CloudBlobStorage extends BlobStorage
 	}
 
 	@Override
-	public void delete(final URI uri) throws IOException
-	{
+	public void delete(final URI uri) throws IOException {
 		CloudStoreProxy.delete(uri);
 	}
 

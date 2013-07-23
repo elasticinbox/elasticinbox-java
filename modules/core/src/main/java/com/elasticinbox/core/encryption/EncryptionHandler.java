@@ -30,7 +30,17 @@ package com.elasticinbox.core.encryption;
 
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.ShortBufferException;
+
+import com.elasticinbox.core.model.Message;
 
 /**
  * Handles generic encryption/decryption tasks. Used mainly for dependency injection.
@@ -60,4 +70,16 @@ public interface EncryptionHandler
 	 * @throws GeneralSecurityException
 	 */
 	public InputStream decrypt(InputStream in, Key key, byte[] iv) throws GeneralSecurityException;
+
+	/*
+	 * encrypt a message object
+	 */
+	public Message encryptMessage(Message message,
+			Key blobStoreDefaultEncryptionKey, byte[] iv) throws  NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, ShortBufferException, BadPaddingException, IllegalBlockSizeException, BadPaddingException;
+
+	/*
+	 * decrypt a message object
+	 */
+	public Message decryptMessage(Message message,
+			Key blobStoreDefaultEncryptionKey, byte[] iv) throws NoSuchAlgorithmException, NoSuchPaddingException, ShortBufferException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException;
 }
