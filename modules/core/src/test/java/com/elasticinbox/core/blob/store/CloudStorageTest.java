@@ -49,7 +49,7 @@ import com.elasticinbox.common.utils.IOUtils;
 import com.elasticinbox.config.Configurator;
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.compression.DeflateCompressionHandler;
-import com.elasticinbox.core.blob.encryption.AESEncryptionHandler;
+import com.elasticinbox.core.encryption.AESEncryptionHandler;
 import com.elasticinbox.core.model.Mailbox;
 
 public class CloudStorageTest

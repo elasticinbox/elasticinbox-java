@@ -60,7 +60,7 @@ public class ThrottlingMutatorTest
 	final static UUIDSerializer uuidSe = UUIDSerializer.get();
 	final static BytesArraySerializer byteSe = BytesArraySerializer.get();
 
-	final static String KEYSPACE = "ElasticInbox";
+	final static String KEYSPACE = "elasticinbox";
 	final static String MAILBOX = "throttling@elasticinbox.com";
 	final static int LABEL = 5555;
 	Cluster cluster;
@@ -72,9 +72,9 @@ public class ThrottlingMutatorTest
 		ConsistencyLevelPolicy clp = new QuorumConsistencyLevel();
 
 		// Host config
-		CassandraHostConfigurator conf = new CassandraHostConfigurator("127.0.0.1:9160");
+		CassandraHostConfigurator conf = new CassandraHostConfigurator("10.0.106.31:9160");
 
-		cluster = HFactory.getOrCreateCluster("TestCluster", conf);
+		cluster = HFactory.getOrCreateCluster("Elastic", conf);
 		keyspace = HFactory.createKeyspace(KEYSPACE, cluster, clp);
 	}
 
