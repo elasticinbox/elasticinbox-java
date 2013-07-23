@@ -103,7 +103,7 @@ public final class CassandraBlobStorage extends BlobStorage {
 		// encrypt stream
 		if (encryptionHandler != null) {
 			Long updatedSize = size;
-			byte[] iv = getCipherIVFromBlobName(blobName);
+			byte[] iv = AESEncryptionHandler.getCipherIVFromBlobName(blobName);
 
 			InputStream encryptedInputStream = this.encryptionHandler.encrypt(
 					in, Configurator.getBlobStoreDefaultEncryptionKey(), iv);
@@ -150,7 +150,7 @@ public final class CassandraBlobStorage extends BlobStorage {
 			try {
 				logger.debug("Decrypting object {} with key {}", uri, keyAlias);
 
-				byte[] iv = getCipherIVFromBlobName(BlobUtils.relativize(uri
+				byte[] iv = AESEncryptionHandler.getCipherIVFromBlobName(BlobUtils.relativize(uri
 						.getPath()));
 
 				in = eh.decrypt(in, Configurator.getEncryptionKey(keyAlias), iv);

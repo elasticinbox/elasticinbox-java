@@ -40,6 +40,8 @@ import javax.crypto.CipherInputStream;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 
+import com.elasticinbox.core.model.Message;
+
 /**
  * This class provides AES encryption/decryption methods.
  * 
@@ -70,5 +72,13 @@ public class NoEncryptionHandler implements EncryptionHandler
 		cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
 		
 		return new CipherInputStream(in, cipher);
+	}
+
+	@Override
+	public Message encryptMessage(Message message,
+			Key blobStoreDefaultEncryptionKey, byte[] iv)
+			throws NoSuchAlgorithmException, NoSuchPaddingException,
+			InvalidKeyException, InvalidAlgorithmParameterException {
+		return message;
 	}
 }

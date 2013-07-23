@@ -28,11 +28,15 @@
 
 package com.elasticinbox.core.cassandra;
 
+import static com.elasticinbox.config.DatabaseConstants.DATABASE_PROFILE;
 import static me.prettyprint.hector.api.factory.HFactory.createMutator;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -40,6 +44,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.ShortBufferException;
 
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.utils.TimeUUIDUtils;
@@ -54,8 +63,10 @@ import com.elasticinbox.core.IllegalLabelException;
 import com.elasticinbox.core.MessageDAO;
 import com.elasticinbox.core.OverQuotaException;
 import com.elasticinbox.core.blob.BlobDataSource;
+import com.elasticinbox.core.blob.BlobURI;
 import com.elasticinbox.core.blob.compression.CompressionHandler;
 import com.elasticinbox.core.blob.compression.DeflateCompressionHandler;
+import com.elasticinbox.core.blob.naming.BlobNameBuilder;
 import com.elasticinbox.core.blob.store.BlobStorage;
 import com.elasticinbox.core.blob.store.BlobStorageMediator;
 import com.elasticinbox.core.cassandra.persistence.*;
@@ -70,64 +81,87 @@ import com.elasticinbox.core.model.Marker;
 import com.elasticinbox.core.model.Message;
 import com.elasticinbox.core.model.ReservedLabels;
 
-public final class CassandraMessageDAO extends AbstractMessageDAO implements MessageDAO
-{
+public final class CassandraMessageDAO extends AbstractMessageDAO implements
+		MessageDAO {
 	private final Keyspace keyspace;
 	private final static StringSerializer strSe = StringSerializer.get();
-	
+
 	private final BlobStorage blobStorage;
 
-	private final static Logger logger = 
-			LoggerFactory.getLogger(CassandraMessageDAO.class);
-	
-	public CassandraMessageDAO(Keyspace keyspace)
-	{
-		this.keyspace = keyspace;
-		
-		// Create BlobStorage instance with AES encryption and Deflate compression
-		CompressionHandler compressionHandler = 
-				Configurator.isBlobStoreCompressionEnabled() ? new DeflateCompressionHandler() : null;
-		EncryptionHandler encryptionHandler = 
-				Configurator.isBlobStoreEncryptionEnabled() ? new AESEncryptionHandler() : null;
+	private final static Logger logger = LoggerFactory
+			.getLogger(CassandraMessageDAO.class);
 
-		this.blobStorage = new BlobStorageMediator(compressionHandler, encryptionHandler);
+	private EncryptionHandler encryptionHandler;
+
+	public CassandraMessageDAO(Keyspace keyspace) {
+		this.keyspace = keyspace;
+
+		// Create BlobStorage instance with AES encryption and Deflate
+		// compression
+		CompressionHandler compressionHandler = Configurator
+				.isBlobStoreCompressionEnabled() ? new DeflateCompressionHandler()
+				: null;
+		encryptionHandler = Configurator.isMetaStoreEncryptionEnabled() ? new AESEncryptionHandler()
+				: null;
+
+		this.blobStorage = new BlobStorageMediator(compressionHandler,
+				encryptionHandler);
 	}
 
 	@Override
-	public Message getParsed(final Mailbox mailbox, final UUID messageId)
-	{
-		return MessagePersistence.fetch(mailbox.getId(), messageId, true);
+	public Message getParsed(final Mailbox mailbox, final UUID messageId) {
+		Message message = MessagePersistence.fetch(mailbox.getId(), messageId,
+				true);
+		// decrypt message metadata if a handler is set
+		if (encryptionHandler != null) {
+			String blobName = new BlobNameBuilder().setMailbox(mailbox)
+					.setMessageId(messageId).build();
+
+			try {
+				byte[] iv;
+				iv = AESEncryptionHandler.getCipherIVFromBlobName(blobName);
+				// decrypt message
+				message = encryptionHandler.decryptMessage(message,
+						Configurator.getBlobStoreDefaultEncryptionKey(), iv);
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+				logger.error("unable to decrypt message: key={}",
+						message.getMessageId());
+			}
+
+		}
+
+		return message;
 	}
 
 	@Override
 	public BlobDataSource getRaw(final Mailbox mailbox, final UUID messageId)
-			throws IOException
-	{
-		Message metadata = MessagePersistence.fetch(mailbox.getId(), messageId, false);
+			throws IOException {
+		Message metadata = MessagePersistence.fetch(mailbox.getId(), messageId,
+				false);
 		return blobStorage.read(metadata.getLocation());
 	}
 
 	@Override
 	public Map<UUID, Message> getMessageIdsWithHeaders(final Mailbox mailbox,
-			final int labelId, final UUID start, final int count, boolean reverse)
-	{
-		List<UUID> messageIds = 
-				getMessageIds(mailbox, labelId, start, count, reverse);
+			final int labelId, final UUID start, final int count,
+			boolean reverse) {
+		List<UUID> messageIds = getMessageIds(mailbox, labelId, start, count,
+				reverse);
 
 		return MessagePersistence.fetch(mailbox.getId(), messageIds, false);
 	}
 
 	@Override
 	public List<UUID> getMessageIds(final Mailbox mailbox, final int labelId,
-			final UUID start, final int count, final boolean reverse)
-	{
-		return LabelIndexPersistence.get(mailbox.getId(), labelId, start, count, reverse);
+			final UUID start, final int count, final boolean reverse) {
+		return LabelIndexPersistence.get(mailbox.getId(), labelId, start,
+				count, reverse);
 	}
 
 	@Override
-	public void put(final Mailbox mailbox, UUID messageId, Message message, InputStream in)
-			throws IOException, OverQuotaException
-	{
+	public void put(final Mailbox mailbox, UUID messageId, Message message,
+			InputStream in) throws IOException, OverQuotaException {
 		URI uri = null;
 		logger.debug("Storing message: key={}", messageId.toString());
 
@@ -135,13 +169,14 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		LabelCounters mailboxCounters = LabelCounterPersistence.get(
 				mailbox.getId(), ReservedLabels.ALL_MAILS.getId());
 
-		long requiredBytes = mailboxCounters.getTotalBytes() + message.getSize();
+		long requiredBytes = mailboxCounters.getTotalBytes()
+				+ message.getSize();
 		long requiredCount = mailboxCounters.getTotalMessages() + 1;
 
-		if ((requiredBytes > Configurator.getDefaultQuotaBytes()) ||
-			(requiredCount > Configurator.getDefaultQuotaCount()))
-		{
-			logger.info("Mailbox is over quota: {} size={}/{}, count={}/{}",
+		if ((requiredBytes > Configurator.getDefaultQuotaBytes())
+				|| (requiredCount > Configurator.getDefaultQuotaCount())) {
+			logger.info(
+					"Mailbox is over quota: {} size={}/{}, count={}/{}",
 					new Object[] { mailbox.getId(), requiredBytes,
 							Configurator.getDefaultQuotaBytes(), requiredCount,
 							Configurator.getDefaultQuotaCount() });
@@ -152,12 +187,11 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		// Order is important, add to label after message written
 
 		// store blob
-		if (in != null)
-		{
+		if (in != null) {
 			try {
 				uri = blobStorage.write(messageId, mailbox,
-						Configurator.getBlobStoreWriteProfileName(), in, message.getSize())
-						.buildURI();
+						Configurator.getBlobStoreWriteProfileName(), in,
+						message.getSize()).buildURI();
 
 				// update location in metadata
 				message.setLocation(uri);
@@ -177,12 +211,28 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			// begin batch operation
 			Mutator<String> m = createMutator(keyspace, strSe);
 
+			// encrypt message metadata if a handler is set
+			if (encryptionHandler != null) {
+				String blobName = new BlobNameBuilder().setMailbox(mailbox)
+						.setMessageId(messageId).build();
+
+				// encrypt message
+				byte[] iv = AESEncryptionHandler
+						.getCipherIVFromBlobName(blobName);
+
+				message = encryptionHandler.encryptMessage(message,
+						Configurator.getBlobStoreDefaultEncryptionKey(), iv);
+			}
 			// store metadata
-			MessagePersistence.persistMessage(m, mailbox.getId(), messageId, message);
+			MessagePersistence.persistMessage(m, mailbox.getId(), messageId,
+					message);
+
 			// add indexes
-			LabelIndexPersistence.add(m, mailbox.getId(), messageId, message.getLabels());
+			LabelIndexPersistence.add(m, mailbox.getId(), messageId,
+					message.getLabels());
 			// update counters
-			LabelCounterPersistence.add(m, mailbox.getId(), message.getLabels(), message.getLabelCounters());
+			LabelCounterPersistence.add(m, mailbox.getId(),
+					message.getLabels(), message.getLabelCounters());
 
 			// commit batch operation
 			m.execute();
@@ -202,8 +252,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 	@Override
 	public void addMarker(final Mailbox mailbox, final Set<Marker> markers,
-			final List<UUID> messageIds)
-	{
+			final List<UUID> messageIds) {
 		if (markers.isEmpty() || messageIds.isEmpty()) {
 			return;
 		}
@@ -218,10 +267,9 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 		// build list of attributes
 		Set<String> attributes = new HashSet<String>(markers.size());
-		for (Marker marker : markers)
-		{
-			String a = new StringBuilder(Marshaller.CN_MARKER_PREFIX)
-					.append(marker.toInt()).toString();
+		for (Marker marker : markers) {
+			String a = new StringBuilder(Marshaller.CN_MARKER_PREFIX).append(
+					marker.toInt()).toString();
 			attributes.add(a);
 		}
 
@@ -229,16 +277,17 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		Mutator<String> m = createMutator(keyspace, strSe);
 
 		// add markers to messages
-		MessagePersistence.persistAttributes(m, mailbox.getId(), messageIds, attributes);
+		MessagePersistence.persistAttributes(m, mailbox.getId(), messageIds,
+				attributes);
 
 		// decrement new message counter for each of the labels
-		if (markers.contains(Marker.SEEN))
-		{
-			for (Integer labelId : labels.getIds())
-			{
+		if (markers.contains(Marker.SEEN)) {
+			for (Integer labelId : labels.getIds()) {
 				LabelCounters labelCounters = new LabelCounters();
-				labelCounters.setUnreadMessages(labels.getLabelCounters(labelId).getUnreadMessages());
-				LabelCounterPersistence.subtract(m, mailbox.getId(), labelId, labelCounters);
+				labelCounters.setUnreadMessages(labels
+						.getLabelCounters(labelId).getUnreadMessages());
+				LabelCounterPersistence.subtract(m, mailbox.getId(), labelId,
+						labelCounters);
 			}
 		}
 
@@ -248,8 +297,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 	@Override
 	public void removeMarker(final Mailbox mailbox, final Set<Marker> markers,
-			final List<UUID> messageIds)
-	{
+			final List<UUID> messageIds) {
 		if (markers.isEmpty() || messageIds.isEmpty()) {
 			return;
 		}
@@ -264,10 +312,9 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 		// build list of attributes
 		Set<String> attributes = new HashSet<String>(markers.size());
-		for (Marker marker : markers)
-		{
-			String a = new StringBuilder(Marshaller.CN_MARKER_PREFIX)
-					.append(marker.toInt()).toString();
+		for (Marker marker : markers) {
+			String a = new StringBuilder(Marshaller.CN_MARKER_PREFIX).append(
+					marker.toInt()).toString();
 			attributes.add(a);
 		}
 
@@ -275,22 +322,23 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		Mutator<String> m = createMutator(keyspace, strSe);
 
 		// remove markers from messages
-		MessagePersistence.deleteAttributes(m, mailbox.getId(), messageIds, attributes);
+		MessagePersistence.deleteAttributes(m, mailbox.getId(), messageIds,
+				attributes);
 
 		// increment new message counter for each of the labels
-		if (markers.contains(Marker.SEEN))
-		{
-			for (Integer labelId : labels.getIds())
-			{
+		if (markers.contains(Marker.SEEN)) {
+			for (Integer labelId : labels.getIds()) {
 				LabelCounters labelCounters = new LabelCounters();
 
-				// only seen messages will be marked as new, so we count only seen 
-				Long seenMessages = 
-						labels.getLabelCounters(labelId).getTotalMessages()
+				// only seen messages will be marked as new, so we count only
+				// seen
+				Long seenMessages = labels.getLabelCounters(labelId)
+						.getTotalMessages()
 						- labels.getLabelCounters(labelId).getUnreadMessages();
 				labelCounters.setUnreadMessages(seenMessages);
 
-				LabelCounterPersistence.add(m, mailbox.getId(), labelId, labelCounters);
+				LabelCounterPersistence.add(m, mailbox.getId(), labelId,
+						labelCounters);
 			}
 		}
 
@@ -300,8 +348,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 	@Override
 	public void addLabel(final Mailbox mailbox, final Set<Integer> labelIds,
-			final List<UUID> messageIds)
-	{
+			final List<UUID> messageIds) {
 		if (labelIds.isEmpty() || messageIds.isEmpty()) {
 			return;
 		}
@@ -314,20 +361,23 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 		// begin batch operation
 		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe,
-				BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
+				BatchConstants.BATCH_WRITES,
+				BatchConstants.BATCH_WRITE_INTERVAL);
 
 		// get message stats for counters
 		MessageAggregator ma = new MessageAggregator(mailbox, messageIds);
 		LabelCounters labelCounters = ma.aggregateCounters();
 
 		// add labels to messages
-		MessagePersistence.persistAttributes(m, mailbox.getId(), messageIds, attributes);
+		MessagePersistence.persistAttributes(m, mailbox.getId(), messageIds,
+				attributes);
 
 		// add messages to label index
 		LabelIndexPersistence.add(m, mailbox.getId(), messageIds, labelIds);
 
 		// increment label counters
-		LabelCounterPersistence.add(m, mailbox.getId(), labelIds, labelCounters);
+		LabelCounterPersistence
+				.add(m, mailbox.getId(), labelIds, labelCounters);
 
 		// commit batch operation
 		m.execute();
@@ -335,8 +385,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 	@Override
 	public void removeLabel(final Mailbox mailbox, final Set<Integer> labelIds,
-			final List<UUID> messageIds)
-	{
+			final List<UUID> messageIds) {
 		if (labelIds.isEmpty() || messageIds.isEmpty()) {
 			return;
 		}
@@ -353,144 +402,161 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 		// begin batch operation
 		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe,
-				BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
+				BatchConstants.BATCH_WRITES,
+				BatchConstants.BATCH_WRITE_INTERVAL);
 
 		// get message stats for counters, negative
 		MessageAggregator ma = new MessageAggregator(mailbox, messageIds);
 		LabelCounters labelCounters = ma.aggregateCounters();
 
 		// remove labels from messages
-		MessagePersistence.deleteAttributes(m, mailbox.getId(), messageIds, attributes);
+		MessagePersistence.deleteAttributes(m, mailbox.getId(), messageIds,
+				attributes);
 
 		// remove messages from label index
 		LabelIndexPersistence.remove(m, mailbox.getId(), messageIds, labelIds);
 
 		// decrement label counters (add negative value)
-		LabelCounterPersistence.subtract(m, mailbox.getId(), labelIds, labelCounters);
+		LabelCounterPersistence.subtract(m, mailbox.getId(), labelIds,
+				labelCounters);
 
 		// commit batch operation
 		m.execute();
 	}
 
 	@Override
-	public void delete(final Mailbox mailbox, final List<UUID> messageIds)
-	{
+	public void delete(final Mailbox mailbox, final List<UUID> messageIds) {
 		// get label stats
 		MessageAggregator ma = new MessageAggregator(mailbox, messageIds);
 		Labels labels = ma.aggregateCountersByLabel();
 
 		// validate message ids
-		List<UUID> validMessageIds = new ArrayList<UUID>(ma.getValidMessageIds());
-		List<UUID> invalidMessageIds = new ArrayList<UUID>(ma.getInvalidMessageIds());
-		
+		List<UUID> validMessageIds = new ArrayList<UUID>(
+				ma.getValidMessageIds());
+		List<UUID> invalidMessageIds = new ArrayList<UUID>(
+				ma.getInvalidMessageIds());
+
 		// begin batch operation
 		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe,
-				BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
+				BatchConstants.BATCH_WRITES,
+				BatchConstants.BATCH_WRITE_INTERVAL);
 
 		// add only valid messages to purge index
 		PurgeIndexPersistence.add(m, mailbox.getId(), validMessageIds);
 
 		// remove valid message ids from label indexes, including "all"
-		LabelIndexPersistence.remove(m, mailbox.getId(), validMessageIds, labels.getIds());
+		LabelIndexPersistence.remove(m, mailbox.getId(), validMessageIds,
+				labels.getIds());
 
 		// decrement label counters (add negative value)
 		for (Integer labelId : labels.getIds()) {
-			LabelCounterPersistence.subtract(m, mailbox.getId(), labelId, labels.getLabelCounters(labelId));
+			LabelCounterPersistence.subtract(m, mailbox.getId(), labelId,
+					labels.getLabelCounters(labelId));
 		}
 
 		// remove invalid message ids from all known labels
-		Map<Integer, String> allLabels = AccountPersistence.getLabels(mailbox.getId());
-		LabelIndexPersistence.remove(m, mailbox.getId(), invalidMessageIds, allLabels.keySet());
+		Map<Integer, String> allLabels = AccountPersistence.getLabels(mailbox
+				.getId());
+		LabelIndexPersistence.remove(m, mailbox.getId(), invalidMessageIds,
+				allLabels.keySet());
 
 		// commit batch operation
 		m.execute();
 	}
 
 	@Override
-	public void purge(final Mailbox mailbox, final Date age) throws IOException
-	{
+	public void purge(final Mailbox mailbox, final Date age) throws IOException {
 		Map<UUID, UUID> purgeIndex = null;
 
-		logger.debug("Purging all messages older than {} for {}", age.toString(), mailbox);
+		logger.debug("Purging all messages older than {} for {}",
+				age.toString(), mailbox);
 
-		// initiate throttling mutator 
+		// initiate throttling mutator
 		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe,
-				BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
+				BatchConstants.BATCH_WRITES,
+				BatchConstants.BATCH_WRITE_INTERVAL);
 
 		// loop until we process all purged items
 		do {
 			// get message IDs of messages to purge
-			purgeIndex = PurgeIndexPersistence.get(mailbox.getId(), age, BatchConstants.BATCH_READS);
+			purgeIndex = PurgeIndexPersistence.get(mailbox.getId(), age,
+					BatchConstants.BATCH_READS);
 
 			// get metadata/blob location
-			Map<UUID, Message> messages = 
-					MessagePersistence.fetch(mailbox.getId(), purgeIndex.values(), false);
+			Map<UUID, Message> messages = MessagePersistence.fetch(
+					mailbox.getId(), purgeIndex.values(), false);
 
 			// delete message sources from object store
-			for(UUID messageId : messages.keySet()) {
+			for (UUID messageId : messages.keySet()) {
 				blobStorage.delete(messages.get(messageId).getLocation());
 			}
 
 			// purge expired (older than age) messages
-			MessagePersistence.deleteMessage(m, mailbox.getId(), purgeIndex.values());
+			MessagePersistence.deleteMessage(m, mailbox.getId(),
+					purgeIndex.values());
 
 			// remove from purge index
-			PurgeIndexPersistence.remove(m, mailbox.getId(), purgeIndex.keySet());
-		}
-		while (purgeIndex.size() >= BatchConstants.BATCH_READS);
+			PurgeIndexPersistence.remove(m, mailbox.getId(),
+					purgeIndex.keySet());
+		} while (purgeIndex.size() >= BatchConstants.BATCH_READS);
 
 		// commit remaining items
 		m.execute();
 	}
 
 	@Override
-	public Labels scrub(final Mailbox mailbox, final boolean rebuildIndex)
-	{
+	public Labels scrub(final Mailbox mailbox, final boolean rebuildIndex) {
 		Labels labels = new Labels();
 		Map<UUID, Message> messages;
 		Set<UUID> purgePendingMessages = new HashSet<UUID>();
-		
-		// initiate throttling mutator 
-		Mutator<String> mutator = new ThrottlingMutator<String>(keyspace, strSe,
-				BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
-		
+
+		// initiate throttling mutator
+		Mutator<String> mutator = new ThrottlingMutator<String>(keyspace,
+				strSe, BatchConstants.BATCH_WRITES,
+				BatchConstants.BATCH_WRITE_INTERVAL);
+
 		logger.debug("Recalculating counters for {}", mailbox);
 
-		// Get message IDs pending purge. Such messages should be excluded during calculation.
+		// Get message IDs pending purge. Such messages should be excluded
+		// during calculation.
 		purgePendingMessages = PurgeIndexPersistence.getAll(mailbox.getId());
 
-		logger.debug("Found {} messages pending purge. Will exclude them from calculations.", purgePendingMessages.size());
-		
+		logger.debug(
+				"Found {} messages pending purge. Will exclude them from calculations.",
+				purgePendingMessages.size());
+
 		// reset start, read messages and calculate label counters
 		UUID start = TimeUUIDUtils.getUniqueTimeUUIDinMillis();
 		do {
-			messages = MessagePersistence.getRange(
-					mailbox.getId(), start, BatchConstants.BATCH_READS);
+			messages = MessagePersistence.getRange(mailbox.getId(), start,
+					BatchConstants.BATCH_READS);
 
-			for (UUID messageId : messages.keySet())
-			{
+			for (UUID messageId : messages.keySet()) {
 				start = messageId; // shift next query start
 
 				// skip messages from purge queue
-				if (purgePendingMessages.contains(messageId)) continue;
+				if (purgePendingMessages.contains(messageId))
+					continue;
 
 				Message message = messages.get(messageId);
 
 				// add counters for each of the labels
 				for (int labelId : message.getLabels()) {
-					labels.incrementCounters(labelId, message.getLabelCounters());
+					labels.incrementCounters(labelId,
+							message.getLabelCounters());
 
 					if (rebuildIndex) {
 						// add message ID to the label index
-						LabelIndexPersistence.add(mutator, mailbox.getId(), messageId, labelId);
+						LabelIndexPersistence.add(mutator, mailbox.getId(),
+								messageId, labelId);
 					}
 				}
 
-				logger.debug("Counters state after message {} is {}", messageId, labels.toString());				
+				logger.debug("Counters state after message {} is {}",
+						messageId, labels.toString());
 			}
-			
-		}
-		while (messages.size() >= BatchConstants.BATCH_READS);
+
+		} while (messages.size() >= BatchConstants.BATCH_READS);
 
 		// commit remaining items
 		mutator.execute();
@@ -501,15 +567,15 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 	/**
 	 * Aggregate messages to provide stats
 	 */
-	private class MessageAggregator
-	{
+	private class MessageAggregator {
 		private final Map<UUID, Message> messages;
 		private final HashSet<UUID> invalidMessageIds;
 
-		public MessageAggregator(final Mailbox mailbox, final List<UUID> messageIds)
-		{
+		public MessageAggregator(final Mailbox mailbox,
+				final List<UUID> messageIds) {
 			// get message headers
-			messages = MessagePersistence.fetch(mailbox.getId(), messageIds, false);
+			messages = MessagePersistence.fetch(mailbox.getId(), messageIds,
+					false);
 
 			invalidMessageIds = new HashSet<UUID>(messageIds);
 			invalidMessageIds.removeAll(this.getValidMessageIds());
@@ -522,45 +588,42 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		 * @param messageIds
 		 * @return
 		 */
-		public LabelCounters aggregateCounters()
-		{
+		public LabelCounters aggregateCounters() {
 			LabelCounters labelCounters = new LabelCounters();
-	
-			for(UUID messageId : messages.keySet()) {
+
+			for (UUID messageId : messages.keySet()) {
 				labelCounters.add(messages.get(messageId).getLabelCounters());
 			}
-	
+
 			return labelCounters;
 		}
-	
+
 		/**
-		 * Get aggregated {@link LabelCounter} stats for each label in the list of
-		 * messages. Results aggregated by label ID.
+		 * Get aggregated {@link LabelCounter} stats for each label in the list
+		 * of messages. Results aggregated by label ID.
 		 * 
 		 * @param mailbox
 		 * @param messageIds
 		 * @return
 		 */
-		public Labels aggregateCountersByLabel()
-		{
+		public Labels aggregateCountersByLabel() {
 			Labels labels = new Labels();
 
 			// get all labels of all messages, including label "all"
-			for (UUID messageId : messages.keySet())
-			{
-				Set<Integer> messageLabels = messages.get(messageId).getLabels();
-	
-				for (int labelId : messageLabels)
-				{
-					if(!labels.containsId(labelId)) {
+			for (UUID messageId : messages.keySet()) {
+				Set<Integer> messageLabels = messages.get(messageId)
+						.getLabels();
+
+				for (int labelId : messageLabels) {
+					if (!labels.containsId(labelId)) {
 						labels.setCounters(labelId, new LabelCounters());
 					}
-	
+
 					labels.getLabelCounters(labelId).add(
 							messages.get(messageId).getLabelCounters());
 				}
 			}
-	
+
 			return labels;
 		}
 
