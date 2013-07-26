@@ -68,6 +68,7 @@ public final class Marshaller
 	public final static String CN_BRI = "bri"; // Blob Resource Identifier
 	public final static String CN_LABEL_PREFIX = "l:";
 	public final static String CN_MARKER_PREFIX = "m:";
+	public final static String CN_KEY = "key";
 
 
 	private final static DateSerializer dateSe = DateSerializer.get();
@@ -140,6 +141,8 @@ public final class Marshaller
 					Map<String, MimePart> parts = null;
 					parts = JSONUtils.toObject(c.getValue(), parts);
 					message.setParts(parts);
+		        } else if (c.getName().equals(CN_KEY)) {
+		        	message.setEncryptionKey(strSe.fromBytes(c.getValue()));
 		        }
 			}
 		}
@@ -228,6 +231,11 @@ public final class Marshaller
 		// add PLAIN message text
 		if (Configurator.isStorePlainWithMetadata() && (m.getPlainBody() != null)) {
 			columns.put(CN_PLAIN_BODY, IOUtils.compress(m.getPlainBody()));
+		}
+		
+		// add encryption alias
+		if (m.getEncryptionKey() != null) {
+			columns.put(CN_KEY, m.getEncryptionKey());
 		}
 
 		return mapToHColumns(columns);
