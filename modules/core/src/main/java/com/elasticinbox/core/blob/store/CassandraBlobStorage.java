@@ -102,7 +102,6 @@ public final class CassandraBlobStorage extends BlobStorage {
 		InputStream in1;
 		// encrypt stream
 		if (encryptionHandler != null) {
-			Long updatedSize = size;
 			byte[] iv = AESEncryptionHandler.getCipherIVFromBlobName(blobName);
 
 			InputStream encryptedInputStream = this.encryptionHandler.encrypt(
@@ -110,7 +109,8 @@ public final class CassandraBlobStorage extends BlobStorage {
 			FileBackedOutputStream fbout = new FileBackedOutputStream(
 					MAX_MEMORY_FILE_SIZE, true);
 
-			updatedSize = ByteStreams.copy(encryptedInputStream, fbout);
+			ByteStreams.copy(encryptedInputStream, fbout);
+			
 			in1 = fbout.getSupplier().getInput();
 
 			blobUri.setEncryptionKey(Configurator

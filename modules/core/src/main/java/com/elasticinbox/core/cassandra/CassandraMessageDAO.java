@@ -33,6 +33,7 @@ import static me.prettyprint.hector.api.factory.HFactory.createMutator;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.security.Key;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -116,8 +117,12 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements
 				byte[] iv;
 				iv = AESEncryptionHandler.getCipherIVFromBlobName(blobName);
 				// decrypt message
-				message = encryptionHandler.decryptMessage(message,
-						Configurator.getBlobStoreDefaultEncryptionKey(), iv);
+				String keyAlias = message.getEncryptionKey();
+
+				logger.debug("Decrypting object {} with key {}", messageId,
+						keyAlias);
+				Key key = Configurator.getEncryptionKey(keyAlias);
+				message = encryptionHandler.decryptMessage(message, key, iv);
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 				logger.error("unable to decrypt message: key={}",
@@ -217,8 +222,9 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements
 
 				message = encryptionHandler.encryptMessage(message,
 						Configurator.getBlobStoreDefaultEncryptionKey(), iv);
-				
-				//message.setEncryptionKey(Configurator.getBlobStoreDefaultEncryptionKey());
+
+				message.setEncryptionKey(Configurator
+						.getBlobStoreDefaultEncryptionKeyAlias());
 			}
 			// store metadata
 			MessagePersistence.persistMessage(m, mailbox.getId(), messageId,
