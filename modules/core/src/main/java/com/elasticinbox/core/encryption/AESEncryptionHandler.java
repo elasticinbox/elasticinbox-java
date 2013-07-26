@@ -36,6 +36,7 @@ import java.security.Key;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.util.Iterator;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -44,7 +45,12 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
+import org.apache.commons.codec.binary.Base64;
+
+import com.elasticinbox.core.model.Address;
+import com.elasticinbox.core.model.AddressList;
 import com.elasticinbox.core.model.Message;
 
 /**
@@ -58,12 +64,21 @@ public class AESEncryptionHandler implements EncryptionHandler {
 	 */
 	public static final String CIPHER_TRANSFORMATION = "AES/CBC/PKCS5Padding";
 
+	private Cipher cipher;
+
+	private static final int ENCRYPT = 1;
+	private static final int DECRYPT = -1;
+
+	private int mode = ENCRYPT;
+
 	public InputStream encrypt(InputStream in, Key key, byte[] iv)
 			throws NoSuchAlgorithmException, NoSuchPaddingException,
 			InvalidKeyException, InvalidAlgorithmParameterException,
 			NoSuchProviderException {
-		Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+
+		cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
 		cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
+		this.mode = ENCRYPT;
 
 		return new CipherInputStream(in, cipher);
 	}
@@ -72,54 +87,156 @@ public class AESEncryptionHandler implements EncryptionHandler {
 			throws NoSuchAlgorithmException, NoSuchPaddingException,
 			InvalidKeyException, InvalidAlgorithmParameterException,
 			NoSuchProviderException {
-		Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+
+		cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
 		cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
+		this.mode = DECRYPT;
 
 		return new CipherInputStream(in, cipher);
 	}
 
 	/*
-	 * encrypt a message object
+	 * encrypts most message object attributes, in particular: AddressLists
+	 * from, to, cc, bcc and Strings subject plainBody htmlBody
 	 */
-	public Message encryptMessage(Message message, Key key, byte[] iv) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, ShortBufferException, IllegalBlockSizeException, BadPaddingException {
-		Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-		cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
-		
-		//message.setEncryptionKey(key.);
-		
-		byte[] encrypted = new byte[cipher.getOutputSize(message.getPlainBody().length())];
-		int enc_len = cipher.update(message.getPlainBody().getBytes(), 0, message.getPlainBody().length(), encrypted, 0);
-		
-		enc_len += cipher.doFinal(encrypted, enc_len);
-		message.setPlainBody( new String(encrypted) );
-		
-		return message;
+	public Message encryptMessage(Message message, Key key, byte[] iv)
+			throws NoSuchAlgorithmException, NoSuchPaddingException,
+			InvalidKeyException, InvalidAlgorithmParameterException,
+			ShortBufferException, IllegalBlockSizeException,
+			BadPaddingException {
 
+		cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+		cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
+		this.mode = ENCRYPT;
+
+		return cryptMessage(message, key, iv);
 	}
-	
 
 	/*
 	 * decrypt a message object
 	 */
-	public Message decryptMessage(Message message,
-			Key key, byte[] iv) throws NoSuchAlgorithmException, NoSuchPaddingException, ShortBufferException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
-		
-		Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-		cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
-		
-		//message.setEncryptionKey(key.);
-		
-		byte[] decrypted = new byte[cipher.getOutputSize(message.getPlainBody().length())];
-		int enc_len = cipher.update(message.getPlainBody().getBytes(), 0, message.getPlainBody().length(), decrypted, 0);
-		
-		enc_len += cipher.doFinal(decrypted, enc_len);
-		message.setPlainBody( new String(decrypted) );
-		
+	public Message decryptMessage(Message message, Key key, byte[] iv)
+			throws NoSuchAlgorithmException, NoSuchPaddingException,
+			InvalidKeyException, InvalidAlgorithmParameterException,
+			ShortBufferException, IllegalBlockSizeException,
+			BadPaddingException {
+
+		cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+		this.cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
+		this.mode = DECRYPT;
+
+		return cryptMessage(message, key, iv);
+	}
+
+	private Message cryptMessage(Message message, Key key, byte[] iv)
+			throws NoSuchAlgorithmException, NoSuchPaddingException,
+			InvalidKeyException, InvalidAlgorithmParameterException,
+			ShortBufferException, IllegalBlockSizeException,
+			BadPaddingException {
+
+		if (message.getPlainBody() != null) {
+			message.setPlainBody(cryptString(message.getPlainBody(), key, iv));
+		}
+		if (message.getHtmlBody() != null) {
+			message.setHtmlBody(cryptString(message.getHtmlBody(), key, iv));
+		}
+		if (message.getSubject() != null) {
+			message.setSubject(cryptString(message.getSubject(), key, iv));
+		}
+		if (message.getFrom() != null) {
+			if (!message.getFrom().isEmpty()) {
+				message.setFrom(cryptAddressList(message.getFrom(), key, iv));
+			}
+		}
+		if (message.getTo() != null) {
+			if (!message.getTo().isEmpty()) {
+				message.setTo(cryptAddressList(message.getTo(), key, iv));
+			}
+		}
+
+		if (message.getCc() != null) {
+			if (!message.getCc().isEmpty()) {
+				message.setCc(cryptAddressList(message.getCc(), key, iv));
+			}
+		}
+		if (message.getBcc() != null) {
+			if (!message.getBcc().isEmpty()) {
+				message.setBcc(cryptAddressList(message.getBcc(), key, iv));
+			}
+		}
 		return message;
 	}
 
-	
-	
+	private AddressList cryptAddressList(AddressList from, Key key, byte[] iv)
+			throws InvalidKeyException, NoSuchAlgorithmException,
+			NoSuchPaddingException, InvalidAlgorithmParameterException,
+			ShortBufferException, IllegalBlockSizeException,
+			BadPaddingException {
+
+		AddressList temp = new AddressList();
+		Iterator<Address> addresses = from.iterator();
+
+		if (addresses.hasNext()) {
+			Address address = cryptAddress(addresses.next(), key, iv);
+			temp = new AddressList(address);
+			while (addresses.hasNext()) {
+				address = cryptAddress(addresses.next(), key, iv);
+				temp.add(address);
+			}
+		}
+
+		return temp;
+	}
+
+	private Address cryptAddress(Address address, Key key, byte[] iv)
+			throws InvalidKeyException, NoSuchAlgorithmException,
+			NoSuchPaddingException, InvalidAlgorithmParameterException,
+			ShortBufferException, IllegalBlockSizeException,
+			BadPaddingException {
+
+		String name = cryptString(address.getName(), key, iv);
+		String addressString = cryptString(address.getAddress(), key, iv);
+		address = new Address(name, addressString);
+		return address;
+	}
+
+	private String cryptString(String toCrypt, Key key, byte[] iv)
+			throws NoSuchAlgorithmException, NoSuchPaddingException,
+			IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
+		if (this.mode == ENCRYPT) {
+			return symmetricEncrypt(toCrypt, key);
+		}
+		return symmetricDecrypt(toCrypt, key);
+	}
+
+	private String symmetricEncrypt(String text, Key secretKey)
+			throws NoSuchAlgorithmException, NoSuchPaddingException,
+			IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
+		String encryptedString;
+		byte[] encryptText = text.getBytes();
+
+		cipher = Cipher.getInstance("AES");
+		cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+		encryptedString = Base64
+				.encodeBase64String(cipher.doFinal(encryptText));
+
+		return encryptedString;
+	}
+
+	public String symmetricDecrypt(String text, Key secretKey)
+			throws NoSuchAlgorithmException, NoSuchPaddingException,
+			IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
+		String encryptedString;
+		byte[] encryptText = null;
+
+		encryptText = Base64.decodeBase64(text);
+		cipher = Cipher.getInstance("AES");
+		cipher.init(Cipher.DECRYPT_MODE, secretKey);
+		encryptedString = new String(cipher.doFinal(encryptText));
+
+		return encryptedString;
+	}
+
 	/**
 	 * Generate cipher initialisation vector (IV) from Blob name.
 	 * 
