@@ -39,18 +39,24 @@ import java.util.List;
  * @author Rustam Aliyev
  * @see {@link Address}
  */
-public class AddressList extends AbstractList<Address>
-{
+public class AddressList extends AbstractList<Address> {
 	private final List<Address> addresses;
+
+	/**
+	 * Create new empty address list
+	 * 
+	 */
+	public AddressList() {
+		this.addresses = Collections.emptyList();
+	}
 
 	/**
 	 * Create new address list
 	 * 
 	 * @param addresses
-	 * 				A List that contains only Address objects.
+	 *            A List that contains only Address objects.
 	 */
-	public AddressList(List<Address> addresses)
-	{
+	public AddressList(List<Address> addresses) {
 		if (addresses != null) {
 			this.addresses = new ArrayList<Address>(addresses);
 		} else {
@@ -63,8 +69,7 @@ public class AddressList extends AbstractList<Address>
 	 * 
 	 * @param address
 	 */
-	public AddressList(Address address)
-	{
+	public AddressList(Address address) {
 		if (address != null) {
 			this.addresses = new ArrayList<Address>(1);
 			this.addresses.add(address);
@@ -73,8 +78,7 @@ public class AddressList extends AbstractList<Address>
 		}
 	}
 
-	public String getDisplayString()
-	{
+	public String getDisplayString() {
 		try {
 			String s = this.addresses.toString();
 			return s.substring(1, s.length() - 1);
@@ -83,13 +87,13 @@ public class AddressList extends AbstractList<Address>
 		}
 	}
 
-    /**
-     * Gets an address.
-     */
-    @Override
-    public Address get(int index) {
-        return addresses.get(index);
-    }
+	/**
+	 * Gets an address.
+	 */
+	@Override
+	public Address get(int index) {
+		return addresses.get(index);
+	}
 
 	/**
 	 * The number of elements in this list.
