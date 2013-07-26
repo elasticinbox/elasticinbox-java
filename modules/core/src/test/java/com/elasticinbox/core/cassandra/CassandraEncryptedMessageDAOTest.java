@@ -127,21 +127,21 @@ public class CassandraEncryptedMessageDAOTest {
 				.getFrom().getDisplayString()));
 		assertThat(message.getTo().getDisplayString(), not(getDummyMessage()
 				.getTo().getDisplayString()));
-		assertThat(getDummyMessage().getSubject(), not(message.getSubject()));
+		assertThat(message.getSubject(), not(getDummyMessage().getSubject()));
 		assertThat(getDummyMessage().getDate().compareTo(message.getDate()),
 				is(1));
-		assertThat(getDummyMessage().getPlainBody(),
-				not(message.getPlainBody()));
-		assertThat(getDummyMessage().getHtmlBody(), is(message.getHtmlBody()));
+		assertThat(message.getPlainBody(),
+				not(getDummyMessage().getPlainBody()));
+		assertThat(message.getHtmlBody(), is(getDummyMessage().getHtmlBody()));
 
 		/* compare original message and decrypted message */
-		assertThat(getDummyMessage().getFrom().getDisplayString(),
-				is(readMessage.getFrom().getDisplayString()));
-		assertThat(getDummyMessage().getTo().getDisplayString(), is(readMessage
-				.getTo().getDisplayString()));
-		assertThat(getDummyMessage().getCc(), is(readMessage.getCc()));
-		assertThat(getDummyMessage().getBcc(), is(readMessage.getBcc()));
-		assertThat(getDummyMessage().getSubject(), is(readMessage.getSubject()));
+		assertThat(readMessage.getFrom().getDisplayString(),
+				is(getDummyMessage().getFrom().getDisplayString()));
+		assertThat(readMessage
+				.getTo().getDisplayString(), is(getDummyMessage().getTo().getDisplayString()));
+		assertThat(readMessage.getCc(), is(getDummyMessage().getCc()));
+		assertThat(readMessage.getBcc(), is(getDummyMessage().getBcc()));
+		assertThat(readMessage.getSubject(), is(getDummyMessage().getSubject()));
 		assertThat(
 				getDummyMessage().getDate().compareTo(readMessage.getDate()),
 				is(1));
