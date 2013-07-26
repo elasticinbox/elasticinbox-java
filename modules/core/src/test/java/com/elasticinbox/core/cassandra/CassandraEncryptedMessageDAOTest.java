@@ -48,9 +48,11 @@ import me.prettyprint.hector.api.factory.HFactory;
 import me.prettyprint.hector.api.mutation.Mutator;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.elasticinbox.config.Configurator;
 import com.elasticinbox.core.AccountDAO;
 import com.elasticinbox.core.MessageDAO;
 import com.elasticinbox.core.OverQuotaException;
@@ -77,6 +79,7 @@ public class CassandraEncryptedMessageDAOTest {
 	public void setupCase() throws IllegalArgumentException, IOException {
 		System.setProperty("elasticinbox.config",
 				"../../config/elasticinbox.yaml");
+
 
 		// Consistency Level Policy
 		ConsistencyLevelPolicy clp = new QuorumConsistencyLevel();
@@ -106,6 +109,10 @@ public class CassandraEncryptedMessageDAOTest {
 	@Test
 	public void testEncryptedMessageStorage() throws IOException,
 			OverQuotaException {
+
+		/* if meta storage encryption is not enabled, there is nothing to test here */
+		Assume.assumeTrue(Configurator.isMetaStoreEncryptionEnabled());
+		
 		Mailbox mailbox = new Mailbox(MAILBOX);
 
 		Message message = getDummyMessage();
@@ -137,8 +144,8 @@ public class CassandraEncryptedMessageDAOTest {
 		/* compare original message and decrypted message */
 		assertThat(readMessage.getFrom().getDisplayString(),
 				is(getDummyMessage().getFrom().getDisplayString()));
-		assertThat(readMessage
-				.getTo().getDisplayString(), is(getDummyMessage().getTo().getDisplayString()));
+		assertThat(readMessage.getTo().getDisplayString(), is(getDummyMessage()
+				.getTo().getDisplayString()));
 		assertThat(readMessage.getCc(), is(getDummyMessage().getCc()));
 		assertThat(readMessage.getBcc(), is(getDummyMessage().getBcc()));
 		assertThat(readMessage.getSubject(), is(getDummyMessage().getSubject()));
