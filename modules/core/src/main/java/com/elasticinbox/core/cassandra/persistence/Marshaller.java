@@ -47,7 +47,6 @@ import me.prettyprint.hector.api.beans.HColumn;
 import com.elasticinbox.common.utils.IOUtils;
 import com.elasticinbox.common.utils.JSONUtils;
 import com.elasticinbox.config.Configurator;
-import com.elasticinbox.core.encryption.EncryptionHandler;
 import com.elasticinbox.core.model.Address;
 import com.elasticinbox.core.model.AddressList;
 import com.elasticinbox.core.model.Marker;
@@ -70,13 +69,12 @@ public final class Marshaller
 	public final static String CN_LABEL_PREFIX = "l:";
 	public final static String CN_MARKER_PREFIX = "m:";
 
+
 	private final static DateSerializer dateSe = DateSerializer.get();
 	private final static LongSerializer longSe = LongSerializer.get();
 	private final static StringSerializer strSe = StringSerializer.get();
 	private final static BytesArraySerializer byteSe = BytesArraySerializer.get();
 
-	private EncryptionHandler eh;
-	
 	/**
 	 * Unmarshall message contents from Cassandra {@link HColumn} columns and
 	 * return resulting {@link Message} object.

@@ -76,4 +76,8 @@ public class Config
 
 	// Encryption options
 	public EncryptionSettings encryption = new EncryptionSettings();
+	
+	// Meta store encryption
+	// Currently uses the same key as the blob store
+	public Boolean metastore_enable_encryption = false;
 }

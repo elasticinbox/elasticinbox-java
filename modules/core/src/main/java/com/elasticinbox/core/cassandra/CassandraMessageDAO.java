@@ -28,15 +28,11 @@
 
 package com.elasticinbox.core.cassandra;
 
-import static com.elasticinbox.config.DatabaseConstants.DATABASE_PROFILE;
 import static me.prettyprint.hector.api.factory.HFactory.createMutator;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -44,11 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.ShortBufferException;
 
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.utils.TimeUUIDUtils;
@@ -63,13 +54,17 @@ import com.elasticinbox.core.IllegalLabelException;
 import com.elasticinbox.core.MessageDAO;
 import com.elasticinbox.core.OverQuotaException;
 import com.elasticinbox.core.blob.BlobDataSource;
-import com.elasticinbox.core.blob.BlobURI;
 import com.elasticinbox.core.blob.compression.CompressionHandler;
 import com.elasticinbox.core.blob.compression.DeflateCompressionHandler;
 import com.elasticinbox.core.blob.naming.BlobNameBuilder;
 import com.elasticinbox.core.blob.store.BlobStorage;
 import com.elasticinbox.core.blob.store.BlobStorageMediator;
-import com.elasticinbox.core.cassandra.persistence.*;
+import com.elasticinbox.core.cassandra.persistence.AccountPersistence;
+import com.elasticinbox.core.cassandra.persistence.LabelCounterPersistence;
+import com.elasticinbox.core.cassandra.persistence.LabelIndexPersistence;
+import com.elasticinbox.core.cassandra.persistence.Marshaller;
+import com.elasticinbox.core.cassandra.persistence.MessagePersistence;
+import com.elasticinbox.core.cassandra.persistence.PurgeIndexPersistence;
 import com.elasticinbox.core.cassandra.utils.BatchConstants;
 import com.elasticinbox.core.cassandra.utils.ThrottlingMutator;
 import com.elasticinbox.core.encryption.AESEncryptionHandler;
@@ -222,6 +217,8 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements
 
 				message = encryptionHandler.encryptMessage(message,
 						Configurator.getBlobStoreDefaultEncryptionKey(), iv);
+				
+				//message.setEncryptionKey(Configurator.getBlobStoreDefaultEncryptionKey());
 			}
 			// store metadata
 			MessagePersistence.persistMessage(m, mailbox.getId(), messageId,

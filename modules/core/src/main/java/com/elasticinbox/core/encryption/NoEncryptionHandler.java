@@ -35,9 +35,12 @@ import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
 
 import com.elasticinbox.core.model.Message;
@@ -79,6 +82,16 @@ public class NoEncryptionHandler implements EncryptionHandler
 			Key blobStoreDefaultEncryptionKey, byte[] iv)
 			throws NoSuchAlgorithmException, NoSuchPaddingException,
 			InvalidKeyException, InvalidAlgorithmParameterException {
+		return message;
+	}
+
+	@Override
+	public Message decryptMessage(Message message,
+			Key blobStoreDefaultEncryptionKey, byte[] iv)
+			throws NoSuchAlgorithmException, NoSuchPaddingException,
+			ShortBufferException, InvalidKeyException,
+			InvalidAlgorithmParameterException, IllegalBlockSizeException,
+			BadPaddingException {
 		return message;
 	}
 }

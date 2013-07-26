@@ -142,6 +142,7 @@ public class Configurator
 					throw new ConfigurationException("Default encryption key for BlobStore '"
 							+ conf.blobstore_default_encryption_key + "' not found");
 				}
+				
 			} else {
 				// initialize empty key store
 				keyManager = new SymmetricKeyStorage();
@@ -281,6 +282,15 @@ public class Configurator
 	}
 
 	public static java.security.Key getBlobStoreDefaultEncryptionKey() {
+		return keyManager.getKey(conf.blobstore_default_encryption_key);
+	}
+
+	public static boolean isMetaStoreEncryptionEnabled() {
+		return conf.metastore_enable_encryption;
+	}
+	
+
+	public static java.security.Key getMetaStoreDefaultEncryptionKey() {
 		return keyManager.getKey(conf.blobstore_default_encryption_key);
 	}
 
