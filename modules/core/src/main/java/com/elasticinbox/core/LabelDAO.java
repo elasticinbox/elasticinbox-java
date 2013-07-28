@@ -31,7 +31,7 @@ package com.elasticinbox.core;
 import java.io.IOException;
 import java.util.Map;
 
-import com.elasticinbox.core.model.Labels;
+import com.elasticinbox.core.model.LabelMap;
 import com.elasticinbox.core.model.Mailbox;
 
 /**
@@ -58,7 +58,7 @@ public interface LabelDAO
 	 * @return
 	 * @throws IOException
 	 */
-	public Labels getAllWithMetadata(Mailbox mailbox) throws IOException;
+	public LabelMap getAllWithMetadata(Mailbox mailbox) throws IOException;
 
 	/**
 	 * Add new label to mailbox
@@ -101,5 +101,5 @@ public interface LabelDAO
 	 * @param mailbox
 	 * @param labels Lables and their new counter values
 	 */
-	public void setCounters(Mailbox mailbox, Labels labels);
+	public void setCounters(Mailbox mailbox, LabelMap labels);
 }

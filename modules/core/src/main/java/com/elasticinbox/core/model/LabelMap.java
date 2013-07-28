@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2012 Optimax Software Ltd.
+ * Copyright (c) 2011-2013 Optimax Software Ltd.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -28,162 +28,101 @@
 
 package com.elasticinbox.core.model;
 
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * This class stores multiple labels with counters (total size, total messages,
- * unread messages).
+ * This class stores Labels indexed by Label ID and provides necessary control
+ * methods.
  * 
  * @author Rustam Aliyev
- * @see {@link LabelCounters}
+ * @see {@link Label}
  */
-public class Labels
+public final class LabelMap
 {
-	private Map<Integer, String> labels;
-	private Map<Integer, LabelCounters> counters;
+	Map<Integer, Label> labels;
 
 	private final static String JSON_NAME = "name";
 	private final static String JSON_SIZE = "size";
 	private final static String JSON_MESSAGES_TOTAL = "total";
 	private final static String JSON_MESSAGES_UNREAD = "unread";
 
-	public Labels() {
-		labels = new HashMap<Integer, String>(1);
-		counters = new HashMap<Integer, LabelCounters>(1);
+	public LabelMap() {
+		labels = new HashMap<Integer, Label>();
 	}
 
-	/**
-	 * Add label
-	 * 
-	 * @param labelId
-	 * @param labelName
-	 */
-	public void add(int labelId, String labelName) {
-		labels.put(labelId, labelName);
+	public Label get(Integer labelId) {
+		return labels.get(labelId);
 	}
-
-	/**
-	 * Add label
-	 * 
-	 * @param label
-	 */
-	public void add(Label label) {
-		labels.put(label.getId(), label.getName());
+	
+	public Label put(Label label)
+	{
+		return labels.put(label.getId(), label);
 	}
-
-	/**
-	 * Add multiple labels
-	 * 
-	 * @param labels
-	 */
-	public void add(Map<Integer, String> labels) {
-		this.labels.putAll(labels);
+	
+	public Set<Integer> getIds()
+	{
+		return labels.keySet();
 	}
 	
 	/**
-	 * Get label name by ID
+	 * Returns map of label (ID, name) pairs.
 	 * 
-	 * @param labelId
 	 * @return
 	 */
-	public String getName(int labelId) {
-		String name = labels.get(labelId);
-		return name;
-	}
-
-	/**
-	 * Set counters of a single label
-	 * 
-	 * @param labelId
-	 * @param counters
-	 */
-	public void setCounters(final int labelId, LabelCounters counters) {
-		this.counters.put(labelId, counters);
-	}
-
-	/**
-	 * Set counters of multiple labels
-	 * 
-	 * @param counters
-	 */
-	public void setCounters(Map<Integer, LabelCounters> counters) {
-		this.counters.putAll(counters);
-	}
-
-	/**
-	 * Increments counters of the given label
-	 * 
-	 * @param labelId
-	 * @param counters
-	 */
-	public void incrementCounters(final int labelId, LabelCounters counters)
+	public Map<Integer, String> getNameMap()
 	{
-		if (!this.counters.containsKey(labelId))
+		Map<Integer, String> nameMap = new HashMap<Integer, String>(labels.size());
+
+		for (Label label : labels.values())
 		{
-			this.counters.put(labelId, counters);
-
-			// also initialize label with empty name
-			if (!this.labels.containsKey(labelId)) {
-				this.labels.put(labelId, "");
-			}
-		} else {
-			this.counters.get(labelId).add(counters);
+			nameMap.put(label.getId(), label.getName());
 		}
-	}
 
+		return nameMap;
+	}
+	
 	/**
-	 * Get all label IDs (union of both map keys)
+	 * Check if label with given ID exists.
 	 * 
+	 * @param labelId
 	 * @return
 	 */
-	public Set<Integer> getIds()
+	public boolean containsId(int labelId)
 	{
-		Set<Integer> ids = new HashSet<Integer>();
-		ids.addAll(labels.keySet());
-		ids.addAll(counters.keySet());
-		return ids;
+		return labels.containsKey(labelId);
 	}
 
 	/**
-	 * Get counters for specified label
-	 * 
-	 * @param labelId
-	 * @return
-	 */
-	public LabelCounters getLabelCounters(Integer labelId) {
-		return counters.get(labelId);
-	}
-
-	/**
-	 * Checks whether label with given ID exists
-	 *  
-	 * @param labelId
-	 * @return
-	 */
-	public boolean containsId(Integer labelId) {
-		return this.getIds().contains(labelId);
-	}
-
-	/**
-	 * Checks whether label with given name exists. Case insensitive.
+	 * Check if label with given name exists. Case insensitive.
 	 * 
 	 * @param labelName
 	 * @return
 	 */
 	public boolean containsName(String labelName)
 	{
-		for (String v : labels.values()) {
-			if (v.equalsIgnoreCase(labelName))
+		for (Label label : labels.values())
+		{
+			if (label.getName().equalsIgnoreCase(labelName)) {
 				return true;
+			}
 		}
+		
 		return false;
 	}
 
+	public Collection<Label> values() {
+		return labels.values();
+	}
+	
+	public int size() {
+		return labels.size();
+	}
+	
 	/**
 	 * This method constructs Map for JSON serialization
 	 * 
@@ -200,30 +139,34 @@ public class Labels
 							new HashMap<Integer, Map<String, Object>>();
 
 		// build result object
-		for (Map.Entry<Integer, String> label : labels.entrySet())
+		for (Map.Entry<Integer, Label> entry : this.labels.entrySet())
 		{
-			Integer labelId = label.getKey();
-			metadata.put(labelId, new HashMap<String, Object>(4));
-			metadata.get(labelId).put(JSON_NAME, label.getValue());
+			Integer labelId = entry.getKey();
+			Label label = entry.getValue();
 
-			if (counters.containsKey(labelId))
+			metadata.put(labelId, new HashMap<String, Object>(4));
+			metadata.get(labelId).put(JSON_NAME, label.getName());
+			
+			if (label.getCounters() != null)
 			{
 				// never return negative values
 				metadata.get(labelId).put(JSON_MESSAGES_TOTAL,
-						Math.max(0, counters.get(labelId).getTotalMessages()));
+						Math.max(0, label.getCounters().getTotalMessages()));
 				metadata.get(labelId).put(JSON_MESSAGES_UNREAD,
-						Math.max(0, counters.get(labelId).getUnreadMessages()));
+						Math.max(0, label.getCounters().getUnreadMessages()));
 
 				// display size only for ALL_MAILS
-				if(labelId == ReservedLabels.ALL_MAILS.getId()) {
+				if (labelId == ReservedLabels.ALL_MAILS.getId())
+				{
 					metadata.get(labelId).put(JSON_SIZE,
-							Math.max(0, counters.get(labelId).getTotalBytes()));
+							Math.max(0, label.getCounters().getTotalBytes()));
 				}
 			} else {
 				metadata.get(labelId).put(JSON_MESSAGES_TOTAL, 0);
 				metadata.get(labelId).put(JSON_MESSAGES_UNREAD, 0);
+
 				// display size only for ALL_MAILS
-				if(labelId == ReservedLabels.ALL_MAILS.getId()) {
+				if (labelId == ReservedLabels.ALL_MAILS.getId()) {
 					metadata.get(labelId).put(JSON_SIZE, 0);
 				}
 			}
@@ -231,7 +174,7 @@ public class Labels
 
 		return metadata;
 	}
-	
+
 	@Override
 	public String toString()
 	{

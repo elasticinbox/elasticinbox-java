@@ -63,8 +63,9 @@ import com.elasticinbox.core.blob.store.BlobStorageMediator;
 import com.elasticinbox.core.cassandra.persistence.*;
 import com.elasticinbox.core.cassandra.utils.BatchConstants;
 import com.elasticinbox.core.cassandra.utils.ThrottlingMutator;
+import com.elasticinbox.core.model.Label;
 import com.elasticinbox.core.model.LabelCounters;
-import com.elasticinbox.core.model.Labels;
+import com.elasticinbox.core.model.LabelMap;
 import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.Marker;
 import com.elasticinbox.core.model.Message;
@@ -208,7 +209,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			return;
 		}
 
-		Labels labels = null;
+		LabelMap labels = null;
 
 		// get label stats, only required for SEEN marker change
 		if (markers.contains(Marker.SEEN)) {
@@ -237,7 +238,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			for (Integer labelId : labels.getIds())
 			{
 				LabelCounters labelCounters = new LabelCounters();
-				labelCounters.setUnreadMessages(labels.getLabelCounters(labelId).getUnreadMessages());
+				labelCounters.setUnreadMessages(labels.get(labelId).getCounters().getUnreadMessages());
 				LabelCounterPersistence.subtract(m, mailbox.getId(), labelId, labelCounters);
 			}
 		}
@@ -254,7 +255,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			return;
 		}
 
-		Labels labels = null;
+		LabelMap labels = null;
 
 		// get label stats, only required for SEEN marker change
 		if (markers.contains(Marker.SEEN)) {
@@ -286,8 +287,8 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 				// only seen messages will be marked as new, so we count only seen 
 				Long seenMessages = 
-						labels.getLabelCounters(labelId).getTotalMessages()
-						- labels.getLabelCounters(labelId).getUnreadMessages();
+						labels.get(labelId).getCounters().getTotalMessages()
+						- labels.get(labelId).getCounters().getUnreadMessages();
 				labelCounters.setUnreadMessages(seenMessages);
 
 				LabelCounterPersistence.add(m, mailbox.getId(), labelId, labelCounters);
@@ -377,7 +378,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 	{
 		// get label stats
 		MessageAggregator ma = new MessageAggregator(mailbox, messageIds);
-		Labels labels = ma.aggregateCountersByLabel();
+		LabelMap labels = ma.aggregateCountersByLabel();
 
 		// validate message ids
 		List<UUID> validMessageIds = new ArrayList<UUID>(ma.getValidMessageIds());
@@ -395,12 +396,12 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 		// decrement label counters (add negative value)
 		for (Integer labelId : labels.getIds()) {
-			LabelCounterPersistence.subtract(m, mailbox.getId(), labelId, labels.getLabelCounters(labelId));
+			LabelCounterPersistence.subtract(m, mailbox.getId(), labelId, labels.get(labelId).getCounters());
 		}
 
 		// remove invalid message ids from all known labels
-		Map<Integer, String> allLabels = AccountPersistence.getLabels(mailbox.getId());
-		LabelIndexPersistence.remove(m, mailbox.getId(), invalidMessageIds, allLabels.keySet());
+		LabelMap allLabels = AccountPersistence.getLabels(mailbox.getId());
+		LabelIndexPersistence.remove(m, mailbox.getId(), invalidMessageIds, allLabels.getIds());
 
 		// commit batch operation
 		m.execute();
@@ -444,9 +445,9 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 	}
 
 	@Override
-	public Labels scrub(final Mailbox mailbox, final boolean rebuildIndex)
+	public LabelMap scrub(final Mailbox mailbox, final boolean rebuildIndex)
 	{
-		Labels labels = new Labels();
+		LabelMap labels = new LabelMap();
 		Map<UUID, Message> messages;
 		Set<UUID> purgePendingMessages = new HashSet<UUID>();
 		
@@ -477,16 +478,23 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 				Message message = messages.get(messageId);
 
 				// add counters for each of the labels
-				for (int labelId : message.getLabels()) {
-					labels.incrementCounters(labelId, message.getLabelCounters());
+				for (int labelId : message.getLabels())
+				{
+					if (!labels.containsId(labelId)) {
+						Label label = new Label(labelId).setCounters(message.getLabelCounters()); 
+						labels.put(label);
+					} else {
+						labels.get(labelId).incrementCounters(message.getLabelCounters());
+					}
 
-					if (rebuildIndex) {
+					if (rebuildIndex)
+					{
 						// add message ID to the label index
 						LabelIndexPersistence.add(mutator, mailbox.getId(), messageId, labelId);
 					}
 				}
 
-				logger.debug("Counters state after message {} is {}", messageId, labels.toString());				
+				logger.debug("Counters state after message {} is {}", messageId, labels.toString());
 			}
 			
 		}
@@ -532,32 +540,32 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 	
 			return labelCounters;
 		}
-	
+
 		/**
 		 * Get aggregated {@link LabelCounter} stats for each label in the list of
 		 * messages. Results aggregated by label ID.
 		 * 
-		 * @param mailbox
-		 * @param messageIds
 		 * @return
 		 */
-		public Labels aggregateCountersByLabel()
+		public LabelMap aggregateCountersByLabel()
 		{
-			Labels labels = new Labels();
+			LabelMap labels = new LabelMap();
 
 			// get all labels of all messages, including label "all"
-			for (UUID messageId : messages.keySet())
+			for (UUID messageId : this.messages.keySet())
 			{
-				Set<Integer> messageLabels = messages.get(messageId).getLabels();
+				Set<Integer> messageLabels = this.messages.get(messageId).getLabels();
 	
 				for (int labelId : messageLabels)
 				{
-					if(!labels.containsId(labelId)) {
-						labels.setCounters(labelId, new LabelCounters());
+					if (!labels.containsId(labelId)) {
+						Label label = new Label(labelId).
+								setCounters(this.messages.get(messageId).getLabelCounters());
+						labels.put(label);
+					} else {
+						labels.get(labelId).getCounters().add(
+								this.messages.get(messageId).getLabelCounters());
 					}
-	
-					labels.getLabelCounters(labelId).add(
-							messages.get(messageId).getLabelCounters());
 				}
 			}
 	

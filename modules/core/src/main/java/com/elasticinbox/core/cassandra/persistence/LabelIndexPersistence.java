@@ -35,7 +35,6 @@ import static me.prettyprint.hector.api.factory.HFactory.createSliceQuery;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -43,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.core.cassandra.CassandraDAOFactory;
+import com.elasticinbox.core.model.LabelMap;
 import com.google.common.collect.ImmutableList;
 
 import me.prettyprint.cassandra.serializers.BytesArraySerializer;
@@ -138,11 +138,12 @@ public final class LabelIndexPersistence
 	public static void remove(Mutator<String> mutator, final String mailbox,
 			final List<UUID> messageIds, final Set<Integer> labels)
 	{
-		for (Integer label : labels) {
-
+		for (Integer label : labels)
+		{
 			String indexKey = getLabelKey(mailbox, label);
 
-			for (UUID messageId : messageIds) {
+			for (UUID messageId : messageIds)
+			{
 				logger.debug("Removing message-id {} from index {}", messageId, indexKey);
 				mutator.addDeletion(indexKey, CF_LABEL_INDEX, messageId, uuidSe);
 			}
@@ -181,7 +182,8 @@ public final class LabelIndexPersistence
 		QueryResult<ColumnSlice<UUID, byte[]>> r = q.execute();
 
 		// read message ids from the result
-		for (HColumn<UUID, byte[]> c : r.get().getColumns()) {
+		for (HColumn<UUID, byte[]> c : r.get().getColumns())
+		{
 			if ((c != null) && (c.getValue() != null)) {
 				messageIds.add(c.getName());
 			}
@@ -198,8 +200,7 @@ public final class LabelIndexPersistence
 	 * @param mailbox
 	 * @param labelId
 	 */
-	public static void deleteIndex(Mutator<String> mutator,
-			final String mailbox, final Integer labelId)
+	public static void deleteIndex(Mutator<String> mutator, final String mailbox, final Integer labelId)
 	{
 		String key = getLabelKey(mailbox, labelId);
 		mutator.addDeletion(key, CF_LABEL_INDEX, null, strSe);
@@ -214,9 +215,9 @@ public final class LabelIndexPersistence
 	public static void deleteIndexes(Mutator<String> mutator, final String mailbox)
 	{
 		// get all labels
-		Map<Integer, String> labels = AccountPersistence.getLabels(mailbox);
+		LabelMap labels = AccountPersistence.getLabels(mailbox);
 
-		for (Integer labelId : labels.keySet()) {
+		for (Integer labelId : labels.getIds()) {
 			deleteIndex(mutator, mailbox, labelId);
 		}
 
@@ -232,7 +233,8 @@ public final class LabelIndexPersistence
 	 * @param label
 	 * @return
 	 */
-	static String getLabelKey(final String mailbox, final int label) {
+	static String getLabelKey(final String mailbox, final int label)
+	{
 		return getLabelKey(mailbox, Integer.toString(label));
 	}
 
@@ -243,7 +245,8 @@ public final class LabelIndexPersistence
 	 * @param label
 	 * @return
 	 */
-	static String getLabelKey(final String mailbox, final String label) {
+	static String getLabelKey(final String mailbox, final String label)
+	{
 		return mailbox + COMPOSITE_KEY_DELIMITER + label;
 	}
 }

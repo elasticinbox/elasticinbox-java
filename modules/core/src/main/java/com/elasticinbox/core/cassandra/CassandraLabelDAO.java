@@ -48,8 +48,9 @@ import com.elasticinbox.core.cassandra.persistence.AccountPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelCounterPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelIndexPersistence;
 import com.elasticinbox.core.cassandra.utils.BatchConstants;
+import com.elasticinbox.core.model.Label;
 import com.elasticinbox.core.model.LabelCounters;
-import com.elasticinbox.core.model.Labels;
+import com.elasticinbox.core.model.LabelMap;
 import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.ReservedLabels;
 import com.elasticinbox.core.utils.LabelUtils;
@@ -63,8 +64,6 @@ public final class CassandraLabelDAO implements LabelDAO
 	private final Keyspace keyspace;
 	private final static StringSerializer strSe = StringSerializer.get();
 
-	private final static int MAX_NEW_LABEL_ID_ATTEMPTS = 200;
-
 	private final static Logger logger = 
 			LoggerFactory.getLogger(CassandraLabelDAO.class);
 
@@ -73,67 +72,68 @@ public final class CassandraLabelDAO implements LabelDAO
 	}
 
 	@Override
-	public Labels getAllWithMetadata(final Mailbox mailbox)
+	public LabelMap getAllWithMetadata(final Mailbox mailbox)
 			throws IOException
 	{
 		// get labels
-		Labels labels = new Labels();
-		labels.add(AccountPersistence.getLabels(mailbox.getId()));
+		LabelMap labels = AccountPersistence.getLabels(mailbox.getId());
 
-		// get labels' counters
-		labels.setCounters(LabelCounterPersistence.getAll(mailbox.getId()));
-		
+		// set labels' counters
+		Map<Integer, LabelCounters> counters = LabelCounterPersistence.getAll(mailbox.getId());
+
+		for (int labelId : counters.keySet())
+		{
+			labels.get(labelId).setCounters(counters.get(labelId));
+		}
+
 		return labels;
 	}
 
 	@Override
 	public Map<Integer, String> getAll(final Mailbox mailbox) {
-		return AccountPersistence.getLabels(mailbox.getId());
+		return AccountPersistence.getLabels(mailbox.getId()).getNameMap();
 	}
 
 	@Override
 	public int add(final Mailbox mailbox, String label)
 	{
+		Integer labelId;
+
 		// get all existing labels
-		Labels existingLabels = new Labels();
-		existingLabels.add(AccountPersistence.getLabels(mailbox.getId()));
+		LabelMap existingLabels = AccountPersistence.getLabels(mailbox.getId());
 
 		LabelUtils.validateLabelName(label, existingLabels);
 
-		// generate new unique label id
-		int labelId = LabelUtils.getNewLabelId();
-		int attempts = 1;
-		while(existingLabels.containsId(labelId))
-		{
-			logger.debug("Generating new label ID");
-	
-			if (attempts > MAX_NEW_LABEL_ID_ATTEMPTS) {
-				// too many attempts to get new random id! too many labels?
-				logger.info("{} reached max random label id attempts with {} labels",
-						mailbox, existingLabels.getIds().size());
-				throw new IllegalLabelException("Too many labels");
-			}
-
-			labelId = LabelUtils.getNewLabelId();
-			attempts++;
+		try {
+			labelId = LabelUtils.getNewLabelId(existingLabels.getIds());
+		} catch (IllegalLabelException ile) {
+			// log and rethrow
+			logger.warn("{} reached max random label id attempts with {} labels",
+						mailbox, existingLabels.size());
+			throw ile;
 		}
 
+		// begin batch operation
+		Mutator<String> m = createMutator(keyspace, strSe);
+
 		// add new label
-		AccountPersistence.setLabel(mailbox.getId(), labelId, label);
+		AccountPersistence.setLabelName(m, mailbox.getId(), labelId, label);
+
+		// commit batch operation
+		m.execute();
 
 		return labelId;
 	}
-
+	
 	@Override
 	public void rename(final Mailbox mailbox, final Integer labelId, String label)
 			throws IOException
 	{
 		// get all existing labels
-		Labels existingLabels = new Labels();
-		existingLabels.add(AccountPersistence.getLabels(mailbox.getId()));
+		LabelMap existingLabels = AccountPersistence.getLabels(mailbox.getId());
 
-		// validate only if name is changed (skip for letter case changes) 
-		if (!existingLabels.getName(labelId).equalsIgnoreCase(label)) {
+		// validate only if name is changed (skips letter case changes)
+		if (!existingLabels.containsName(label)) {
 			LabelUtils.validateLabelName(label, existingLabels);
 		}
 
@@ -147,8 +147,14 @@ public final class CassandraLabelDAO implements LabelDAO
 			throw new IllegalLabelException("Label does not exist");
 		}
 
+		// begin batch operation
+		Mutator<String> m = createMutator(keyspace, strSe);
+
 		// set new name
-		AccountPersistence.setLabel(mailbox.getId(), labelId, label);
+		AccountPersistence.setLabelName(m, mailbox.getId(), labelId, label);
+		
+		// commit batch operation
+		m.execute();
 	}
 
 	@Override
@@ -194,7 +200,7 @@ public final class CassandraLabelDAO implements LabelDAO
 	}
 
 	@Override
-	public void setCounters(Mailbox mailbox, Labels calculatedCounters)
+	public void setCounters(Mailbox mailbox, LabelMap newCounters)
 	{
 		Map<Integer, LabelCounters> existingCounters = 
 				LabelCounterPersistence.getAll(mailbox.getId());
@@ -202,10 +208,11 @@ public final class CassandraLabelDAO implements LabelDAO
 		// begin batch operation
 		Mutator<String> m = createMutator(keyspace, strSe);
 
-		// update calculated counters
-		for (int labelId : calculatedCounters.getIds())
+		// update with the new counter values
+		for (Label label : newCounters.values())
 		{
-			LabelCounters diff = new LabelCounters(calculatedCounters.getLabelCounters(labelId));
+			int labelId = label.getId();
+			LabelCounters diff = new LabelCounters(label.getCounters());
 
 			if (existingCounters.containsKey(labelId)) {
 				diff.add(existingCounters.get(labelId).getInverse());
@@ -213,15 +220,15 @@ public final class CassandraLabelDAO implements LabelDAO
 
 			logger.debug(
 					"Recalculated counters for label {}:\n\tCurrent: {}\n\tCalculated: {}\n\tDiff: {}",
-					new Object[] { labelId, existingCounters.get(labelId),
-							calculatedCounters.getLabelCounters(labelId), diff });
+					new Object[] { labelId, existingCounters.get(labelId), label.getCounters(), diff });
 
 			LabelCounterPersistence.add(m, mailbox.getId(), labelId, diff);
 		}
-		
+
 		// reset non-existing counters
-		for (int labelId : existingCounters.keySet()) {
-			if (!calculatedCounters.containsId(labelId)) {
+		for (int labelId : existingCounters.keySet())
+		{
+			if (!newCounters.containsId(labelId)) {
 				LabelCounterPersistence.subtract(
 						m, mailbox.getId(), labelId, existingCounters.get(labelId));
 			}

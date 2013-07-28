@@ -29,7 +29,6 @@
 package com.elasticinbox.core.cassandra.persistence;
 
 import static me.prettyprint.hector.api.factory.HFactory.createColumn;
-import static me.prettyprint.hector.api.factory.HFactory.createMutator;
 import static me.prettyprint.hector.api.factory.HFactory.createSliceQuery;
 import static com.elasticinbox.core.cassandra.CassandraDAOFactory.CF_ACCOUNTS;
 
@@ -37,8 +36,11 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.elasticinbox.common.utils.Assert;
 import com.elasticinbox.core.cassandra.CassandraDAOFactory;
+import com.elasticinbox.core.cassandra.utils.BatchConstants;
 import com.elasticinbox.core.model.Label;
+import com.elasticinbox.core.model.LabelMap;
 import com.elasticinbox.core.model.ReservedLabels;
 
 import me.prettyprint.cassandra.serializers.BytesArraySerializer;
@@ -52,7 +54,9 @@ import me.prettyprint.hector.api.query.SliceQuery;
 
 public final class AccountPersistence
 {
-	public final static String CN_LABEL_PREFIX = "label:";
+	private final static String CN_LABEL_NAME_PREFIX = "label";
+	private final static String CN_LABEL_ATTRIBUTE_PREFIX = "lattr";
+	private final static String CN_SEPARATOR = ":";
 
 	private final static BytesArraySerializer byteSe = BytesArraySerializer.get();
 	private final static StringSerializer strSe = StringSerializer.get();
@@ -72,7 +76,7 @@ public final class AccountPersistence
 
 		// set key, cf, range
 		q.setColumnFamily(CF_ACCOUNTS).setKey(mailbox);
-		q.setRange(null, null, false, 1000); //TODO: make sure we get all columns
+		q.setRange(null, null, false, BatchConstants.BATCH_READS); // TODO: make sure we get all columns
 		// execute
 		QueryResult<ColumnSlice<String, byte[]>> r = q.execute();
 
@@ -88,51 +92,18 @@ public final class AccountPersistence
 	}
 
 	/**
-	 * Get all labels
-	 * 
-	 * @param mailbox
-	 * @return
-	 */
-	public static Map<Integer, String> getLabels(final String mailbox)
-	{
-		Map<Integer, String> labels = new HashMap<Integer, String>();
-
-		// get list of user specific labels from Cassandra
-		Map<String, Object> attributes = getAll(mailbox);
-
-		// add user specific labels
-		for (Map.Entry<String, Object> a : attributes.entrySet()) {
-			if (a.getKey().startsWith(CN_LABEL_PREFIX)) {
-				Integer labelId = Integer.parseInt(a.getKey().split(":")[1]);
-				labels.put(labelId, (String) a.getValue());
-			}
-		}
-
-		// add default reserved labels
-		for (Label l : ReservedLabels.getAll()) {
-			labels.put(l.getId(), l.getName());
-		}
-
-		return labels;
-	}
-
-	/**
 	 * Add or update account attributes (columns)
 	 *  
 	 * @param account
 	 * @param attributes
 	 */
-	public static <V> void set(final String mailbox, final Map<String, V> attributes)
+	public static <V> void set(Mutator<String> mutator, final String mailbox, final Map<String, V> attributes)
 	{
-		Mutator<String> m = createMutator(CassandraDAOFactory.getKeyspace(), strSe);
-
 		for (Map.Entry<String, V> a : attributes.entrySet()) {
-			m.addInsertion(mailbox,	CF_ACCOUNTS,
+			mutator.addInsertion(mailbox, CF_ACCOUNTS,
 					createColumn(a.getKey(), a.getValue(), strSe,
 							SerializerTypeInferer.getSerializer(a.getValue())));
 		}
-
-		m.execute();
 	}
 
 	/**
@@ -147,20 +118,54 @@ public final class AccountPersistence
 	}
 
 	/**
-	 * Add label column.
-	 * Inserts new or replaces name of the existing label.
+	 * Get all labels
 	 * 
 	 * @param mailbox
-	 * @param labelId
-	 * @param label
+	 * @return
 	 */
-	public static void setLabel(final String mailbox, final int labelId,
-			final String label)
+	public static LabelMap getLabels(final String mailbox)
 	{
-		String labelKey = new StringBuilder(CN_LABEL_PREFIX).append(labelId).toString();
+		LabelMap labels = new LabelMap();
+
+		// get list of user specific labels from Cassandra
+		Map<String, Object> attributes = getAll(mailbox);
+
+		// add user specific labels
+		for (Map.Entry<String, Object> a : attributes.entrySet())
+		{
+			if (a.getKey().startsWith(CN_LABEL_NAME_PREFIX))
+			{
+				Integer labelId = Integer.parseInt(a.getKey().split(CN_SEPARATOR)[1]);
+				Label label = new Label(labelId, (String) a.getValue());
+				labels.put(label);
+			}
+		}
+
+		// add default reserved labels
+		for (Label l : ReservedLabels.getAll())
+		{
+			Label label = new Label(l.getId(), l.getName());
+			labels.put(label);
+		}
+
+		return labels;
+	}
+
+	/**
+	 * Inserts new label or updates name of the existing label.
+	 *
+	 * @param mutator
+	 * @param mailbox
+	 * @param labelId
+	 * @param labelName
+	 */
+	public static void setLabelName(Mutator<String> mutator, final String mailbox, int labelId,
+			final String labelName)
+	{
+		String labelKey = getLabelNameKey(labelId);
 		Map<String, String> attributes = new HashMap<String, String>(1);
-		attributes.put(labelKey, label);
-		AccountPersistence.set(mailbox, attributes);
+		attributes.put(labelKey, labelName);
+		AccountPersistence.set(mutator, mailbox, attributes);
 	}
 
 	/**
@@ -170,11 +175,41 @@ public final class AccountPersistence
 	 * @param mailbox
 	 * @param labelId
 	 */
-	public static void deleteLabel(Mutator<String> mutator,
-			final String mailbox, final Integer labelId)
+	public static void deleteLabel(Mutator<String> mutator, final String mailbox, int labelId)
 	{
-		String labelKey = new StringBuilder(CN_LABEL_PREFIX).append(labelId).toString();
+		String labelKey = getLabelNameKey(labelId);
 		mutator.addDeletion(mailbox, CF_ACCOUNTS, labelKey, strSe);
+	}
+
+	/**
+	 * Generates key for custom label attribute.
+	 * <p>
+	 * Example <code>"label:123:attr:MyAttribute"</code>
+	 * 
+	 * @param labelId
+	 * @param attributeName Custom attribute name
+	 * @return
+	 */
+	static String getLabelAttributeKey(int labelId, final String attributeName)
+	{
+		Assert.notNull(attributeName, "Attribute name cannot be null");
+		
+		return CN_LABEL_ATTRIBUTE_PREFIX + 
+					CN_SEPARATOR + labelId + 
+					CN_SEPARATOR + attributeName;
+	}
+	
+	/**
+	 * Generates key for label name.
+	 * <p>
+	 * Example <code>"label:123"</code>
+	 * 
+	 * @param labelId
+	 * @return
+	 */
+	static String getLabelNameKey(int labelId)
+	{
+		return CN_LABEL_NAME_PREFIX + CN_SEPARATOR + labelId;
 	}
 
 }

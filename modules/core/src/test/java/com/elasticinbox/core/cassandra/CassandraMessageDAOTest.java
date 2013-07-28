@@ -110,7 +110,7 @@ public class CassandraMessageDAOTest
 		Mailbox mailbox = new Mailbox(MAILBOX);
 
 		Message message = getDummyMessage();
-		message.addLabel(ReservedLabels.NOTIFICATIONS);
+		message.addLabel(ReservedLabels.NOTIFICATIONS.getId());
 
 		MessageDAO messageDAO = dao.getMessageDAO();
 		List<UUID> validMessageIds = new ArrayList<UUID>();
@@ -164,7 +164,7 @@ public class CassandraMessageDAOTest
 		message.setSize(1024L);
 		message.setSubject("Test");
 		message.setPlainBody("Test");
-		message.addLabel(ReservedLabels.ALL_MAILS);
+		message.addLabel(ReservedLabels.ALL_MAILS.getId());
 		
 		return message;
 	}

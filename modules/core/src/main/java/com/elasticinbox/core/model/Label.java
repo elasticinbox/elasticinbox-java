@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2012 Optimax Software Ltd.
+ * Copyright (c) 2011-2013 Optimax Software Ltd.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -28,37 +28,70 @@
 
 package com.elasticinbox.core.model;
 
-/**
- * This class represents a single Label which is comprised of the name and ID.
- * 
- * @author Rustam Aliyev
- */
-public final class Label
-{
-	private final String labelName;
-	private final Integer labelId;
+import java.util.Map;
 
-	public Label(Integer labelId, String labelName) {
-		this.labelName = labelName;
-		this.labelId = labelId;
+import com.elasticinbox.common.utils.Assert;
+
+public class Label
+{
+	private int id;
+	private String name;
+	private LabelCounters counters;
+	private Map<String, String> attributes;
+
+	public Label(int id) {
+		this.id = id;
 	}
 
-	@Override
-	public String toString() {
-		return labelName;
+	public Label(int id, String name) {
+		this.id = id;
+		this.name = name;
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public Label setId(int id) {
+		this.id = id;
+		return this;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public Label setName(String name) {
+		this.name = name;
+		return this;
+	}
+
+	public LabelCounters getCounters() {
+		return counters;
+	}
+
+	public Label setCounters(LabelCounters counters) {
+		this.counters = counters;
+		return this;
+	}
+
+	public Map<String, String> getAttributes() {
+		return attributes;
+	}
+
+	public Label setAttributes(Map<String, String> attributes) {
+		this.attributes = attributes;
+		return this;
+	}
+
+	public void incrementCounters(LabelCounters diff)
+	{
+		Assert.notNull(counters, "Label counters are not initialized");
+		counters.add(diff);
 	}
 
 	@Override
 	public int hashCode() {
-		return labelId.hashCode();
+		return Integer.valueOf(id).hashCode();
 	}
-
-	public String getName() {
-		return labelName;
-	}
-
-	public Integer getId() {
-		return labelId;
-	}
-
 }

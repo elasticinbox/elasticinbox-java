@@ -30,19 +30,14 @@ package com.elasticinbox.core.model;
 
 import static org.junit.Assert.*;
 
-import org.junit.AfterClass;
 import org.junit.Test;
 
-public class LabelsTest {
-
-	@AfterClass
-	public static void tearDownAfterClass() throws Exception {
-	}
-
+public class LabelsTest
+{
 	@Test
 	public void testIncrementCounters()
 	{
-		Labels labels = new Labels();
+		LabelMap labels = new LabelMap();
 		
 		LabelCounters lc = new LabelCounters();
 		lc.setTotalMessages(120L);
@@ -55,13 +50,15 @@ public class LabelsTest {
 		diff.setUnreadMessages(5L);
 		
 		// increment initialized label
-		labels.add(1, ReservedLabels.INBOX.getName());
-		labels.setCounters(1, lc);
-		labels.incrementCounters(1, diff);
-		
-		assertEquals(labels.getLabelCounters(1).getTotalMessages().intValue(), 120+19);
-		assertEquals(labels.getLabelCounters(1).getTotalBytes().intValue(), 1024000+24000);
-		assertEquals(labels.getLabelCounters(1).getUnreadMessages().intValue(), 32+5);
+		labels.put(ReservedLabels.INBOX);
+
+		int labelId = ReservedLabels.INBOX.getId();
+		labels.get(labelId).setCounters(lc);
+		labels.get(labelId).incrementCounters(diff);
+
+		assertEquals(labels.get(labelId).getCounters().getTotalMessages().intValue(), 120+19);
+		assertEquals(labels.get(labelId).getCounters().getTotalBytes().intValue(), 1024000+24000);
+		assertEquals(labels.get(labelId).getCounters().getUnreadMessages().intValue(), 32+5);
 	}
 
 }

@@ -40,7 +40,7 @@ import javax.ws.rs.core.UriInfo;
 import com.elasticinbox.core.DAOFactory;
 import com.elasticinbox.core.LabelDAO;
 import com.elasticinbox.core.MessageDAO;
-import com.elasticinbox.core.model.Labels;
+import com.elasticinbox.core.model.LabelMap;
 import com.elasticinbox.core.model.Mailbox;
 
 /**
@@ -78,7 +78,7 @@ public class ScrubResource
 	{
 		Mailbox mailbox = new Mailbox(user, domain);
 
-		Labels calculatedCounters = messageDAO.scrub(mailbox, false);
+		LabelMap calculatedCounters = messageDAO.scrub(mailbox, false);
 		labelDAO.setCounters(mailbox, calculatedCounters);
 
 		return Response.noContent().build();
@@ -99,7 +99,7 @@ public class ScrubResource
 	{
 		Mailbox mailbox = new Mailbox(user, domain);
 
-		Labels calculatedCounters = messageDAO.scrub(mailbox, true);
+		LabelMap calculatedCounters = messageDAO.scrub(mailbox, true);
 		labelDAO.setCounters(mailbox, calculatedCounters);
 
 		return Response.noContent().build();

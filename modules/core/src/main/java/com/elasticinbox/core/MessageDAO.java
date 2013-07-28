@@ -37,7 +37,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.elasticinbox.core.blob.BlobDataSource;
-import com.elasticinbox.core.model.Labels;
+import com.elasticinbox.core.model.LabelMap;
 import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.Marker;
 import com.elasticinbox.core.model.Message;
@@ -240,5 +240,5 @@ public interface MessageDAO
 	 * @param rebuildIndex
 	 * @return
 	 */
-	public Labels scrub(Mailbox mailbox, boolean rebuildIndex);
+	public LabelMap scrub(Mailbox mailbox, boolean rebuildIndex);
 }

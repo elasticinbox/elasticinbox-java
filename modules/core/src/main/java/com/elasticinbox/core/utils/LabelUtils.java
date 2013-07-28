@@ -29,24 +29,26 @@
 package com.elasticinbox.core.utils;
 
 import java.util.Random;
+import java.util.Set;
 
 import com.elasticinbox.core.ExistingLabelException;
 import com.elasticinbox.core.IllegalLabelException;
 import com.elasticinbox.core.model.Label;
 import com.elasticinbox.core.model.LabelConstants;
-import com.elasticinbox.core.model.Labels;
+import com.elasticinbox.core.model.LabelMap;
 import com.elasticinbox.core.model.ReservedLabels;
 
 public final class LabelUtils
 {
 	private final static Random random = new Random();
+	private final static int MAX_NEW_LABEL_ID_ATTEMPTS = 200;
 
 	/**
 	 * Generate random label ID
 	 * 
 	 * @return
 	 */
-	public static Integer getNewLabelId()
+	private static int getNewLabelId()
 	{
 		// New label ID whould be greater than reserved label IDs and within
 		// allowed range (less than MAX_LABEL_ID).
@@ -54,30 +56,61 @@ public final class LabelUtils
 				+ random.nextInt(LabelConstants.MAX_LABEL_ID - LabelConstants.MAX_RESERVED_LABEL_ID);
 		return labelId;
 	}
+	
+	/**
+	 * Generates new label ID which does not exist in the given list
+	 * 
+	 * @param existingLabels
+	 * @return
+	 */
+	public static int getNewLabelId(Set<Integer> existingLabels)
+	{
+		// generate new unique label id
+		int labelId = LabelUtils.getNewLabelId();
+		int attempts = 1;
+		while (existingLabels.contains(labelId))
+		{
+			if (attempts > MAX_NEW_LABEL_ID_ATTEMPTS)
+			{
+				// too many attempts to get new random id! too many labels?
+				throw new IllegalLabelException("Too many labels");
+			}
+
+			labelId = LabelUtils.getNewLabelId();
+			attempts++;
+		}
+		
+		return labelId;
+	}
 
 	/**
 	 * Validate label name and check within existing labels
 	 * 
-	 * @param label
+	 * @param labelName
 	 */
-	public static void validateLabelName(final String label, final Labels existingLabels)
+	public static void validateLabelName(final String labelName, final LabelMap existingLabels)
 	{
 		// check total length of label
-		if (label.length() > LabelConstants.MAX_LABEL_NAME_LENGTH)
+		if (labelName.length() > LabelConstants.MAX_LABEL_NAME_LENGTH) {
 			throw new IllegalLabelException("Label name exceeds maximum allowed length");
+		}
 
 		// check if label already exists
-		if(existingLabels.containsName(label))
+		if (existingLabels.containsName(labelName)) {
 			throw new ExistingLabelException("Label with this name already exists");
+		}
 
 		// check if starts with reserved label
-		for (Label l : ReservedLabels.getAll()) {
-			if (label.startsWith(l.getName() + LabelConstants.NESTED_LABEL_SEPARATOR.toString()))
+		for (Label l : ReservedLabels.getAll())
+		{
+			if (labelName.startsWith(l.getName() + LabelConstants.NESTED_LABEL_SEPARATOR.toString()))
 				throw new IllegalLabelException("Netsted labels are not allowed under reserved labels");
 		}
 
-		if (label.contains(LabelConstants.NESTED_LABEL_SEPARATOR.toString() + LabelConstants.NESTED_LABEL_SEPARATOR.toString()))
+		if (labelName.contains(LabelConstants.NESTED_LABEL_SEPARATOR.toString() + LabelConstants.NESTED_LABEL_SEPARATOR.toString()))
+		{
 			throw new IllegalLabelException("Illegal use of nested label separator");
+		}
 
 		// check special symbols? for now we allow any symbol
 	}
