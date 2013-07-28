@@ -30,10 +30,15 @@ package com.elasticinbox.core.cassandra.utils;
 
 import static com.elasticinbox.core.cassandra.CassandraDAOFactory.CF_LABEL_INDEX;
 import static me.prettyprint.hector.api.factory.HFactory.createColumn;
+import static me.prettyprint.hector.api.factory.HFactory.createSliceQuery;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertNotNull;
 
+import java.util.HashSet;
 import java.util.UUID;
 
 import me.prettyprint.cassandra.serializers.BytesArraySerializer;
@@ -43,8 +48,12 @@ import me.prettyprint.cassandra.service.CassandraHostConfigurator;
 import me.prettyprint.hector.api.Cluster;
 import me.prettyprint.hector.api.ConsistencyLevelPolicy;
 import me.prettyprint.hector.api.Keyspace;
+import me.prettyprint.hector.api.beans.ColumnSlice;
+import me.prettyprint.hector.api.beans.HColumn;
 import me.prettyprint.hector.api.factory.HFactory;
 import me.prettyprint.hector.api.mutation.Mutator;
+import me.prettyprint.hector.api.query.QueryResult;
+import me.prettyprint.hector.api.query.SliceQuery;
 
 import org.junit.After;
 import org.junit.Before;
@@ -61,13 +70,17 @@ public class ThrottlingMutatorTest
 	final static BytesArraySerializer byteSe = BytesArraySerializer.get();
 
 	final static String KEYSPACE = "ElasticInbox";
+	final static int LABEL_T1 = 5555;
+	final static int LABEL_T2 = 5000;
 	final static String MAILBOX = "throttling@elasticinbox.com";
-	final static int LABEL = 5555;
+	final static String KEY_T1 = MAILBOX + ":" + LABEL_T1;
+	final static String KEY_T2 = MAILBOX + ":" + LABEL_T2;
 	Cluster cluster;
 	Keyspace keyspace;
 
 	@Before
-	public void setupCase() {
+	public void setupCase()
+	{
 		// Consistency Level Policy
 		ConsistencyLevelPolicy clp = new QuorumConsistencyLevel();
 
@@ -76,29 +89,37 @@ public class ThrottlingMutatorTest
 
 		cluster = HFactory.getOrCreateCluster("TestCluster", conf);
 		keyspace = HFactory.createKeyspace(KEYSPACE, cluster, clp);
+		
+		// clenaup from previous runs
+		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe, 50, 500L);
+		m.addDeletion(KEY_T1, CF_LABEL_INDEX, null, strSe);
+		m.addDeletion(KEY_T2, CF_LABEL_INDEX, null, strSe);
+		m.execute();
 	}
 
 	@After
-	public void teardownCase() {
+	public void teardownCase()
+	{
 		keyspace = null;
 		cluster = null;
 	}
 
+	/**
+	 * Test throttler's delay functionality.
+	 */
 	@Test
 	public void testThrottlingMutatorDelay()
 	{
 		// throttle at 100 ops/ 500 ms
 		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe, 100, 500L);
 
-		UUID uuid;
-		String indexKey;
 		long ts = System.currentTimeMillis();
 
 		// should take 1 sec to insert 200 cols at 5ms rate
-		for (int i = 0; i < 201; i++) {
-			uuid = new MessageIdBuilder().build();
-			indexKey = MAILBOX + ":" + LABEL;
-			m.addInsertion(indexKey, CF_LABEL_INDEX, createColumn(uuid, new byte[0], uuidSe, byteSe));
+		for (int i = 0; i < 201; i++)
+		{
+			UUID uuid = new MessageIdBuilder().build();
+			m.addInsertion(KEY_T1, CF_LABEL_INDEX, createColumn(uuid, new byte[0], uuidSe, byteSe));
 		}
 
 		m.execute();
@@ -108,5 +129,59 @@ public class ThrottlingMutatorTest
 		// check if it took more than 1 sec and no more than 1.2 sec
 		assertThat(elapsed, greaterThan(1000L));
 		assertThat(elapsed, lessThan(1200L));
+	}
+	
+	@Test
+	public void testThrottlingMutatorConsistency()
+	{
+		int sampleCount = 250;
+		
+		// throttle at 50 ops/ 100 ms
+		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe, 100, 500L);
+
+		HashSet<UUID> messageIds = new HashSet<UUID>();
+		final byte[] value = "consistent".getBytes();
+
+		// STEP: add samples
+		for (int i = 0; i < sampleCount; i++)
+		{
+			UUID uuid = new MessageIdBuilder().build();
+			m.addInsertion(KEY_T2, CF_LABEL_INDEX, createColumn(uuid, value, uuidSe, byteSe));
+			messageIds.add(uuid);
+		}
+
+		m.execute();
+		
+		// STEP: validate additions
+		SliceQuery<String, UUID, byte[]> q = 
+				createSliceQuery(keyspace, strSe, uuidSe, byteSe);
+		q.setColumnFamily(CF_LABEL_INDEX);
+		q.setKey(KEY_T2);
+		q.setRange(null, null, false, 500);
+
+		QueryResult<ColumnSlice<UUID, byte[]>> r = q.execute();
+
+		for (HColumn<UUID, byte[]> c : r.get().getColumns())
+		{
+			assertNotNull(c);
+			assertNotNull(c.getValue());
+			assertThat(messageIds, hasItem(c.getName()));
+			assertThat(value, equalTo(c.getValue()));
+		}
+		
+		assertThat(sampleCount, equalTo(r.get().getColumns().size()));
+		
+		// STEP: delete samples
+		for (UUID uuid : messageIds)
+		{
+			m.addDeletion(KEY_T2, CF_LABEL_INDEX, uuid, uuidSe);
+		}
+
+		m.execute();
+		
+		// STEP: validate deletions 
+		r = q.execute();
+
+		assertThat(0, equalTo(r.get().getColumns().size()));
 	}
 }
