@@ -80,13 +80,11 @@ public class CassandraEncryptedMessageDAOTest {
 		System.setProperty("elasticinbox.config",
 				"../../config/elasticinbox.yaml");
 
-
 		// Consistency Level Policy
 		ConsistencyLevelPolicy clp = new QuorumConsistencyLevel();
 
 		// Host config
-		CassandraHostConfigurator conf = new CassandraHostConfigurator(
-				"10.0.106.31:9160");
+		CassandraHostConfigurator conf = new CassandraHostConfigurator();
 
 		cluster = HFactory.getOrCreateCluster("Elastic", conf);
 		keyspace = HFactory.createKeyspace(KEYSPACE, cluster, clp);
@@ -110,9 +108,12 @@ public class CassandraEncryptedMessageDAOTest {
 	public void testEncryptedMessageStorage() throws IOException,
 			OverQuotaException {
 
-		/* if meta storage encryption is not enabled, there is nothing to test here */
+		/*
+		 * if meta storage encryption is not enabled, there is nothing to test
+		 * here
+		 */
 		Assume.assumeTrue(Configurator.isMetaStoreEncryptionEnabled());
-		
+
 		Mailbox mailbox = new Mailbox(MAILBOX);
 
 		Message message = getDummyMessage();

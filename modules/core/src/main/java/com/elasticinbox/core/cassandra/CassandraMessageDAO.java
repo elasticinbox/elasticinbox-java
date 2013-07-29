@@ -92,16 +92,23 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements
 	public CassandraMessageDAO(Keyspace keyspace) {
 		this.keyspace = keyspace;
 
-		// Create BlobStorage instance with AES encryption and Deflate
-		// compression
+		// Create BlobStorage instance with optional AES encryption and
+		// Deflate compression
 		CompressionHandler compressionHandler = Configurator
 				.isBlobStoreCompressionEnabled() ? new DeflateCompressionHandler()
 				: null;
+
+
+		if (Configurator.isRemoteBlobStoreEncryptionEnabled()) {
+			this.blobStorage = new BlobStorageMediator(compressionHandler,
+					new AESEncryptionHandler());
+		} else {
+			this.blobStorage = new BlobStorageMediator(compressionHandler, null);
+		}
+		
+		// enable encryption of CassandraMessageDAO if enabled
 		encryptionHandler = Configurator.isMetaStoreEncryptionEnabled() ? new AESEncryptionHandler()
 				: null;
-
-		this.blobStorage = new BlobStorageMediator(compressionHandler,
-				encryptionHandler);
 	}
 
 	@Override
