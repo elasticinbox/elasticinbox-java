@@ -84,7 +84,8 @@ public class CassandraMessageDAOTest
 		ConsistencyLevelPolicy clp = new QuorumConsistencyLevel();
 
 		// Host config
-		CassandraHostConfigurator conf = new CassandraHostConfigurator("10.0.106.31:9160");
+		
+		CassandraHostConfigurator conf = new CassandraHostConfigurator();
 
 		cluster = HFactory.getOrCreateCluster("Elastic", conf);
 		keyspace = HFactory.createKeyspace(KEYSPACE, cluster, clp);
