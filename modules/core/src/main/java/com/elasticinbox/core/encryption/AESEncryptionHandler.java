@@ -38,16 +38,14 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.util.Iterator;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import javax.crypto.ShortBufferException;
 import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.codec.binary.Base64;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.core.model.Address;
 import com.elasticinbox.core.model.AddressList;
@@ -56,9 +54,16 @@ import com.elasticinbox.core.model.Message;
 /**
  * This class provides AES encryption/decryption methods.
  * 
- * @author Rustam Aliyev
+ * @author <ul>
+ *         <li>Rustam Aliyev</li>
+ *         <li>John Wiesel (jw@itembase.biz)</li>
+ *         </ul>
  */
 public class AESEncryptionHandler implements EncryptionHandler {
+
+	private static final Logger logger = LoggerFactory
+			.getLogger(AESEncryptionHandler.class);
+
 	/**
 	 * Use AES-CBC algorithm with PKCS5 padding
 	 */
@@ -101,9 +106,7 @@ public class AESEncryptionHandler implements EncryptionHandler {
 	 */
 	public Message encryptMessage(Message message, Key key, byte[] iv)
 			throws NoSuchAlgorithmException, NoSuchPaddingException,
-			InvalidKeyException, InvalidAlgorithmParameterException,
-			ShortBufferException, IllegalBlockSizeException,
-			BadPaddingException {
+			InvalidKeyException, InvalidAlgorithmParameterException {
 
 		cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
 		cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
@@ -117,9 +120,7 @@ public class AESEncryptionHandler implements EncryptionHandler {
 	 */
 	public Message decryptMessage(Message message, Key key, byte[] iv)
 			throws NoSuchAlgorithmException, NoSuchPaddingException,
-			InvalidKeyException, InvalidAlgorithmParameterException,
-			ShortBufferException, IllegalBlockSizeException,
-			BadPaddingException {
+			InvalidKeyException, InvalidAlgorithmParameterException {
 
 		cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
 		this.cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
@@ -128,11 +129,7 @@ public class AESEncryptionHandler implements EncryptionHandler {
 		return cryptMessage(message, key, iv);
 	}
 
-	private Message cryptMessage(Message message, Key key, byte[] iv)
-			throws NoSuchAlgorithmException, NoSuchPaddingException,
-			InvalidKeyException, InvalidAlgorithmParameterException,
-			ShortBufferException, IllegalBlockSizeException,
-			BadPaddingException {
+	private Message cryptMessage(Message message, Key key, byte[] iv) {
 
 		if (message.getPlainBody() != null) {
 			message.setPlainBody(cryptString(message.getPlainBody(), key, iv));
@@ -167,11 +164,7 @@ public class AESEncryptionHandler implements EncryptionHandler {
 		return message;
 	}
 
-	private AddressList cryptAddressList(AddressList from, Key key, byte[] iv)
-			throws InvalidKeyException, NoSuchAlgorithmException,
-			NoSuchPaddingException, InvalidAlgorithmParameterException,
-			ShortBufferException, IllegalBlockSizeException,
-			BadPaddingException {
+	private AddressList cryptAddressList(AddressList from, Key key, byte[] iv) {
 
 		AddressList temp = new AddressList();
 		Iterator<Address> addresses = from.iterator();
@@ -188,11 +181,7 @@ public class AESEncryptionHandler implements EncryptionHandler {
 		return temp;
 	}
 
-	private Address cryptAddress(Address address, Key key, byte[] iv)
-			throws InvalidKeyException, NoSuchAlgorithmException,
-			NoSuchPaddingException, InvalidAlgorithmParameterException,
-			ShortBufferException, IllegalBlockSizeException,
-			BadPaddingException {
+	private Address cryptAddress(Address address, Key key, byte[] iv) {
 
 		String name = cryptString(address.getName(), key, iv);
 		String addressString = cryptString(address.getAddress(), key, iv);
@@ -200,40 +189,43 @@ public class AESEncryptionHandler implements EncryptionHandler {
 		return address;
 	}
 
-	private String cryptString(String toCrypt, Key key, byte[] iv)
-			throws NoSuchAlgorithmException, NoSuchPaddingException,
-			IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
+	private String cryptString(String toCrypt, Key key, byte[] iv) {
 		if (this.mode == ENCRYPT) {
 			return symmetricEncrypt(toCrypt, key);
 		}
 		return symmetricDecrypt(toCrypt, key);
 	}
 
-	private String symmetricEncrypt(String text, Key secretKey)
-			throws NoSuchAlgorithmException, NoSuchPaddingException,
-			IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
-		String encryptedString;
+	private String symmetricEncrypt(String text, Key secretKey) {
+		String encryptedString = "";
 		byte[] encryptText = text.getBytes();
 
-		cipher = Cipher.getInstance("AES");
-		cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-		encryptedString = Base64
-				.encodeBase64String(cipher.doFinal(encryptText));
+		try {
+			cipher = Cipher.getInstance("AES");
+			cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+			encryptedString = Base64.encodeBase64String(cipher
+					.doFinal(encryptText));
+
+		} catch (Exception e) {
+			logger.error("Error during symmetric encryption", e);
+		}
 
 		return encryptedString;
 	}
 
-	public String symmetricDecrypt(String text, Key secretKey)
-			throws NoSuchAlgorithmException, NoSuchPaddingException,
-			IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
-		String encryptedString;
+	public String symmetricDecrypt(String text, Key secretKey) {
+		String encryptedString = "";
 		byte[] encryptText = null;
 
-		encryptText = Base64.decodeBase64(text);
-		cipher = Cipher.getInstance("AES");
-		cipher.init(Cipher.DECRYPT_MODE, secretKey);
-		encryptedString = new String(cipher.doFinal(encryptText));
+		try {
+			encryptText = Base64.decodeBase64(text);
+			cipher = Cipher.getInstance("AES");
+			cipher.init(Cipher.DECRYPT_MODE, secretKey);
+			encryptedString = new String(cipher.doFinal(encryptText));
 
+		} catch (Exception e) {
+			logger.error("Error during symmetric decryption", e);
+		}
 		return encryptedString;
 	}
 
