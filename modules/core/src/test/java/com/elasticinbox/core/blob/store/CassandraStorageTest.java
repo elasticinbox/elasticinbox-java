@@ -117,7 +117,7 @@ public class CassandraStorageTest
 		String expextedBlobUrl = "blob://"
 				+ DatabaseConstants.DATABASE_PROFILE + "/"				
 				+ MESSAGE_ID + "?"
-				+ BlobStoreConstants.URI_PARAM_ENCRYPTION_KEY + "=" + Configurator.getBlobStoreDefaultEncryptionKeyAlias() + "&"
+				+ BlobStoreConstants.URI_PARAM_ENCRYPTION_KEY + "=" + Configurator.getDefaultEncryptionKeyAlias() + "&"
 				+ BlobStoreConstants.URI_PARAM_BLOCK_COUNT + "=1";
 
 		EncryptionHandler encryptionHandler =  new AESEncryptionHandler();

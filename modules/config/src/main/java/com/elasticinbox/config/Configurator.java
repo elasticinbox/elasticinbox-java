@@ -273,11 +273,11 @@ public class Configurator
 		return conf.remote_blobstore_enable_encryption;
 	}
 	
-	public static Boolean iLocalBlobStoreEncryptionEnabled() {
+	public static Boolean isLocalBlobStoreEncryptionEnabled() {
 		return conf.local_blobstore_enable_encryption;
 	}
 	
-	public static String getBlobStoreDefaultEncryptionKeyAlias() {
+	public static String getDefaultEncryptionKeyAlias() {
 		return conf.default_encryption_key;
 	}
 
@@ -285,7 +285,7 @@ public class Configurator
 		return keyManager.getKey(alias);
 	}
 
-	public static java.security.Key getBlobStoreDefaultEncryptionKey() {
+	public static java.security.Key getDefaultEncryptionKey() {
 		return keyManager.getKey(conf.default_encryption_key);
 	}
 

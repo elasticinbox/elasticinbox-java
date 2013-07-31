@@ -108,7 +108,7 @@ public class CloudStorageTest
 				// + BlobStoreConstants.URI_PARAM_COMPRESSION + "="
 				// + DeflateCompressionHandler.COMPRESSION_TYPE_DEFLATE + "&"
 				+ BlobStoreConstants.URI_PARAM_ENCRYPTION_KEY + "="
-				+ Configurator.getBlobStoreDefaultEncryptionKeyAlias();
+				+ Configurator.getDefaultEncryptionKeyAlias();
 
 		// BlobStorage with encryption or compression
 		BlobStorage bs = new CloudBlobStorage(new AESEncryptionHandler());

@@ -46,6 +46,7 @@ import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.BlobURI;
 import com.elasticinbox.core.blob.compression.CompressionHandler;
 import com.elasticinbox.core.blob.compression.DeflateCompressionHandler;
+import com.elasticinbox.core.encryption.AESEncryptionHandler;
 import com.elasticinbox.core.encryption.EncryptionHandler;
 import com.elasticinbox.core.model.Mailbox;
 import com.google.common.io.ByteStreams;
@@ -57,10 +58,9 @@ import com.google.common.io.FileBackedOutputStream;
  * 
  * @author Rustam Aliyev
  */
-public final class BlobStorageMediator extends BlobStorage
-{
-	private static final Logger logger = 
-			LoggerFactory.getLogger(BlobStorageMediator.class);
+public final class BlobStorageMediator extends BlobStorage {
+	private static final Logger logger = LoggerFactory
+			.getLogger(BlobStorageMediator.class);
 
 	protected static byte[] getCipherIVFromBlobName(final String blobName)
 			throws IOException {
@@ -81,17 +81,27 @@ public final class BlobStorageMediator extends BlobStorage
 	 * @param eh
 	 *            Injected encryption handler
 	 */
-	public BlobStorageMediator(final CompressionHandler ch, final EncryptionHandler eh)
-	{
+	public BlobStorageMediator(final CompressionHandler ch,
+			final EncryptionHandler eh) {
+		
 		this.compressionHandler = ch;
-		cloudBlobStorage = new CloudBlobStorage(eh);
-		dbBlobStorage = new CassandraBlobStorage(eh);
+		
+		if (Configurator.isRemoteBlobStoreEncryptionEnabled()) {
+			cloudBlobStorage = new CloudBlobStorage(eh);
+		} else {
+			cloudBlobStorage = new CloudBlobStorage(null);
+		}
+		
+		if (Configurator.isLocalBlobStoreEncryptionEnabled()) {
+			dbBlobStorage = new CassandraBlobStorage(eh);
+		} else {
+			dbBlobStorage = new CassandraBlobStorage(null);
+		}
 	}
-	
-	public BlobURI write(final UUID messageId, final Mailbox mailbox, final String profileName,
-			final InputStream in, final Long size) throws IOException,
-			GeneralSecurityException
-	{
+
+	public BlobURI write(final UUID messageId, final Mailbox mailbox,
+			final String profileName, final InputStream in, final Long size)
+			throws IOException, GeneralSecurityException {
 		Assert.notNull(in, "No data to store");
 
 		BlobURI blobUri;
@@ -100,10 +110,10 @@ public final class BlobStorageMediator extends BlobStorage
 		boolean compressed = false;
 
 		// compress stream and calculate compressed size
-		if ((compressionHandler != null) && (size > MIN_COMPRESS_SIZE))
-		{
-			InputStream compressedInputStream = compressionHandler.compress(in); 
-			FileBackedOutputStream fbout = new FileBackedOutputStream(MAX_MEMORY_FILE_SIZE, true);
+		if ((compressionHandler != null) && (size > MIN_COMPRESS_SIZE)) {
+			InputStream compressedInputStream = compressionHandler.compress(in);
+			FileBackedOutputStream fbout = new FileBackedOutputStream(
+					MAX_MEMORY_FILE_SIZE, true);
 			updatedSize = ByteStreams.copy(compressedInputStream, fbout);
 			in1 = fbout.getSupplier().getInput();
 			compressed = true;
@@ -111,17 +121,19 @@ public final class BlobStorageMediator extends BlobStorage
 			in1 = in;
 		}
 
-		if (updatedSize <= Configurator.getDatabaseBlobMaxSize())
-		{
+		if (updatedSize <= Configurator.getDatabaseBlobMaxSize()) {
 			logger.debug(
 					"Storing Blob in the database because size ({}KB) was less than database threshold {}KB",
 					updatedSize, Configurator.getDatabaseBlobMaxSize());
-			blobUri = dbBlobStorage.write(messageId, mailbox, null, in1, updatedSize);
+			blobUri = dbBlobStorage.write(messageId, mailbox, null, in1,
+					updatedSize);
 		} else {
 			logger.debug(
 					"Storing Blob in the cloud because size ({}KB) was greater than database threshold {}KB",
 					updatedSize, Configurator.getDatabaseBlobMaxSize());
-			blobUri = cloudBlobStorage.write(messageId, mailbox, Configurator.getBlobStoreWriteProfileName(), in1, updatedSize);
+			blobUri = cloudBlobStorage.write(messageId, mailbox,
+					Configurator.getBlobStoreWriteProfileName(), in1,
+					updatedSize);
 		}
 
 		// add compression information to the blob URI
@@ -132,8 +144,7 @@ public final class BlobStorageMediator extends BlobStorage
 		return blobUri;
 	}
 
-	public BlobDataSource read(final URI uri) throws IOException
-	{
+	public BlobDataSource read(final URI uri) throws IOException {
 		// check if blob was stored for the message
 		Assert.notNull(uri, "URI cannot be null");
 
@@ -149,10 +160,9 @@ public final class BlobStorageMediator extends BlobStorage
 		// if compressed, add compression handler to data source
 		if ((blobUri.getCompression() != null && blobUri.getCompression()
 				.equals(DeflateCompressionHandler.COMPRESSION_TYPE_DEFLATE)) ||
-				// TODO: deprecated suffix based compression detection
-				// kept for backward compatibility with 0.3
-				blobUri.getName().endsWith(BlobStoreConstants.COMPRESS_SUFFIX))
-		{
+		// TODO: deprecated suffix based compression detection
+		// kept for backward compatibility with 0.3
+				blobUri.getName().endsWith(BlobStoreConstants.COMPRESS_SUFFIX)) {
 			CompressionHandler ch = new DeflateCompressionHandler();
 			return new BlobDataSource(uri, blobDS.getInputStream(), ch);
 		} else {
@@ -160,11 +170,10 @@ public final class BlobStorageMediator extends BlobStorage
 		}
 	}
 
-	public void delete(final URI uri) throws IOException
-	{
+	public void delete(final URI uri) throws IOException {
 		// check if blob was stored for the message, silently skip otherwise
 		if (uri == null) {
-			return; 
+			return;
 		}
 
 		boolean isDbProfile = new BlobURI().fromURI(uri).getProfile()

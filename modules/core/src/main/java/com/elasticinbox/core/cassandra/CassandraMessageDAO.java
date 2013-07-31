@@ -99,7 +99,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements
 				: null;
 
 
-		if (Configurator.isRemoteBlobStoreEncryptionEnabled()) {
+		if (Configurator.isRemoteBlobStoreEncryptionEnabled() || Configurator.isLocalBlobStoreEncryptionEnabled()) {
 			this.blobStorage = new BlobStorageMediator(compressionHandler,
 					new AESEncryptionHandler());
 		} else {
@@ -240,10 +240,10 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements
 						.getCipherIVFromBlobName(blobName);
 
 				message = encryptionHandler.encryptMessage(message,
-						Configurator.getBlobStoreDefaultEncryptionKey(), iv);
+						Configurator.getDefaultEncryptionKey(), iv);
 
 				message.setEncryptionKey(Configurator
-						.getBlobStoreDefaultEncryptionKeyAlias());
+						.getDefaultEncryptionKeyAlias());
 			}
 			// store metadata
 			MessagePersistence.persistMessage(m, mailbox.getId(), messageId,
