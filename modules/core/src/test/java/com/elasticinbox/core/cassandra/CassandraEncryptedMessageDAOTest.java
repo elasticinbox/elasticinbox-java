@@ -64,6 +64,9 @@ import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.Message;
 import com.elasticinbox.core.model.ReservedLabels;
 
+/*
+ * @author itembase GmbH, John Wiesel <jw@itembase.biz>
+ */
 public class CassandraEncryptedMessageDAOTest {
 	final static StringSerializer strSe = StringSerializer.get();
 	final static UUIDSerializer uuidSe = UUIDSerializer.get();

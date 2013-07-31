@@ -108,6 +108,9 @@ public class CassandraStorageTest
 		testWrite(bs, TEST_LARGE_FILE);
 	}
 
+	/*
+	 * @author itembase GmbH, John Wiesel <jw@itembase.biz>
+	 */
 	@Test
 	public void testEncryptedBlobStorage() throws IOException, GeneralSecurityException
 	{
