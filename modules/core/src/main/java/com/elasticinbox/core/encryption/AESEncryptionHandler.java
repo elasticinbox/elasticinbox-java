@@ -191,18 +191,17 @@ public class AESEncryptionHandler implements EncryptionHandler {
 
 	private String cryptString(String toCrypt, Key key, byte[] iv) {
 		if (this.mode == ENCRYPT) {
-			return symmetricEncrypt(toCrypt, key);
+			return symmetricEncrypt(toCrypt, key, iv);
 		}
-		return symmetricDecrypt(toCrypt, key);
+		return symmetricDecrypt(toCrypt, key, iv);
 	}
 
-	private String symmetricEncrypt(String text, Key secretKey) {
+	private String symmetricEncrypt(String text, Key secretKey, byte[] iv) {
 		String encryptedString = "";
 		byte[] encryptText = text.getBytes();
 
 		try {
-			cipher = Cipher.getInstance("AES");
-			cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+			cipher.init(Cipher.ENCRYPT_MODE, secretKey, new IvParameterSpec(iv));
 			encryptedString = Base64.encodeBase64String(cipher
 					.doFinal(encryptText));
 
@@ -213,14 +212,13 @@ public class AESEncryptionHandler implements EncryptionHandler {
 		return encryptedString;
 	}
 
-	public String symmetricDecrypt(String text, Key secretKey) {
+	public String symmetricDecrypt(String text, Key secretKey, byte[] iv) {
 		String encryptedString = "";
 		byte[] encryptText = null;
 
 		try {
 			encryptText = Base64.decodeBase64(text);
-			cipher = Cipher.getInstance("AES");
-			cipher.init(Cipher.DECRYPT_MODE, secretKey);
+			cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(iv));
 			encryptedString = new String(cipher.doFinal(encryptText));
 
 		} catch (Exception e) {
