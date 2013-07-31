@@ -110,22 +110,19 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements
 		encryptionHandler = Configurator.isMetaStoreEncryptionEnabled() ? new AESEncryptionHandler()
 				: null;
 	}
-
-	@Override
-	public Message getParsed(final Mailbox mailbox, final UUID messageId) {
-		Message message = MessagePersistence.fetch(mailbox.getId(), messageId,
-				true);
-		// decrypt message metadata if a handler is set
+	
+	private Message decryptMessageIfNecessary(Mailbox mailbox, UUID messageId, Message message) {
+		String blobName = new BlobNameBuilder().setMailbox(mailbox)
+				.setMessageId(messageId).build();
+		
 		if (encryptionHandler != null) {
-			String blobName = new BlobNameBuilder().setMailbox(mailbox)
-					.setMessageId(messageId).build();
-
+			
 			try {
 				byte[] iv;
 				iv = AESEncryptionHandler.getCipherIVFromBlobName(blobName);
-				// decrypt message
+				// decrypt message using the stored encryption key alias
 				String keyAlias = message.getEncryptionKey();
-
+	
 				logger.debug("Decrypting object {} with key {}", messageId,
 						keyAlias);
 				Key key = Configurator.getEncryptionKey(keyAlias);
@@ -135,8 +132,17 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements
 				logger.error("unable to decrypt message: key={}",
 						message.getMessageId());
 			}
-
 		}
+		return message;
+	}
+
+	@Override
+	public Message getParsed(final Mailbox mailbox, final UUID messageId) {
+		Message message = MessagePersistence.fetch(mailbox.getId(), messageId,
+				true);
+
+		// decrypt message metadata if a handler is set
+		message = decryptMessageIfNecessary(mailbox, messageId, message);
 
 		return message;
 	}
@@ -156,7 +162,13 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements
 		List<UUID> messageIds = getMessageIds(mailbox, labelId, start, count,
 				reverse);
 
-		return MessagePersistence.fetch(mailbox.getId(), messageIds, false);
+		Map<UUID, Message> messages = MessagePersistence.fetch(mailbox.getId(), messageIds, false);
+		for (Map.Entry<UUID, Message> message : messages.entrySet())
+		{
+			message.setValue(decryptMessageIfNecessary(mailbox, message.getKey(), message.getValue()));
+		}
+
+		return messages;
 	}
 
 	@Override
