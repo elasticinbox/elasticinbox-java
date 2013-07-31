@@ -56,7 +56,7 @@ import com.elasticinbox.core.model.Message;
  * 
  * @author <ul>
  *         <li>Rustam Aliyev</li>
- *         <li>John Wiesel (jw@itembase.biz)</li>
+ *         <li>itembase GmbH, John Wiesel <jw@itembase.biz></li>
  *         </ul>
  */
 public class AESEncryptionHandler implements EncryptionHandler {
