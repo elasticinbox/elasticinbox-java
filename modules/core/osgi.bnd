@@ -9,6 +9,7 @@ Export-Package: \
 	com.elasticinbox.core.account.*,\
 	com.elasticinbox.core.message,\
 	com.elasticinbox.core.message.id,\
+	com.elasticinbox.core.encryption,\
 	com.elasticinbox.core.blob,\
 	com.elasticinbox.core.log
 
