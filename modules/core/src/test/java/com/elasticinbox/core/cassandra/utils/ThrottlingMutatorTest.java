@@ -72,9 +72,9 @@ public class ThrottlingMutatorTest
 		ConsistencyLevelPolicy clp = new QuorumConsistencyLevel();
 
 		// Host config
-		CassandraHostConfigurator conf = new CassandraHostConfigurator("10.0.106.31:9160");
+		CassandraHostConfigurator conf = new CassandraHostConfigurator("127.0.0.1:9160");
 
-		cluster = HFactory.getOrCreateCluster("Elastic", conf);
+		cluster = HFactory.getOrCreateCluster("TestCluster", conf);
 		keyspace = HFactory.createKeyspace(KEYSPACE, cluster, clp);
 	}
 
