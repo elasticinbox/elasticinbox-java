@@ -72,7 +72,7 @@ public class CassandraEncryptedMessageDAOTest {
 	final static UUIDSerializer uuidSe = UUIDSerializer.get();
 	final static BytesArraySerializer byteSe = BytesArraySerializer.get();
 
-	final static String KEYSPACE = "elasticinbox";
+	final static String KEYSPACE = "ElasticInbox";
 	final static String MAILBOX = "testmessagedao@elasticinbox.com";
 	Cluster cluster;
 	Keyspace keyspace;
