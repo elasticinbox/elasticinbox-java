@@ -69,7 +69,7 @@ public class CassandraMessageDAOTest
 	final static UUIDSerializer uuidSe = UUIDSerializer.get();
 	final static BytesArraySerializer byteSe = BytesArraySerializer.get();
 
-	final static String KEYSPACE = "elasticinbox";
+	final static String KEYSPACE = "ElasticInbox";
 	final static String MAILBOX = "testmessagedao@elasticinbox.com";
 	Cluster cluster;
 	Keyspace keyspace;
@@ -84,10 +84,9 @@ public class CassandraMessageDAOTest
 		ConsistencyLevelPolicy clp = new QuorumConsistencyLevel();
 
 		// Host config
-		
-		CassandraHostConfigurator conf = new CassandraHostConfigurator();
+		CassandraHostConfigurator conf = new CassandraHostConfigurator("127.0.0.1:9160");
 
-		cluster = HFactory.getOrCreateCluster("Elastic", conf);
+		cluster = HFactory.getOrCreateCluster("TestCluster", conf);
 		keyspace = HFactory.createKeyspace(KEYSPACE, cluster, clp);
 		
 		dao = new CassandraDAOFactory();
