@@ -60,7 +60,7 @@ public class ThrottlingMutatorTest
 	final static UUIDSerializer uuidSe = UUIDSerializer.get();
 	final static BytesArraySerializer byteSe = BytesArraySerializer.get();
 
-	final static String KEYSPACE = "elasticinbox";
+	final static String KEYSPACE = "ElasticInbox";
 	final static String MAILBOX = "throttling@elasticinbox.com";
 	final static int LABEL = 5555;
 	Cluster cluster;
