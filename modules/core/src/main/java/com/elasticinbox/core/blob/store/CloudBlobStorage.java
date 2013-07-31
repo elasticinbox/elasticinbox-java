@@ -84,7 +84,7 @@ public final class CloudBlobStorage extends BlobStorage {
 			byte[] iv = AESEncryptionHandler.getCipherIVFromBlobName(blobName);
 
 			InputStream encryptedInputStream = this.encryptionHandler.encrypt(
-					in, Configurator.getBlobStoreDefaultEncryptionKey(), iv);
+					in, Configurator.getDefaultEncryptionKey(), iv);
 			FileBackedOutputStream fbout = new FileBackedOutputStream(
 					MAX_MEMORY_FILE_SIZE, true);
 
@@ -92,7 +92,7 @@ public final class CloudBlobStorage extends BlobStorage {
 			in1 = fbout.getSupplier().getInput();
 
 			blobUri.setEncryptionKey(Configurator
-					.getBlobStoreDefaultEncryptionKeyAlias());
+					.getDefaultEncryptionKeyAlias());
 		} else {
 			in1 = in;
 		}
