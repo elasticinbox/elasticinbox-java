@@ -84,8 +84,13 @@ blobstore_enable_compression: true
 
 # Encrypt objects written to the blob store. Blobs stored in database are
 # never encrypted.
-blobstore_enable_encryption: true
-blobstore_default_encryption_key: testkey2
+local_blobstore_enable_encryption: true
+remote_blobstore_enable_encryption: true
+metastore_enable_encryption: false
+
+
+default_encryption_key: testkey2
+
 
 ### Encryption settings
 encryption:
