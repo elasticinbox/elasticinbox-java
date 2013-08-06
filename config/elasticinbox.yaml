@@ -96,10 +96,13 @@ blobstore_write_profile: fs-local
 # Compress objects written to the blob store (including database blobs)
 blobstore_enable_compression: true
 
-# Encrypt objects written to the blob store. Blobs stored in database are
-# never encrypted.
-blobstore_enable_encryption: false
-#blobstore_default_encryption_key: mykey1
+# Encrypt raw emails written to local machine and/or remote blob storage
+local_blobstore_enable_encryption: false
+remote_blobstore_enable_encryption: false
+# Encrypt parsed message data like body, sender, addresses written to local db
+metastore_enable_encryption: false
+
+#default_encryption_key: mykey1
 
 ### Encryption settings
 #encryption:

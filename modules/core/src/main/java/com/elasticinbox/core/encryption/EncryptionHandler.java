@@ -26,49 +26,60 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.elasticinbox.core.blob.encryption;
+package com.elasticinbox.core.encryption;
 
 import java.io.InputStream;
+import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.ShortBufferException;
+
+import com.elasticinbox.core.model.Message;
 
 /**
- * This class provides AES encryption/decryption methods.
+ * Handles generic encryption/decryption tasks. Used mainly for dependency injection.
  * 
  * @author Rustam Aliyev
  */
-public class AESEncryptionHandler implements EncryptionHandler
+public interface EncryptionHandler
 {
 	/**
-	 * Use AES-CBC algorithm with PKCS5 padding
+	 * Encrypt input stream
+	 *  
+	 * @param in Clear input stream
+	 * @param key AES key used for encryption
+	 * @param iv Initialisation vector
+	 * @return Encrypted input stream
+	 * @throws GeneralSecurityException
 	 */
-	public static final String CIPHER_TRANSFORMATION = "AES/CBC/PKCS5Padding";
+	public InputStream encrypt(InputStream in, Key key, byte[] iv) throws GeneralSecurityException;
 
-	public InputStream encrypt(InputStream in, Key key, byte[] iv)
-			throws NoSuchAlgorithmException, NoSuchPaddingException,
-			InvalidKeyException, InvalidAlgorithmParameterException, NoSuchProviderException
-	{
-		Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-		cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
-		
-		return new CipherInputStream(in, cipher);
-	}
+	/**
+	 * Decrypt input stream
+	 *  
+	 * @param in Encrypted input stream
+	 * @param key AES key used for encryption
+	 * @param iv Initialisation vector used for encryption
+	 * @return Decrypted input stream
+	 * @throws GeneralSecurityException
+	 */
+	public InputStream decrypt(InputStream in, Key key, byte[] iv) throws GeneralSecurityException;
 
-	public InputStream decrypt(InputStream in, Key key, byte[] iv)
-			throws NoSuchAlgorithmException, NoSuchPaddingException,
-			InvalidKeyException, InvalidAlgorithmParameterException, NoSuchProviderException
-	{
-		Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-		cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
-		
-		return new CipherInputStream(in, cipher);
-	}
+	/*
+	 * encrypt a message object
+	 */
+	public Message encryptMessage(Message message,
+			Key blobStoreDefaultEncryptionKey, byte[] iv) throws  NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, ShortBufferException, BadPaddingException, IllegalBlockSizeException, BadPaddingException;
+
+	/*
+	 * decrypt a message object
+	 */
+	public Message decryptMessage(Message message,
+			Key blobStoreDefaultEncryptionKey, byte[] iv) throws NoSuchAlgorithmException, NoSuchPaddingException, ShortBufferException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException;
 }

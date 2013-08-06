@@ -267,6 +267,15 @@ public class Message
 		return this.encryptionKey != null;
 	}
 
+	public void setEncryptionKey(String key) {
+		this.encryptionKey = key;
+	}
+	
+	public String getEncryptionKey(){
+		return this.encryptionKey;
+	}
+	
+	
 	/**
 	 * Get message header by name
 	 * 

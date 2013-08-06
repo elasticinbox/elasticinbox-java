@@ -33,6 +33,7 @@ import static me.prettyprint.hector.api.factory.HFactory.createMutator;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.security.Key;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -56,13 +57,19 @@ import com.elasticinbox.core.OverQuotaException;
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.compression.CompressionHandler;
 import com.elasticinbox.core.blob.compression.DeflateCompressionHandler;
-import com.elasticinbox.core.blob.encryption.AESEncryptionHandler;
-import com.elasticinbox.core.blob.encryption.EncryptionHandler;
+import com.elasticinbox.core.blob.naming.BlobNameBuilder;
 import com.elasticinbox.core.blob.store.BlobStorage;
 import com.elasticinbox.core.blob.store.BlobStorageMediator;
-import com.elasticinbox.core.cassandra.persistence.*;
+import com.elasticinbox.core.cassandra.persistence.AccountPersistence;
+import com.elasticinbox.core.cassandra.persistence.LabelCounterPersistence;
+import com.elasticinbox.core.cassandra.persistence.LabelIndexPersistence;
+import com.elasticinbox.core.cassandra.persistence.Marshaller;
+import com.elasticinbox.core.cassandra.persistence.MessagePersistence;
+import com.elasticinbox.core.cassandra.persistence.PurgeIndexPersistence;
 import com.elasticinbox.core.cassandra.utils.BatchConstants;
 import com.elasticinbox.core.cassandra.utils.ThrottlingMutator;
+import com.elasticinbox.core.encryption.AESEncryptionHandler;
+import com.elasticinbox.core.encryption.EncryptionHandler;
 import com.elasticinbox.core.model.LabelCounters;
 import com.elasticinbox.core.model.Labels;
 import com.elasticinbox.core.model.Mailbox;
@@ -79,24 +86,65 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 	private final static Logger logger = 
 			LoggerFactory.getLogger(CassandraMessageDAO.class);
-	
-	public CassandraMessageDAO(Keyspace keyspace)
-	{
-		this.keyspace = keyspace;
-		
-		// Create BlobStorage instance with AES encryption and Deflate compression
-		CompressionHandler compressionHandler = 
-				Configurator.isBlobStoreCompressionEnabled() ? new DeflateCompressionHandler() : null;
-		EncryptionHandler encryptionHandler = 
-				Configurator.isBlobStoreEncryptionEnabled() ? new AESEncryptionHandler() : null;
 
-		this.blobStorage = new BlobStorageMediator(compressionHandler, encryptionHandler);
+	private EncryptionHandler encryptionHandler;
+
+	public CassandraMessageDAO(Keyspace keyspace) {
+		this.keyspace = keyspace;
+
+		// Create BlobStorage instance with optional AES encryption and
+		// Deflate compression
+		CompressionHandler compressionHandler = Configurator
+				.isBlobStoreCompressionEnabled() ? new DeflateCompressionHandler()
+				: null;
+
+
+		if (Configurator.isRemoteBlobStoreEncryptionEnabled() || Configurator.isLocalBlobStoreEncryptionEnabled()) {
+			this.blobStorage = new BlobStorageMediator(compressionHandler,
+					new AESEncryptionHandler());
+		} else {
+			this.blobStorage = new BlobStorageMediator(compressionHandler, null);
+		}
+		
+		// enable encryption of CassandraMessageDAO if enabled
+		encryptionHandler = Configurator.isMetaStoreEncryptionEnabled() ? new AESEncryptionHandler()
+				: null;
+	}
+	
+	private Message decryptMessageIfNecessary(Mailbox mailbox, UUID messageId, Message message) {
+		String blobName = new BlobNameBuilder().setMailbox(mailbox)
+				.setMessageId(messageId).build();
+		
+		if (encryptionHandler != null) {
+			
+			try {
+				byte[] iv;
+				iv = AESEncryptionHandler.getCipherIVFromBlobName(blobName);
+				// decrypt message using the stored encryption key alias
+				String keyAlias = message.getEncryptionKey();
+	
+				logger.debug("Decrypting object {} with key {}", messageId,
+						keyAlias);
+				Key key = Configurator.getEncryptionKey(keyAlias);
+				message = encryptionHandler.decryptMessage(message, key, iv);
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+				logger.error("unable to decrypt message: key={}",
+						message.getMessageId());
+			}
+		}
+		return message;
 	}
 
 	@Override
-	public Message getParsed(final Mailbox mailbox, final UUID messageId)
-	{
-		return MessagePersistence.fetch(mailbox.getId(), messageId, true);
+	public Message getParsed(final Mailbox mailbox, final UUID messageId) {
+		Message message = MessagePersistence.fetch(mailbox.getId(), messageId,
+				true);
+
+		// decrypt message metadata if a handler is set
+		message = decryptMessageIfNecessary(mailbox, messageId, message);
+
+		return message;
 	}
 
 	@Override
@@ -109,12 +157,18 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 
 	@Override
 	public Map<UUID, Message> getMessageIdsWithHeaders(final Mailbox mailbox,
-			final int labelId, final UUID start, final int count, boolean reverse)
-	{
-		List<UUID> messageIds = 
-				getMessageIds(mailbox, labelId, start, count, reverse);
+			final int labelId, final UUID start, final int count,
+			boolean reverse) {
+		List<UUID> messageIds = getMessageIds(mailbox, labelId, start, count,
+				reverse);
 
-		return MessagePersistence.fetch(mailbox.getId(), messageIds, false);
+		Map<UUID, Message> messages = MessagePersistence.fetch(mailbox.getId(), messageIds, false);
+		for (Map.Entry<UUID, Message> message : messages.entrySet())
+		{
+			message.setValue(decryptMessageIfNecessary(mailbox, message.getKey(), message.getValue()));
+		}
+
+		return messages;
 	}
 
 	@Override
@@ -125,9 +179,8 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 	}
 
 	@Override
-	public void put(final Mailbox mailbox, UUID messageId, Message message, InputStream in)
-			throws IOException, OverQuotaException
-	{
+	public void put(final Mailbox mailbox, UUID messageId, Message message,
+			InputStream in) throws IOException, OverQuotaException {
 		URI uri = null;
 		logger.debug("Storing message: key={}", messageId.toString());
 
@@ -135,13 +188,14 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		LabelCounters mailboxCounters = LabelCounterPersistence.get(
 				mailbox.getId(), ReservedLabels.ALL_MAILS.getId());
 
-		long requiredBytes = mailboxCounters.getTotalBytes() + message.getSize();
+		long requiredBytes = mailboxCounters.getTotalBytes()
+				+ message.getSize();
 		long requiredCount = mailboxCounters.getTotalMessages() + 1;
 
-		if ((requiredBytes > Configurator.getDefaultQuotaBytes()) ||
-			(requiredCount > Configurator.getDefaultQuotaCount()))
-		{
-			logger.info("Mailbox is over quota: {} size={}/{}, count={}/{}",
+		if ((requiredBytes > Configurator.getDefaultQuotaBytes())
+				|| (requiredCount > Configurator.getDefaultQuotaCount())) {
+			logger.info(
+					"Mailbox is over quota: {} size={}/{}, count={}/{}",
 					new Object[] { mailbox.getId(), requiredBytes,
 							Configurator.getDefaultQuotaBytes(), requiredCount,
 							Configurator.getDefaultQuotaCount() });
@@ -152,12 +206,11 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		// Order is important, add to label after message written
 
 		// store blob
-		if (in != null)
-		{
+		if (in != null) {
 			try {
 				uri = blobStorage.write(messageId, mailbox,
-						Configurator.getBlobStoreWriteProfileName(), in, message.getSize())
-						.buildURI();
+						Configurator.getBlobStoreWriteProfileName(), in,
+						message.getSize()).buildURI();
 
 				// update location in metadata
 				message.setLocation(uri);
@@ -177,6 +230,21 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			// begin batch operation
 			Mutator<String> m = createMutator(keyspace, strSe);
 
+			// encrypt message metadata if a handler is set
+			if (encryptionHandler != null) {
+				String blobName = new BlobNameBuilder().setMailbox(mailbox)
+						.setMessageId(messageId).build();
+
+				// encrypt message
+				byte[] iv = AESEncryptionHandler
+						.getCipherIVFromBlobName(blobName);
+
+				message = encryptionHandler.encryptMessage(message,
+						Configurator.getDefaultEncryptionKey(), iv);
+
+				message.setEncryptionKey(Configurator
+						.getDefaultEncryptionKeyAlias());
+			}
 			// store metadata
 			MessagePersistence.persistMessage(m, mailbox.getId(), messageId, message);
 			// add indexes

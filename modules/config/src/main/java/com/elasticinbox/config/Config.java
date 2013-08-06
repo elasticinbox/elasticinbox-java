@@ -71,9 +71,14 @@ public class Config
 	public Boolean blobstore_enable_compression;
 	
 	// Blob store encryption
-	public Boolean blobstore_enable_encryption = false;
-	public String blobstore_default_encryption_key = null;
+	public Boolean remote_blobstore_enable_encryption = false;
+	public Boolean local_blobstore_enable_encryption = false;
+	public String default_encryption_key = null;
 
 	// Encryption options
 	public EncryptionSettings encryption = new EncryptionSettings();
+	
+	// Meta store encryption
+	// Currently uses the same key as the blob store
+	public Boolean metastore_enable_encryption = false;
 }

@@ -41,21 +41,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.common.utils.Assert;
+import com.elasticinbox.config.Configurator;
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.BlobURI;
+import com.elasticinbox.core.blob.BlobUtils;
+import com.elasticinbox.core.blob.naming.BlobNameBuilder;
+import com.elasticinbox.core.encryption.AESEncryptionHandler;
+import com.elasticinbox.core.encryption.EncryptionHandler;
 import com.elasticinbox.core.cassandra.persistence.BlobPersistence;
 import com.elasticinbox.core.model.Mailbox;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.FileBackedOutputStream;
 
 /**
  * Blob storage proxy for Cassandra
  * 
  * @author Rustam Aliyev
  */
-public final class CassandraBlobStorage implements BlobStorage
-{
-	private static final Logger logger = 
-			LoggerFactory.getLogger(CassandraBlobStorage.class);
+public final class CassandraBlobStorage extends BlobStorage {
+	private static final Logger logger = LoggerFactory
+			.getLogger(CassandraBlobStorage.class);
 
 	/**
 	 * Constructor
@@ -63,7 +68,17 @@ public final class CassandraBlobStorage implements BlobStorage
 	 * Cassandra blob storage does not perform compression of encryption.
 	 */
 	public CassandraBlobStorage() {
-		
+
+	}
+
+	/**
+	 * Constructor
+	 * 
+	 * @param eh
+	 *            Injected Encryption Handler
+	 */
+	public CassandraBlobStorage(EncryptionHandler eh) {
+		encryptionHandler = eh;
 	}
 
 	@Override
@@ -74,11 +89,34 @@ public final class CassandraBlobStorage implements BlobStorage
 				+ " bytes can't be stored in Cassandra. Provided blob size: " + size + " bytes");
 
 		logger.debug("Storing blob {} in Cassandra", messageId);
+		// get blob name
+		String blobName = new BlobNameBuilder().setMailbox(mailbox)
+				.setMessageId(messageId).setMessageSize(size).build();
 
 		// prepare URI
 		BlobURI blobUri = new BlobURI()
 				.setProfile(DATABASE_PROFILE)
 				.setName(messageId.toString()).setBlockCount(1);
+
+		InputStream in1;
+		// encrypt stream
+		if (encryptionHandler != null) {
+			byte[] iv = AESEncryptionHandler.getCipherIVFromBlobName(blobName);
+
+			InputStream encryptedInputStream = this.encryptionHandler.encrypt(
+					in, Configurator.getDefaultEncryptionKey(), iv);
+			FileBackedOutputStream fbout = new FileBackedOutputStream(
+					MAX_MEMORY_FILE_SIZE, true);
+
+			ByteStreams.copy(encryptedInputStream, fbout);
+			
+			in1 = fbout.getSupplier().getInput();
+
+			blobUri.setEncryptionKey(Configurator
+					.getDefaultEncryptionKeyAlias());
+		} else {
+			in1 = in;
+		}
 
 		// store blob
 		// TODO: currently we allow only single block writes (blockid=0). in future we can split blobs to multiple blocks
@@ -98,6 +136,25 @@ public final class CassandraBlobStorage implements BlobStorage
 		UUID messageId = UUID.fromString(blobUri.getName());
 		byte[] messageBlock = BlobPersistence.readBlock(messageId, DATABASE_DEFAULT_BLOCK_ID);
 		InputStream in = ByteStreams.newInputStreamSupplier(messageBlock).getInput();
+		String keyAlias = blobUri.getEncryptionKey();
+
+		if (keyAlias != null) {
+			// currently we only support AES encryption, use by default
+			EncryptionHandler eh = new AESEncryptionHandler();
+
+			try {
+				logger.debug("Decrypting object {} with key {}", uri, keyAlias);
+
+				byte[] iv = AESEncryptionHandler.getCipherIVFromBlobName(BlobUtils.relativize(uri
+						.getPath()));
+
+				in = eh.decrypt(in, Configurator.getEncryptionKey(keyAlias), iv);
+
+				// Configurator.getEncryptionKey(keyAlias), iv);
+			} catch (GeneralSecurityException gse) {
+				throw new IOException("Unable to decrypt message blob: ", gse);
+			}
+		}
 
 		return new BlobDataSource(uri, in);
 	}

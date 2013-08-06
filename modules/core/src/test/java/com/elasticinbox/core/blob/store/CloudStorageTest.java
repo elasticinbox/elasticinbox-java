@@ -49,7 +49,7 @@ import com.elasticinbox.common.utils.IOUtils;
 import com.elasticinbox.config.Configurator;
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.compression.DeflateCompressionHandler;
-import com.elasticinbox.core.blob.encryption.AESEncryptionHandler;
+import com.elasticinbox.core.encryption.AESEncryptionHandler;
 import com.elasticinbox.core.model.Mailbox;
 
 public class CloudStorageTest
@@ -108,7 +108,7 @@ public class CloudStorageTest
 				// + BlobStoreConstants.URI_PARAM_COMPRESSION + "="
 				// + DeflateCompressionHandler.COMPRESSION_TYPE_DEFLATE + "&"
 				+ BlobStoreConstants.URI_PARAM_ENCRYPTION_KEY + "="
-				+ Configurator.getBlobStoreDefaultEncryptionKeyAlias();
+				+ Configurator.getDefaultEncryptionKeyAlias();
 
 		// BlobStorage with encryption or compression
 		BlobStorage bs = new CloudBlobStorage(new AESEncryptionHandler());

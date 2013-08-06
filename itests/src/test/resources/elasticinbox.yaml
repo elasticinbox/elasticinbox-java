@@ -82,10 +82,15 @@ blobstore_write_profile: itest
 # Compress objects written to the blob store (including database blobs)
 blobstore_enable_compression: true
 
-# Encrypt objects written to the blob store. Blobs stored in database are
-# never encrypted.
-blobstore_enable_encryption: true
-blobstore_default_encryption_key: testkey2
+
+# Encrypt raw emails written to local machine and/or remote blob storage
+local_blobstore_enable_encryption: true
+remote_blobstore_enable_encryption: true
+# Encrypt parsed message data like body, sender, addresses written to local db
+metastore_enable_encryption: true
+
+default_encryption_key: testkey2
+
 
 ### Encryption settings
 encryption:

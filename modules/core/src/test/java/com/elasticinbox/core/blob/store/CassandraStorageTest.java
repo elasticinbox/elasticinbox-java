@@ -47,6 +47,8 @@ import com.elasticinbox.common.utils.IOUtils;
 import com.elasticinbox.config.Configurator;
 import com.elasticinbox.config.DatabaseConstants;
 import com.elasticinbox.core.blob.BlobDataSource;
+import com.elasticinbox.core.encryption.AESEncryptionHandler;
+import com.elasticinbox.core.encryption.EncryptionHandler;
 import com.elasticinbox.core.model.Mailbox;
 
 public class CassandraStorageTest
@@ -106,6 +108,41 @@ public class CassandraStorageTest
 		testWrite(bs, TEST_LARGE_FILE);
 	}
 
+	/*
+	 * @author itembase GmbH, John Wiesel <jw@itembase.biz>
+	 */
+	@Test
+	public void testEncryptedBlobStorage() throws IOException, GeneralSecurityException
+	{
+		String expextedBlobUrl = "blob://"
+				+ DatabaseConstants.DATABASE_PROFILE + "/"				
+				+ MESSAGE_ID + "?"
+				+ BlobStoreConstants.URI_PARAM_ENCRYPTION_KEY + "=" + Configurator.getDefaultEncryptionKeyAlias() + "&"
+				+ BlobStoreConstants.URI_PARAM_BLOCK_COUNT + "=1";
+
+		EncryptionHandler encryptionHandler =  new AESEncryptionHandler();
+
+		// BlobStorage with encryption
+		BlobStorage bs = new CassandraBlobStorage(encryptionHandler);
+
+		// Write blob
+		long origSize = testWrite(bs, TEST_FILE);
+
+		// Check written Blob URI
+		assertThat(blobUri.toString(), equalTo(expextedBlobUrl));
+
+		// Read blob back
+		BlobDataSource ds = bs.read(blobUri);
+		
+		long newSize = IOUtils.getInputStreamSize(ds.getUncompressedInputStream());
+
+		// Check written Blob size
+		assertThat(newSize, equalTo(origSize));
+
+		// Delete
+		bs.delete(blobUri);		
+	}
+	
 	private long testWrite(BlobStorage bs, String filename) throws IOException, GeneralSecurityException
 	{
 		File file = new File(filename);

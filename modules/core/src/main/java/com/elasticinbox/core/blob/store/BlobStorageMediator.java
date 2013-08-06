@@ -46,7 +46,8 @@ import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.BlobURI;
 import com.elasticinbox.core.blob.compression.CompressionHandler;
 import com.elasticinbox.core.blob.compression.DeflateCompressionHandler;
-import com.elasticinbox.core.blob.encryption.EncryptionHandler;
+import com.elasticinbox.core.encryption.AESEncryptionHandler;
+import com.elasticinbox.core.encryption.EncryptionHandler;
 import com.elasticinbox.core.model.Mailbox;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.FileBackedOutputStream;
@@ -57,10 +58,14 @@ import com.google.common.io.FileBackedOutputStream;
  * 
  * @author Rustam Aliyev
  */
-public final class BlobStorageMediator implements BlobStorage
-{
-	private static final Logger logger = 
-			LoggerFactory.getLogger(BlobStorageMediator.class);
+public final class BlobStorageMediator extends BlobStorage {
+	private static final Logger logger = LoggerFactory
+			.getLogger(BlobStorageMediator.class);
+
+	protected static byte[] getCipherIVFromBlobName(final String blobName)
+			throws IOException {
+		return null;
+	}
 
 	protected final CompressionHandler compressionHandler;
 
@@ -76,11 +81,22 @@ public final class BlobStorageMediator implements BlobStorage
 	 * @param eh
 	 *            Injected encryption handler
 	 */
+			
 	public BlobStorageMediator(final CompressionHandler ch, final EncryptionHandler eh)
 	{
 		this.compressionHandler = ch;
-		cloudBlobStorage = new CloudBlobStorage(eh);
-		dbBlobStorage = new CassandraBlobStorage();
+		
+		if (Configurator.isRemoteBlobStoreEncryptionEnabled()) {
+			cloudBlobStorage = new CloudBlobStorage(eh);
+		} else {
+			cloudBlobStorage = new CloudBlobStorage(null);
+		}
+		
+		if (Configurator.isLocalBlobStoreEncryptionEnabled()) {
+			dbBlobStorage = new CassandraBlobStorage(eh);
+		} else {
+			dbBlobStorage = new CassandraBlobStorage(null);
+		}
 	}
 	
 	public BlobURI write(final UUID messageId, final Mailbox mailbox, final String profileName,

@@ -392,7 +392,6 @@
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
 			<version>1.8</version>
-			<scope>test</scope>
 		</dependency>
             
 

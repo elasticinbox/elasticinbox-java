@@ -44,6 +44,14 @@ public class AddressList extends AbstractList<Address>
 	private final List<Address> addresses;
 
 	/**
+	 * Create new empty address list
+	 * 
+	 */
+	public AddressList() {
+		this.addresses = Collections.emptyList();
+	}
+
+	/**
 	 * Create new address list
 	 * 
 	 * @param addresses

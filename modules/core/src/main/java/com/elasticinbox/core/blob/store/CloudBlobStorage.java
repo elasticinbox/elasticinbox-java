@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -44,15 +43,14 @@ import com.elasticinbox.config.Configurator;
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.BlobURI;
 import com.elasticinbox.core.blob.BlobUtils;
-import com.elasticinbox.core.blob.encryption.AESEncryptionHandler;
-import com.elasticinbox.core.blob.encryption.EncryptionHandler;
 import com.elasticinbox.core.blob.naming.BlobNameBuilder;
+import com.elasticinbox.core.encryption.AESEncryptionHandler;
+import com.elasticinbox.core.encryption.EncryptionHandler;
 import com.elasticinbox.core.model.Mailbox;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.FileBackedOutputStream;
 
-public final class CloudBlobStorage implements BlobStorage
-{
+public final class CloudBlobStorage extends BlobStorage {
 	private static final Logger logger = 
 			LoggerFactory.getLogger(CloudBlobStorage.class);
 
@@ -84,17 +82,19 @@ public final class CloudBlobStorage implements BlobStorage
 				.setName(blobName);
 
 		// encrypt stream
-		if (encryptionHandler != null)
-		{
-			byte[] iv = getCipherIVFromBlobName(blobName);
-			
-			InputStream encryptedInputStream = this.encryptionHandler.encrypt(in, Configurator.getBlobStoreDefaultEncryptionKey(), iv);
-			FileBackedOutputStream fbout = new FileBackedOutputStream(MAX_MEMORY_FILE_SIZE, true);
-			
+		if (encryptionHandler != null) {
+			byte[] iv = AESEncryptionHandler.getCipherIVFromBlobName(blobName);
+
+			InputStream encryptedInputStream = this.encryptionHandler.encrypt(
+					in, Configurator.getDefaultEncryptionKey(), iv);
+			FileBackedOutputStream fbout = new FileBackedOutputStream(
+					MAX_MEMORY_FILE_SIZE, true);
+
 			updatedSize = ByteStreams.copy(encryptedInputStream, fbout);
 			in1 = fbout.getSupplier().getInput();
 
-			blobUri.setEncryptionKey(Configurator.getBlobStoreDefaultEncryptionKeyAlias());
+			blobUri.setEncryptionKey(Configurator
+					.getDefaultEncryptionKeyAlias());
 		} else {
 			in1 = in;
 		}
@@ -115,14 +115,15 @@ public final class CloudBlobStorage implements BlobStorage
 		if (keyAlias != null)
 		{
 			// currently we only support AES encryption, use by default
-			EncryptionHandler eh = new AESEncryptionHandler();
 
 			try {
 				logger.debug("Decrypting object {} with key {}", uri, keyAlias);
 
-				byte[] iv = getCipherIVFromBlobName(BlobUtils.relativize(uri.getPath()));
+				byte[] iv = AESEncryptionHandler
+						.getCipherIVFromBlobName(BlobUtils.relativize(uri
+								.getPath()));
 
-				in = eh.decrypt(CloudStoreProxy.read(uri),
+				in = encryptionHandler.decrypt(CloudStoreProxy.read(uri),
 						Configurator.getEncryptionKey(keyAlias), iv);
 			} catch (GeneralSecurityException gse) {
 				throw new IOException("Unable to decrypt message blob: ", gse);
@@ -139,30 +140,5 @@ public final class CloudBlobStorage implements BlobStorage
 	{
 		CloudStoreProxy.delete(uri);
 	}
-	
-	/**
-	 * Generate cipher initialisation vector (IV) from Blob name.
-	 * 
-	 * IV should be unique but not necessarily secure. Since blob names are
-	 * based on Type1 UUID they are unique.
-	 * 
-	 * @param blobName
-	 * @return
-	 * @throws IOException 
-	 */
-	private static byte[] getCipherIVFromBlobName(final String blobName) throws IOException
-	{
-		byte[] iv;
 
-		try {
-			byte[] nameBytes = blobName.getBytes("UTF-8");
-			MessageDigest md = MessageDigest.getInstance("MD5");
-			iv = md.digest(nameBytes);
-		} catch (Exception e) {
-			// should never happen
-			throw new IOException(e);
-		}
-
-		return iv;
-	}
 }

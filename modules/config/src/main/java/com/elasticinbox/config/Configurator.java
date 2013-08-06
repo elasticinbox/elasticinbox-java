@@ -138,10 +138,11 @@ public class Configurator
 				keyManager = new SymmetricKeyStorage(keystoreFile, conf.encryption.keystore_password);
 	
 				// verify that default blobstore encryption key exists
-				if (!keyManager.containsKey(conf.blobstore_default_encryption_key)) {
+				if (!keyManager.containsKey(conf.default_encryption_key)) {
 					throw new ConfigurationException("Default encryption key for BlobStore '"
-							+ conf.blobstore_default_encryption_key + "' not found");
+							+ conf.default_encryption_key + "' not found");
 				}
+				
 			} else {
 				// initialize empty key store
 				keyManager = new SymmetricKeyStorage();
@@ -268,20 +269,33 @@ public class Configurator
 		return conf.blobstore_enable_compression;
 	}
 	
-	public static Boolean isBlobStoreEncryptionEnabled() {
-		return conf.blobstore_enable_encryption;
+	public static Boolean isRemoteBlobStoreEncryptionEnabled() {
+		return conf.remote_blobstore_enable_encryption;
 	}
-
-	public static String getBlobStoreDefaultEncryptionKeyAlias() {
-		return conf.blobstore_default_encryption_key;
+	
+	public static Boolean isLocalBlobStoreEncryptionEnabled() {
+		return conf.local_blobstore_enable_encryption;
+	}
+	
+	public static String getDefaultEncryptionKeyAlias() {
+		return conf.default_encryption_key;
 	}
 
 	public static java.security.Key getEncryptionKey(String alias) {
 		return keyManager.getKey(alias);
 	}
 
-	public static java.security.Key getBlobStoreDefaultEncryptionKey() {
-		return keyManager.getKey(conf.blobstore_default_encryption_key);
+	public static java.security.Key getDefaultEncryptionKey() {
+		return keyManager.getKey(conf.default_encryption_key);
+	}
+
+	public static boolean isMetaStoreEncryptionEnabled() {
+		return conf.metastore_enable_encryption;
+	}
+	
+
+	public static java.security.Key getMetaStoreDefaultEncryptionKey() {
+		return keyManager.getKey(conf.default_encryption_key);
 	}
 
 }
