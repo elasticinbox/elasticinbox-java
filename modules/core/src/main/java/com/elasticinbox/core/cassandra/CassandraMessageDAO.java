@@ -52,6 +52,7 @@ import org.slf4j.LoggerFactory;
 import com.elasticinbox.config.Configurator;
 import com.elasticinbox.core.IllegalLabelException;
 import com.elasticinbox.core.MessageDAO;
+import com.elasticinbox.core.MessageModification;
 import com.elasticinbox.core.OverQuotaException;
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.blob.compression.CompressionHandler;
@@ -70,6 +71,7 @@ import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.Marker;
 import com.elasticinbox.core.model.Message;
 import com.elasticinbox.core.model.ReservedLabels;
+import com.google.common.collect.Lists;
 
 public final class CassandraMessageDAO extends AbstractMessageDAO implements MessageDAO
 {
@@ -200,211 +202,147 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			throw new IOException("Unable to store message metadata: ", e);
 		}
 	}
-
+	
 	@Override
-	public void addMarker(final Mailbox mailbox, final Set<Marker> markers,
-			final List<UUID> messageIds)
+	public void modify(Mailbox mailbox, List<UUID> messageIds, MessageModification mod)
 	{
-		if (markers.isEmpty() || messageIds.isEmpty()) {
-			return;
-		}
-
-		LabelMap labels = null;
-
-		// get label stats, only required for SEEN marker change
-		if (markers.contains(Marker.SEEN)) {
-			MessageAggregator ma = new MessageAggregator(mailbox, messageIds);
-			labels = ma.aggregateCountersByLabel();
-		}
-
-		// build list of attributes
-		Set<String> attributes = new HashSet<String>(markers.size());
-		for (Marker marker : markers)
-		{
-			String a = new StringBuilder(Marshaller.CN_MARKER_PREFIX)
-					.append(marker.toInt()).toString();
-			attributes.add(a);
+		// label "all" cannot be removed from message
+		if (mod.getLabelsToRemove().contains(ReservedLabels.ALL_MAILS.getId())) {
+			throw new IllegalLabelException("This label cannot be removed");
 		}
 
 		// begin batch operation
-		Mutator<String> m = createMutator(keyspace, strSe);
-
-		// add markers to messages
-		MessagePersistence.persistAttributes(m, mailbox.getId(), messageIds, attributes);
-
-		// decrement new message counter for each of the labels
-		if (markers.contains(Marker.SEEN))
-		{
-			for (Integer labelId : labels.getIds())
-			{
-				LabelCounters labelCounters = new LabelCounters();
-				labelCounters.setUnreadMessages(labels.get(labelId).getCounters().getUnreadMessages());
-				LabelCounterPersistence.subtract(m, mailbox.getId(), labelId, labelCounters);
-			}
-		}
-
-		// commit batch operation
-		m.execute();
-	}
-
-	@Override
-	public void removeMarker(final Mailbox mailbox, final Set<Marker> markers,
-			final List<UUID> messageIds)
-	{
-		if (markers.isEmpty() || messageIds.isEmpty()) {
-			return;
-		}
-
-		LabelMap labels = null;
-
-		// get label stats, only required for SEEN marker change
-		if (markers.contains(Marker.SEEN)) {
-			MessageAggregator ma = new MessageAggregator(mailbox, messageIds);
-			labels = ma.aggregateCountersByLabel();
-		}
-
-		// build list of attributes
-		Set<String> attributes = new HashSet<String>(markers.size());
-		for (Marker marker : markers)
-		{
-			String a = new StringBuilder(Marshaller.CN_MARKER_PREFIX)
-					.append(marker.toInt()).toString();
-			attributes.add(a);
-		}
-
-		// begin batch operation
-		Mutator<String> m = createMutator(keyspace, strSe);
-
-		// remove markers from messages
-		MessagePersistence.deleteAttributes(m, mailbox.getId(), messageIds, attributes);
-
-		// increment new message counter for each of the labels
-		if (markers.contains(Marker.SEEN))
-		{
-			for (Integer labelId : labels.getIds())
-			{
-				LabelCounters labelCounters = new LabelCounters();
-
-				// only seen messages will be marked as new, so we count only seen 
-				Long seenMessages = 
-						labels.get(labelId).getCounters().getTotalMessages()
-						- labels.get(labelId).getCounters().getUnreadMessages();
-				labelCounters.setUnreadMessages(seenMessages);
-
-				LabelCounterPersistence.add(m, mailbox.getId(), labelId, labelCounters);
-			}
-		}
-
-		// commit batch operation
-		m.execute();
-	}
-
-	@Override
-	public void addLabel(final Mailbox mailbox, final Set<Integer> labelIds,
-			final List<UUID> messageIds)
-	{
-		if (labelIds.isEmpty() || messageIds.isEmpty()) {
-			return;
-		}
-
-		// build list of attributes
-		Set<String> attributes = new HashSet<String>(labelIds.size());
-		for (Integer labelId : labelIds) {
-			attributes.add(Marshaller.CN_LABEL_PREFIX + labelId);
-		}
-
-		// begin batch operation
-		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe,
+		ThrottlingMutator<String> mutator = new ThrottlingMutator<String>(keyspace, strSe,
 				BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
+
+		// prepare message attributes
+		Set<String> labelsToAddAsAttributes = labelsToMessageAttibutes(mod.getLabelsToAdd());
+		Set<String> labelsToRemoveAsAttributes = labelsToMessageAttibutes(mod.getLabelsToRemove());
+		Set<String> markersToAddAsAttributes = markersToMessageAttibutes(mod.getMarkersToAdd());
+		Set<String> markersToRemoveAsAttributes = markersToMessageAttibutes(mod.getMarkersToRemove());
 
 		// get message stats for counters
 		MessageAggregator ma = new MessageAggregator(mailbox, messageIds);
-		LabelCounters labelCounters = ma.aggregateCounters();
 
-		// add labels to messages
-		MessagePersistence.persistAttributes(m, mailbox.getId(), messageIds, attributes);
+		for (UUID messageId : ma.getValidMessageIds())
+		{
+			Message message = ma.getMessage(messageId);
 
-		// add messages to label index
-		LabelIndexPersistence.add(m, mailbox.getId(), messageIds, labelIds);
+			// add labels
+			if (!mod.getLabelsToAdd().isEmpty())
+			{
+				// add labels to messages
+				MessagePersistence.persistAttributes(mutator, mailbox.getId(), messageId, labelsToAddAsAttributes);
 
-		// increment label counters
-		LabelCounterPersistence.add(m, mailbox.getId(), labelIds, labelCounters);
+				// add messages to label index
+				LabelIndexPersistence.add(mutator, mailbox.getId(), messageId, mod.getLabelsToAdd());
 
-		// commit batch operation
-		m.execute();
-	}
+				// increment label counters
+				for (int labelId : mod.getLabelsToAdd())
+				{
+					// count only if message does not have label
+					if (!message.getLabels().contains(labelId)) {
+						LabelCounterPersistence.add(mutator, mailbox.getId(), labelId, message.getLabelCounters());
+					}
+				}
+			}
 
-	@Override
-	public void removeLabel(final Mailbox mailbox, final Set<Integer> labelIds,
-			final List<UUID> messageIds)
-	{
-		if (labelIds.isEmpty() || messageIds.isEmpty()) {
-			return;
+			// remove labels
+			if (!mod.getLabelsToRemove().isEmpty())
+			{
+				// remove labels from messages
+				MessagePersistence.deleteAttributes(mutator, mailbox.getId(), messageId, labelsToRemoveAsAttributes);
+
+				// remove messages from label index
+				LabelIndexPersistence.remove(mutator, mailbox.getId(), messageId, mod.getLabelsToRemove());
+
+				// decrement label counters
+				for (int labelId : mod.getLabelsToRemove())
+				{
+					// count only if message had label
+					if (message.getLabels().contains(labelId)) {
+						LabelCounterPersistence.subtract(mutator, mailbox.getId(), labelId, message.getLabelCounters());
+					}
+				}
+			}
+
+			// add markers
+			if (!mod.getMarkersToAdd().isEmpty())
+			{
+				// add markers to messages
+				MessagePersistence.persistAttributes(mutator, mailbox.getId(), messageIds, markersToAddAsAttributes);
+
+				// decrement unread message counter only if message does not have SEEN marker
+				if (mod.getMarkersToAdd().contains(Marker.SEEN) && !message.getMarkers().contains(Marker.SEEN))
+				{
+					LabelCounters labelCounters = new LabelCounters();
+					labelCounters.setUnreadMessages(1L);
+					LabelCounterPersistence.subtract(mutator, mailbox.getId(), message.getLabels(), labelCounters);
+				}
+			}
+			
+			// remove markers
+			if (!mod.getMarkersToRemove().isEmpty())
+			{
+				// remove markers from messages
+				MessagePersistence.deleteAttributes(mutator, mailbox.getId(), messageIds, markersToRemoveAsAttributes);
+
+				// increment unread message counter only if message has SEEN marker
+				if (mod.getMarkersToRemove().contains(Marker.SEEN) && message.getMarkers().contains(Marker.SEEN))
+				{
+					LabelCounters labelCounters = new LabelCounters();
+					labelCounters.setUnreadMessages(1L);
+					LabelCounterPersistence.add(mutator, mailbox.getId(), message.getLabels(), labelCounters);
+				}
+			}
+
+			mutator.executeIfFull();
 		}
 
-		// label "all" cannot be removed from message
-		if (labelIds.contains(ReservedLabels.ALL_MAILS.getId()))
-			throw new IllegalLabelException("This label cannot be removed");
-
-		// build list of attributes
-		Set<String> attributes = new HashSet<String>(labelIds.size());
-		for (Integer labelId : labelIds) {
-			attributes.add(Marshaller.CN_LABEL_PREFIX + labelId);
-		}
-
-		// begin batch operation
-		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe,
-				BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
-
-		// get message stats for counters, negative
-		MessageAggregator ma = new MessageAggregator(mailbox, messageIds);
-		LabelCounters labelCounters = ma.aggregateCounters();
-
-		// remove labels from messages
-		MessagePersistence.deleteAttributes(m, mailbox.getId(), messageIds, attributes);
-
-		// remove messages from label index
-		LabelIndexPersistence.remove(m, mailbox.getId(), messageIds, labelIds);
-
-		// decrement label counters (add negative value)
-		LabelCounterPersistence.subtract(m, mailbox.getId(), labelIds, labelCounters);
-
-		// commit batch operation
-		m.execute();
+		mutator.execute();
 	}
 
 	@Override
 	public void delete(final Mailbox mailbox, final List<UUID> messageIds)
 	{
-		// get label stats
-		MessageAggregator ma = new MessageAggregator(mailbox, messageIds);
-		LabelMap labels = ma.aggregateCountersByLabel();
-
-		// validate message ids
-		List<UUID> validMessageIds = new ArrayList<UUID>(ma.getValidMessageIds());
-		List<UUID> invalidMessageIds = new ArrayList<UUID>(ma.getInvalidMessageIds());
-		
 		// begin batch operation
-		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe,
+		ThrottlingMutator<String> mutator = new ThrottlingMutator<String>(keyspace, strSe,
 				BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
+		
+		// READ:WRITE ration is 1:5
+		final int readBatchSize = BatchConstants.BATCH_WRITES / 5;
 
-		// add only valid messages to purge index
-		PurgeIndexPersistence.add(m, mailbox.getId(), validMessageIds);
+		for (List<UUID> idSubList : Lists.partition(messageIds, readBatchSize))
+		{
+			// get label stats
+			MessageAggregator ma = new MessageAggregator(mailbox, idSubList);
+			LabelMap labels = ma.aggregateCountersByLabel();
 
-		// remove valid message ids from label indexes, including "all"
-		LabelIndexPersistence.remove(m, mailbox.getId(), validMessageIds, labels.getIds());
+			// validate message ids
+			List<UUID> validMessageIds = new ArrayList<UUID>(ma.getValidMessageIds());
+			List<UUID> invalidMessageIds = new ArrayList<UUID>(ma.getInvalidMessageIds());
 
-		// decrement label counters (add negative value)
-		for (Integer labelId : labels.getIds()) {
-			LabelCounterPersistence.subtract(m, mailbox.getId(), labelId, labels.get(labelId).getCounters());
+			// add only valid messages to purge index
+			PurgeIndexPersistence.add(mutator, mailbox.getId(), validMessageIds);
+
+			// remove valid message ids from label indexes, including "all"
+			LabelIndexPersistence.remove(mutator, mailbox.getId(), validMessageIds, labels.getIds());
+
+			// decrement label counters (add negative value)
+			for (Integer labelId : labels.getIds()) {
+				LabelCounterPersistence.subtract(mutator, mailbox.getId(), labelId, labels.get(labelId).getCounters());
+			}
+
+			// remove invalid message ids from all known labels
+			LabelMap allLabels = AccountPersistence.getLabels(mailbox.getId());
+			LabelIndexPersistence.remove(mutator, mailbox.getId(), invalidMessageIds, allLabels.getIds());
+
+			// signal end of batch
+			mutator.executeIfFull();
 		}
 
-		// remove invalid message ids from all known labels
-		LabelMap allLabels = AccountPersistence.getLabels(mailbox.getId());
-		LabelIndexPersistence.remove(m, mailbox.getId(), invalidMessageIds, allLabels.getIds());
-
 		// commit batch operation
-		m.execute();
+		mutator.execute();
 	}
 
 	@Override
@@ -415,13 +353,16 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		logger.debug("Purging all messages older than {} for {}", age.toString(), mailbox);
 
 		// initiate throttling mutator 
-		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe,
+		ThrottlingMutator<String> mutator = new ThrottlingMutator<String>(keyspace, strSe,
 				BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
+
+		// READ:WRITE ratio is 1:2
+		final int readBatchSize = BatchConstants.BATCH_WRITES / 2;
 
 		// loop until we process all purged items
 		do {
 			// get message IDs of messages to purge
-			purgeIndex = PurgeIndexPersistence.get(mailbox.getId(), age, BatchConstants.BATCH_READS);
+			purgeIndex = PurgeIndexPersistence.get(mailbox.getId(), age, readBatchSize);
 
 			// get metadata/blob location
 			Map<UUID, Message> messages = 
@@ -433,15 +374,18 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			}
 
 			// purge expired (older than age) messages
-			MessagePersistence.deleteMessage(m, mailbox.getId(), purgeIndex.values());
+			MessagePersistence.deleteMessage(mutator, mailbox.getId(), purgeIndex.values());
 
 			// remove from purge index
-			PurgeIndexPersistence.remove(m, mailbox.getId(), purgeIndex.keySet());
+			PurgeIndexPersistence.remove(mutator, mailbox.getId(), purgeIndex.keySet());
+			
+			// signal end of batch
+			mutator.executeIfFull();
 		}
-		while (purgeIndex.size() >= BatchConstants.BATCH_READS);
+		while (purgeIndex.size() >= readBatchSize);
 
 		// commit remaining items
-		m.execute();
+		mutator.execute();
 	}
 
 	@Override
@@ -452,7 +396,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		Set<UUID> purgePendingMessages = new HashSet<UUID>();
 		
 		// initiate throttling mutator 
-		Mutator<String> mutator = new ThrottlingMutator<String>(keyspace, strSe,
+		ThrottlingMutator<String> mutator = new ThrottlingMutator<String>(keyspace, strSe,
 				BatchConstants.BATCH_WRITES, BatchConstants.BATCH_WRITE_INTERVAL);
 		
 		logger.debug("Recalculating counters for {}", mailbox);
@@ -461,10 +405,10 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		purgePendingMessages = PurgeIndexPersistence.getAll(mailbox.getId());
 
 		logger.debug("Found {} messages pending purge. Will exclude them from calculations.", purgePendingMessages.size());
-		
-		// reset start, read messages and calculate label counters
+
 		UUID start = TimeUUIDUtils.getUniqueTimeUUIDinMillis();
 		do {
+			// reset start, read messages and calculate label counters
 			messages = MessagePersistence.getRange(
 					mailbox.getId(), start, BatchConstants.BATCH_READS);
 
@@ -491,6 +435,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 					{
 						// add message ID to the label index
 						LabelIndexPersistence.add(mutator, mailbox.getId(), messageId, labelId);
+						mutator.executeIfFull();
 					}
 				}
 
@@ -504,6 +449,41 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		mutator.execute();
 
 		return labels;
+	}
+
+	/**
+	 * Convert label IDs to message attributes.
+	 *  
+	 * @param labelIds
+	 * @return
+	 */
+	private static Set<String> labelsToMessageAttibutes(Set<Integer> labelIds)
+	{
+		Set<String> attributes = new HashSet<String>(labelIds.size());
+		for (Integer labelId : labelIds) {
+			attributes.add(Marshaller.CN_LABEL_PREFIX + labelId);
+		}
+
+		return attributes;
+	}
+
+	/**
+	 * Convert markers to message attributes.
+	 *  
+	 * @param labelIds
+	 * @return
+	 */
+	private static Set<String> markersToMessageAttibutes(Set<Marker> markers)
+	{
+		Set<String> attributes = new HashSet<String>(markers.size());
+		for (Marker marker : markers)
+		{
+			String a = new StringBuilder(Marshaller.CN_MARKER_PREFIX)
+					.append(marker.toInt()).toString();
+			attributes.add(a);
+		}
+
+		return attributes;
 	}
 
 	/**
@@ -524,21 +504,14 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 		}
 
 		/**
-		 * Get aggregated {@link LabelCounter} stats for the list of messages
+		 * Get message
 		 * 
-		 * @param mailbox
-		 * @param messageIds
+		 * @param messageId
 		 * @return
 		 */
-		public LabelCounters aggregateCounters()
+		public Message getMessage(UUID messageId)
 		{
-			LabelCounters labelCounters = new LabelCounters();
-	
-			for(UUID messageId : messages.keySet()) {
-				labelCounters.add(messages.get(messageId).getLabelCounters());
-			}
-	
-			return labelCounters;
+			return messages.get(messageId);
 		}
 
 		/**
@@ -568,7 +541,7 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 					}
 				}
 			}
-	
+
 			return labels;
 		}
 
@@ -593,5 +566,4 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 			return invalidMessageIds;
 		}
 	}
-
 }

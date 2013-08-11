@@ -113,6 +113,22 @@ public final class LabelCounters
 		return inverse;
 	}
 	
+    @Override
+    public boolean equals(Object obj)
+    {
+        boolean result = false;
+        
+        if (obj instanceof LabelCounters)
+        {
+        	LabelCounters that = (LabelCounters) obj;
+            result = (this.getTotalBytes().equals(that.getTotalBytes()) && 
+	            		this.getTotalMessages().equals(that.getTotalMessages()) &&
+	                    this.getUnreadMessages().equals(that.getUnreadMessages()));
+        }
+
+        return result;
+    }
+	
 	@Override
 	public String toString() {
 		return new StringBuilder("LabelCounters: {totalBytes:")

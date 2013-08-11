@@ -28,6 +28,7 @@
 
 package com.elasticinbox.itests;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static com.jayway.restassured.RestAssured.*;
 import static com.jayway.restassured.path.json.JsonPath.*;
@@ -388,6 +389,116 @@ public class RestV2IT extends AbstractIntegrationTest
 			get(REST_PATH + "/mailbox/message/{messageId}");
 	}
 
+	/**
+	 * Adding label to the message which already has same label should not
+	 * result in overcounting.
+	 * 
+	 * @throws IOException
+	 */
+	@Test
+	public void overcountingTest() throws IOException
+	{
+		initAccount();
+
+		// Step 1: add message to label TRASH
+		UUID messageId = addMessage(EMAIL_REGULAR, ReservedLabels.TRASH.getId());
+
+		// counters before operation
+		String jsonResponse = expect().statusCode(200).when().get(REST_PATH + "/mailbox?metadata=true").asString();
+		LabelCounters initialAllCounters = getCounters(jsonResponse, ReservedLabels.ALL_MAILS.getId());
+		LabelCounters initialTrashCounters = getCounters(jsonResponse, ReservedLabels.TRASH.getId());
+
+		// Repeat add label TRASH
+		for (int i=0; i<5; i++)
+		{
+			given().
+				pathParam("messageId", messageId.toString()).
+				pathParam("labelId", ReservedLabels.TRASH.getId()).
+			expect().
+				statusCode(204).
+			when().
+				put(REST_PATH + "/mailbox/message/{messageId}?addlabel={labelId}");
+		}
+
+		// counters after operation
+		jsonResponse = expect().statusCode(200).when().get(REST_PATH + "/mailbox?metadata=true").asString();
+		LabelCounters finalAllCounters = getCounters(jsonResponse, ReservedLabels.ALL_MAILS.getId());
+		LabelCounters finalTrashCounters = getCounters(jsonResponse, ReservedLabels.TRASH.getId());
+		
+		assertThat(finalAllCounters, equalTo(initialAllCounters));
+		assertThat(finalTrashCounters, equalTo(initialTrashCounters));
+		
+		// STEP 2: remove label and add marker
+		given().
+			pathParam("messageId", messageId.toString()).
+			pathParam("labelId", ReservedLabels.TRASH.getId()).
+			pathParam("seenMarker", Marker.SEEN.toString().toLowerCase()).
+		expect().
+			statusCode(204).
+		when().
+			put(REST_PATH + "/mailbox/message/{messageId}?removelabel={labelId}&addmarker={seenMarker}");
+
+		// counters before operation
+		jsonResponse = expect().statusCode(200).when().get(REST_PATH + "/mailbox?metadata=true").asString();
+		initialAllCounters = getCounters(jsonResponse, ReservedLabels.ALL_MAILS.getId());
+		initialTrashCounters = getCounters(jsonResponse, ReservedLabels.TRASH.getId());
+
+		// Repeat remove label and add marker
+		for (int i=0; i<5; i++)
+		{
+			given().
+				pathParam("messageId", messageId.toString()).
+				pathParam("labelId", ReservedLabels.TRASH.getId()).
+				pathParam("seenMarker", Marker.SEEN.toString().toLowerCase()).
+			expect().
+				statusCode(204).
+			when().
+				put(REST_PATH + "/mailbox/message/{messageId}?removelabel={labelId}&addmarker={seenMarker}");
+		}
+		
+		// counters after operation
+		jsonResponse = expect().statusCode(200).when().get(REST_PATH + "/mailbox?metadata=true").asString();
+		finalAllCounters = getCounters(jsonResponse, ReservedLabels.ALL_MAILS.getId());
+		finalTrashCounters = getCounters(jsonResponse, ReservedLabels.TRASH.getId());
+		
+		assertThat(finalAllCounters, equalTo(initialAllCounters));
+		assertThat(finalTrashCounters, equalTo(initialTrashCounters));
+
+		// STEP 3: Remove Marker
+		given().
+			pathParam("messageId", messageId.toString()).
+			pathParam("seenMarker", Marker.SEEN.toString().toLowerCase()).
+		expect().
+			statusCode(204).
+		when().
+			put(REST_PATH + "/mailbox/message/{messageId}?removemarker={seenMarker}");
+
+		// counters before operation
+		jsonResponse = expect().statusCode(200).when().get(REST_PATH + "/mailbox?metadata=true").asString();
+		initialAllCounters = getCounters(jsonResponse, ReservedLabels.ALL_MAILS.getId());
+		initialTrashCounters = getCounters(jsonResponse, ReservedLabels.TRASH.getId());
+
+		// Repeat remove marker
+		for (int i=0; i<5; i++)
+		{
+			given().
+				pathParam("messageId", messageId.toString()).
+				pathParam("seenMarker", Marker.SEEN.toString().toLowerCase()).
+			expect().
+				statusCode(204).
+			when().
+				put(REST_PATH + "/mailbox/message/{messageId}?removemarker={seenMarker}");
+		}
+
+		// counters after operation
+		jsonResponse = expect().statusCode(200).when().get(REST_PATH + "/mailbox?metadata=true").asString();
+		finalAllCounters = getCounters(jsonResponse, ReservedLabels.ALL_MAILS.getId());
+		finalTrashCounters = getCounters(jsonResponse, ReservedLabels.TRASH.getId());
+		
+		assertThat(finalAllCounters, equalTo(initialAllCounters));
+		assertThat(finalTrashCounters, equalTo(initialTrashCounters));
+	}
+	
 	@Test
 	public void messageBatchMofifyDeleteTest() throws IOException
 	{

@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import com.elasticinbox.common.utils.CRLFInputStream;
 import com.elasticinbox.core.MessageDAO;
+import com.elasticinbox.core.MessageModification;
 import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.core.model.Message;
 import com.elasticinbox.core.model.ReservedLabels;
@@ -113,7 +114,8 @@ public class ElasticInboxMailboxHandler implements org.apache.james.protocols.po
 			uuids.add(Base64UUIDUtils.decode(uid));
 		}
 
-		dao.removeLabel(mailbox, labels, uuids);
+		dao.modify(mailbox, uuids, 
+				new MessageModification.Builder().removeLabels(labels).build());
 	}
 
 	@Override

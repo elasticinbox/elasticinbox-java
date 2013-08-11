@@ -33,13 +33,11 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.model.LabelMap;
 import com.elasticinbox.core.model.Mailbox;
-import com.elasticinbox.core.model.Marker;
 import com.elasticinbox.core.model.Message;
 
 /**
@@ -128,81 +126,27 @@ public interface MessageDAO
 			UUID start, int count, boolean reverse);
 
 	/**
-	 * Add markers to multiple messages
+	 * Modify message labels and markers.
 	 * 
 	 * @param mailbox
-	 * @param markers
-	 * @param messageIds
-	 */
-	public void addMarker(Mailbox mailbox, Set<Marker> markers, List<UUID> messageIds);
-
-	/**
-	 * Add markers to single message
-	 * 
-	 * @param mailbox
-	 * @param markers
 	 * @param messageId
-	 */
-	public void addMarker(Mailbox mailbox, Set<Marker> markers, UUID messageId);
-
-	/**
-	 * Remove markers from multiple messages
-	 * 
-	 * @param mailbox
-	 * @param markers
-	 * @param messageIds
-	 */
-	public void removeMarker(Mailbox mailbox, Set<Marker> markers, List<UUID> messageIds);
-
-	/**
-	 * Remove markers from single message
-	 * 
-	 * @param mailbox
-	 * @param markers
-	 * @param messageId
-	 */
-	public void removeMarker(Mailbox mailbox, Set<Marker> markers, UUID messageId);
-
-	/**
-	 * Add labels to multiple messages
-	 * 
-	 * @param mailbox
-	 * @param labelIds
-	 * @param messageIds
-	 */
-	public void addLabel(Mailbox mailbox, Set<Integer> labelIds, List<UUID> messageIds);
-
-	/**
-	 * Add labels to single message
-	 * 
-	 * @param mailbox
-	 * @param labelIds
-	 * @param messageId
-	 */
-	public void addLabel(Mailbox mailbox, Set<Integer> labelIds, UUID messageId);
-
-	/**
-	 * Remove labels from multiple messages
-	 * 
-	 * @param mailbox
-	 * @param labelIds
-	 * @param messageIds
+	 * @param modification
 	 * @throws IllegalLabelException
 	 */
-	public void removeLabel(Mailbox mailbox, Set<Integer> labelIds, List<UUID> messageIds)
+	public void modify(Mailbox mailbox, UUID messageId, MessageModification modification)
 			throws IllegalLabelException;
-
+	
 	/**
-	 * Remove lables from single message
+	 * Modify message labels and markers.
 	 * 
 	 * @param mailbox
-	 * @param labelIds
-	 * @param messageId
+	 * @param messageIds
+	 * @param modification
 	 * @throws IllegalLabelException
 	 */
-	public void removeLabel(Mailbox mailbox, Set<Integer> labelIds, UUID messageId)
+	public void modify(Mailbox mailbox, List<UUID> messageIds, MessageModification modification)
 			throws IllegalLabelException;
-
+	
 	/**
 	 * Delete multiple messages
 	 * 

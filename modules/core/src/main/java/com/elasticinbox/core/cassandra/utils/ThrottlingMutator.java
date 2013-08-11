@@ -442,6 +442,46 @@ public final class ThrottlingMutator<K> implements Mutator<K>
 					}
 				}));
 	}
+	
+	/**
+	 * Batch executes all mutations scheduled to this Mutator instance only when
+	 * maximum batch size is exceeded. It will also introduce a delay if specified.
+	 * May throw a HectorException which is a RuntimeException.
+	 * 
+	 * @return A MutationResult holds the status. Success with 0ms execution
+	 *         time is returned if operation deferred.
+	 */
+	public MutationResult executeIfFull()
+	{
+		if (pendingMutations == null || pendingMutations.getMutationsCount() < batchSize)
+		{
+			return new ThrottlingMutationResult(true, 0, null);
+		}
+		
+		// execute pending mutations if reached max batch size
+		logger.debug("Batch reached max ({}), flushing.", batchSize);
+		MutationResult result = execute();
+		pendingMutations = new ThrottlingBatchMutation<K>(keySerializer, batchSize);
+
+		if (batchInterval != null)
+		{
+			// sleep remaining time (batch time - execution time)
+			long sleepInterval = batchInterval - (long) (result.getExecutionTimeMicro() / 1000);
+
+			if (sleepInterval > 0)
+			{
+				try {
+					logger.debug("sleeping {}ms to throttle.", sleepInterval);
+					Thread.sleep(sleepInterval);
+				} catch (InterruptedException e) {
+					// rethrow as hector exception
+					throw new HectorException(e.getMessage());
+				}
+			}
+		}
+
+		return result;
+	}
 
 	/**
 	 * Discards all pending mutations.
@@ -466,26 +506,6 @@ public final class ThrottlingMutator<K> implements Mutator<K>
 	{
 		if (pendingMutations == null) {
 			pendingMutations = new ThrottlingBatchMutation<K>(keySerializer, batchSize);
-		} else if (pendingMutations.getMutationsCount() >= batchSize) {
-			// execute pending mutations if reached max batch size
-			logger.debug("Batch reached max ({}), flushing.", batchSize);
-			MutationResult result = execute();
-			pendingMutations = new ThrottlingBatchMutation<K>(keySerializer, batchSize);
-
-			if (batchInterval != null) {
-				// sleep remaining time (batch time - execution time)
-				long sleepInterval = batchInterval - (long) (result.getExecutionTimeMicro() / 1000);
-
-				if (sleepInterval > 0) {
-					try {
-						logger.debug("sleeping {}ms to throttle.", sleepInterval);
-						Thread.sleep(sleepInterval);
-					} catch (InterruptedException e) {
-						// rethrow as hector exception
-						throw new HectorException(e.getMessage());
-					}
-				}
-			}
 		}
 
 		return pendingMutations;

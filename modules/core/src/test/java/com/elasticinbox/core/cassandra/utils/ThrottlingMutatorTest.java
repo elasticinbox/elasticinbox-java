@@ -111,7 +111,7 @@ public class ThrottlingMutatorTest
 	public void testThrottlingMutatorDelay()
 	{
 		// throttle at 100 ops/ 500 ms
-		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe, 100, 500L);
+		ThrottlingMutator<String> m = new ThrottlingMutator<String>(keyspace, strSe, 100, 500L);
 
 		long ts = System.currentTimeMillis();
 
@@ -120,6 +120,7 @@ public class ThrottlingMutatorTest
 		{
 			UUID uuid = new MessageIdBuilder().build();
 			m.addInsertion(KEY_T1, CF_LABEL_INDEX, createColumn(uuid, new byte[0], uuidSe, byteSe));
+			m.executeIfFull();
 		}
 
 		m.execute();
@@ -137,7 +138,7 @@ public class ThrottlingMutatorTest
 		int sampleCount = 250;
 		
 		// throttle at 50 ops/ 100 ms
-		Mutator<String> m = new ThrottlingMutator<String>(keyspace, strSe, 100, 500L);
+		ThrottlingMutator<String> m = new ThrottlingMutator<String>(keyspace, strSe, 100, 500L);
 
 		HashSet<UUID> messageIds = new HashSet<UUID>();
 		final byte[] value = "consistent".getBytes();
@@ -148,6 +149,7 @@ public class ThrottlingMutatorTest
 			UUID uuid = new MessageIdBuilder().build();
 			m.addInsertion(KEY_T2, CF_LABEL_INDEX, createColumn(uuid, value, uuidSe, byteSe));
 			messageIds.add(uuid);
+			m.executeIfFull();
 		}
 
 		m.execute();
@@ -175,6 +177,7 @@ public class ThrottlingMutatorTest
 		for (UUID uuid : messageIds)
 		{
 			m.addDeletion(KEY_T2, CF_LABEL_INDEX, uuid, uuidSe);
+			m.executeIfFull();
 		}
 
 		m.execute();

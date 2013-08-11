@@ -134,9 +134,10 @@ public final class LabelIndexPersistence
 	 * @param mailbox
 	 * @param messageIds
 	 * @param labels
+	 * @throws IOException 
 	 */
-	public static void remove(Mutator<String> mutator, final String mailbox,
-			final List<UUID> messageIds, final Set<Integer> labels)
+	public static void remove(Mutator<String> mutator, final String mailbox, final List<UUID> messageIds, 
+			final Set<Integer> labels) throws HectorException
 	{
 		for (Integer label : labels)
 		{
@@ -148,6 +149,23 @@ public final class LabelIndexPersistence
 				mutator.addDeletion(indexKey, CF_LABEL_INDEX, messageId, uuidSe);
 			}
 		}
+	}
+
+	/**
+	 * Remove message ID to label indexes
+	 * 
+	 * @param mutator
+	 * @param mailbox
+	 * @param messageIds
+	 * @param labels
+	 * @throws IOException 
+	 */
+	public static void remove(Mutator<String> mutator, final String mailbox, final UUID messageId,
+			final Set<Integer> labels) throws HectorException
+	{
+		final List<UUID> messageIds = new ArrayList<UUID>(1);
+		messageIds.add(messageId);
+		remove(mutator, mailbox, messageIds, labels);
 	}
 
 	/**

@@ -237,6 +237,21 @@ public final class MessagePersistence
 	}
 
 	/**
+	 * Set flag attribute to single message
+	 * 
+	 * @param mailbox
+	 * @param messageIds
+	 * @param name
+	 */
+	public static void persistAttributes(Mutator<String> mutator, final String mailbox,
+			final UUID messageId, final Set<String> attributes)
+	{
+		List<UUID> messageIds = new ArrayList<UUID>(1);
+		messageIds.add(messageId);
+		persistAttributes(mutator, mailbox, messageIds, attributes);
+	}
+
+	/**
 	 * Delete attributes from multiple messages
 	 * 
 	 * @param mutator
@@ -260,6 +275,21 @@ public final class MessagePersistence
 			mutator.addSubDelete(mailbox, CF_METADATA, 
 				createSuperColumn(messageId, columns, uuidSe, strSe, byteSe));
 		}
+	}
+
+	/**
+	 * Delete attributes from single message
+	 * 
+	 * @param mailbox
+	 * @param messageIds
+	 * @param name
+	 */
+	public static void deleteAttributes(Mutator<String> mutator, final String mailbox,
+			final UUID messageId, final Set<String> attributes)
+	{
+		List<UUID> messageIds = new ArrayList<UUID>(1);
+		messageIds.add(messageId);
+		deleteAttributes(mutator, mailbox, messageIds, attributes);
 	}
 
 	/**

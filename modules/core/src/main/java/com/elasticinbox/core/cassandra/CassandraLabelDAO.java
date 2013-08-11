@@ -44,6 +44,7 @@ import com.elasticinbox.core.ExistingLabelException;
 import com.elasticinbox.core.IllegalLabelException;
 import com.elasticinbox.core.LabelDAO;
 import com.elasticinbox.core.MessageDAO;
+import com.elasticinbox.core.MessageModification;
 import com.elasticinbox.core.cassandra.persistence.AccountPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelCounterPersistence;
 import com.elasticinbox.core.cassandra.persistence.LabelIndexPersistence;
@@ -179,7 +180,8 @@ public final class CassandraLabelDAO implements LabelDAO
 					null, BatchConstants.BATCH_READS, false);
 
 			// remove label from message metadata
-			messageDAO.removeLabel(mailbox, labelIds, messageIds);
+			messageDAO.modify(mailbox, messageIds, 
+					new MessageModification.Builder().removeLabels(labelIds).build());
 		}
 		while (messageIds.size() >= BatchConstants.BATCH_READS);
 

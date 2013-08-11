@@ -35,7 +35,6 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,6 +66,7 @@ import com.elasticinbox.common.utils.JSONUtils;
 import com.elasticinbox.core.DAOFactory;
 import com.elasticinbox.core.IllegalLabelException;
 import com.elasticinbox.core.MessageDAO;
+import com.elasticinbox.core.MessageModification;
 import com.elasticinbox.core.OverQuotaException;
 import com.elasticinbox.core.blob.BlobDataSource;
 import com.elasticinbox.core.message.MimeParser;
@@ -129,27 +129,28 @@ public final class SingleMessageResource
 			result.put("message", message);
 
 			// automatically mark as seen if requested and not seen yet
-			if (markAsSeen && 
-					(message.getMarkers() == null || 
-							!message.getMarkers().contains(Marker.SEEN))) {
-				Set<Marker> markers = new HashSet<Marker>(1);
-				markers.add(Marker.SEEN);
-				messageDAO.addMarker(mailbox, markers, messageId);
+			if (markAsSeen && !message.getMarkers().contains(Marker.SEEN))
+			{
+				messageDAO.modify(mailbox, messageId,
+						new MessageModification.Builder().addMarker(Marker.SEEN).build());
 			}
 
 			// get adjacent message ids (prev/next)
-			if (getAdjacentIds) {
+			if (getAdjacentIds)
+			{
 				Assert.notNull(labelId, "Adjacent messages require label.");
 
 				// fetch next message ID
 				List<UUID> ids = messageDAO.getMessageIds(mailbox, labelId, messageId, 2, true);
-				if(ids.size() == 2)
+				if (ids.size() == 2) {
 					result.put("next", ids.get(1));
+				}
 
 				// fetch previous message ID
 				ids = messageDAO.getMessageIds(mailbox, labelId, messageId, 2, false);
-				if(ids.size() == 2)
+				if (ids.size() == 2) {
 					result.put("prev", ids.get(1));
+				}
 			}
 
 			// get message as JSON
@@ -432,17 +433,12 @@ public final class SingleMessageResource
 		Mailbox mailbox = new Mailbox(user, domain);
 
 		try {
-			// add labels to message
-			messageDAO.addLabel(mailbox, addLabels, messageId);
+			MessageModification modification = new MessageModification.Builder()
+					.addLabels(addLabels).removeLabels(removeLabels)
+					.addMarkers(addMarkers).removeMarkers(removeMarkers)
+					.build();
 
-			// remove labels from message
-			messageDAO.removeLabel(mailbox, removeLabels, messageId);
-
-			// add markers
-			messageDAO.addMarker(mailbox, addMarkers, messageId);
-
-			// remove markers
-			messageDAO.removeMarker(mailbox, removeMarkers, messageId);
+			messageDAO.modify(mailbox, messageId, modification);
 		} catch (IllegalLabelException ile) {
 			throw new BadRequestException(ile.getMessage());
 		} catch (Exception e) {

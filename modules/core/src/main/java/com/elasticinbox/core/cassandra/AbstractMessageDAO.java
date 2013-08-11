@@ -28,12 +28,12 @@
 
 package com.elasticinbox.core.cassandra;
 
-import java.util.Set;
 import java.util.UUID;
 
+import com.elasticinbox.core.IllegalLabelException;
 import com.elasticinbox.core.MessageDAO;
+import com.elasticinbox.core.MessageModification;
 import com.elasticinbox.core.model.Mailbox;
-import com.elasticinbox.core.model.Marker;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -45,23 +45,8 @@ import com.google.common.collect.ImmutableList;
 public abstract class AbstractMessageDAO implements MessageDAO
 {
 	@Override
-	public void addMarker(final Mailbox mailbox, final Set<Marker> markers, final UUID messageId) {
-		addMarker(mailbox, markers, ImmutableList.of(messageId));
-	}
-
-	@Override
-	public void removeMarker(final Mailbox mailbox, final Set<Marker> markers, final UUID messageId) {
-		removeMarker(mailbox, markers, ImmutableList.of(messageId));
-	}
-
-	@Override
-	public void addLabel(final Mailbox mailbox, final Set<Integer> labelIds, final UUID messageId) {
-		addLabel(mailbox, labelIds, ImmutableList.of(messageId));
-	}
-
-	@Override
-	public void removeLabel(final Mailbox mailbox, final Set<Integer> labelIds, final UUID messageId) {
-		removeLabel(mailbox, labelIds, ImmutableList.of(messageId));
+	public void modify(Mailbox mailbox, UUID messageId, MessageModification modification) throws IllegalLabelException {
+		modify(mailbox, ImmutableList.of(messageId), modification);
 	}
 
 	@Override

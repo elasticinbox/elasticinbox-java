@@ -32,7 +32,7 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-public class LabelsTest
+public class LabelMapTest
 {
 	@Test
 	public void testIncrementCounters()

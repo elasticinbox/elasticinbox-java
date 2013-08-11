@@ -32,6 +32,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -59,6 +61,7 @@ import com.elasticinbox.common.utils.JSONUtils;
 import com.elasticinbox.core.DAOFactory;
 import com.elasticinbox.core.IllegalLabelException;
 import com.elasticinbox.core.MessageDAO;
+import com.elasticinbox.core.MessageModification;
 import com.elasticinbox.core.OverQuotaException;
 import com.elasticinbox.core.message.MimeParser;
 import com.elasticinbox.core.message.MimeParserException;
@@ -201,23 +204,22 @@ public final class MessageResource
 			throw new BadRequestException("Malformed JSON request");
 		}
 
-		if (messageIds == null || messageIds.isEmpty())
+		if (messageIds == null || messageIds.isEmpty()) {
 			throw new BadRequestException("Malformed JSON request");
+		}
 
 		try {
-			//TODO: make batch request
+			// Deduplicate message IDs
+			List<UUID> depdupeMessageIds =
+				    new ArrayList<UUID>(new LinkedHashSet<UUID>(messageIds));
 
-			// add labels to message
-			messageDAO.addLabel(mailbox, addLabels, messageIds);
+			// Prepare modification
+			MessageModification modification = new MessageModification.Builder()
+					.addLabels(addLabels).removeLabels(removeLabels)
+					.addMarkers(addMarkers).removeMarkers(removeMarkers)
+					.build();
 
-			// remove label from message
-			messageDAO.removeLabel(mailbox, removeLabels, messageIds);
-
-			// add marker
-			messageDAO.addMarker(mailbox, addMarkers, messageIds);
-
-			// remove marker
-			messageDAO.removeMarker(mailbox, removeMarkers, messageIds);
+			messageDAO.modify(mailbox, depdupeMessageIds, modification);
 		} catch (IllegalLabelException ile) {
 			throw new BadRequestException(ile.getMessage());
 		} catch (Exception e) {
@@ -254,12 +256,17 @@ public final class MessageResource
 			throw new BadRequestException("Malformed JSON request");
 		}
 
-		if (messageIds == null || messageIds.isEmpty())
+		if (messageIds == null || messageIds.isEmpty()) {
 			throw new BadRequestException("Malformed JSON request");
+		}
 
 		try {
+			// Deduplicate message IDs
+			List<UUID> depdupeMessageIds =
+				    new ArrayList<UUID>(new LinkedHashSet<UUID>(messageIds));
+
 			// delete message and ignore other parameters
-			messageDAO.delete(mailbox, messageIds);
+			messageDAO.delete(mailbox, depdupeMessageIds);
 		} catch (Exception e) {
 			logger.error("Message deletion failed: ", e);
 			throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);
