@@ -31,6 +31,7 @@ package com.elasticinbox.rest.v2;
 import java.net.URI;
 import java.util.UUID;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -56,9 +57,11 @@ import com.elasticinbox.core.ExistingLabelException;
 import com.elasticinbox.core.IllegalLabelException;
 import com.elasticinbox.core.LabelDAO;
 import com.elasticinbox.core.MessageDAO;
+import com.elasticinbox.core.model.Label;
 import com.elasticinbox.core.model.Mailbox;
 import com.elasticinbox.rest.BadRequestException;
 import com.elasticinbox.rest.RESTApplicationException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * This JAX-RS resource is responsible for managing mailbox labels.
@@ -76,7 +79,8 @@ public final class LabelResource
 
 	@Context UriInfo uriInfo;
 
-	public LabelResource() {
+	public LabelResource()
+	{
 		DAOFactory dao = DAOFactory.getDAOFactory();
 		messageDAO = dao.getMessageDAO();
 		labelDAO = dao.getLabelDAO();
@@ -97,8 +101,8 @@ public final class LabelResource
 	@Path("{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getMessages(
-			@PathParam("user") final String user,
-			@PathParam("domain") final String domain,
+			@PathParam("user") String user,
+			@PathParam("domain") String domain,
 			@PathParam("id") Integer labelId,
 			@QueryParam("metadata") @DefaultValue("false") boolean withMetadata,
 			@QueryParam("reverse") @DefaultValue("true") boolean reverse,
@@ -126,7 +130,7 @@ public final class LabelResource
 	}
 
 	/**
-	 * Rename existing label
+	 * Update existing label
 	 * 
 	 * @param account
 	 * @param labelId
@@ -136,25 +140,49 @@ public final class LabelResource
 	@PUT
 	@Path("{id}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response renameLabel(
-			@PathParam("user") final String user,
-			@PathParam("domain") final String domain,
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Response updateLabel(
+			@PathParam("user") String user,
+			@PathParam("domain") String domain,
 			@PathParam("id") Integer labelId,
-			@QueryParam("name") String label)
+			@QueryParam("name") String labelName,
+			String requestJSONContent)
 	{
 		Mailbox mailbox = new Mailbox(user, domain);
+		Label label;
 
-		if (label == null)
-			throw new BadRequestException("Label name must be specified");
+		if (requestJSONContent.isEmpty())
+		{
+			// if request body is empty, use path param
+			label = new Label();
+			label.setName(labelName);
+		}
+		else
+		{
+			// deserialize request body to Label
+			try {
+				ObjectMapper mapper = new ObjectMapper();
+				label = mapper.readValue(requestJSONContent, Label.class);
+			} catch (Exception e) {
+				logger.info("Malformed JSON request: {}", e.getMessage());
+				throw new BadRequestException("Malformed JSON request");
+			}
+
+			if (label.getName() == null && labelName != null) {
+				label.setName(labelName);
+			}
+		}
+
+		label.setId(labelId);
 
 		try {
-			labelDAO.rename(mailbox, labelId, label);
+			labelDAO.update(mailbox, label);
 		} catch (IllegalLabelException ile) {
 			throw new BadRequestException(ile.getMessage());
 		} catch (ExistingLabelException ele) {
 			throw new RESTApplicationException(Status.CONFLICT, ele.getMessage());
 		} catch (Exception e) {
-			logger.error("Renaming label failed: ", e);
+			logger.error("Updating label failed: ", e);
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
 		}
 
@@ -165,20 +193,42 @@ public final class LabelResource
 	 * Add new label
 	 * 
 	 * @param account
-	 * @param label
+	 * @param labelName
 	 * @return
 	 */
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)
+	@Consumes(MediaType.APPLICATION_JSON)
 	public Response addLabel(
-			@PathParam("user") final String user,
-			@PathParam("domain") final String domain,
-			@QueryParam("name") String label)
+			@PathParam("user") String user,
+			@PathParam("domain") String domain,
+			@QueryParam("name") String labelName,
+			String requestJSONContent)
 	{
 		Mailbox mailbox = new Mailbox(user, domain);
+		Label label;
 
-		if (label == null)
+		if (requestJSONContent.isEmpty())
+		{
+			// if request body is empty, use path param
+			label = new Label();
+			label.setName(labelName);
+		}
+		else
+		{
+			// deserialize request body to Label
+			try {
+				ObjectMapper mapper = new ObjectMapper();
+				label = mapper.readValue(requestJSONContent, Label.class);
+			} catch (Exception e) {
+				logger.info("Malformed JSON request: {}", e.getMessage());
+				throw new BadRequestException("Malformed JSON request");
+			}
+		}
+
+		if (label.getName() == null && labelName == null) {
 			throw new BadRequestException("Label name must be specified");
+		}
 
 		Integer newLabelId = null;
 
@@ -197,8 +247,7 @@ public final class LabelResource
 		URI messageUri = uriInfo.getAbsolutePathBuilder()
 				.path(Integer.toString(newLabelId)).build();
 
-		String responseJson = new StringBuilder("{\"id\":").append(newLabelId)
-				.append("}").toString();
+		String responseJson = "{\"id\":" + newLabelId + "}";
 
 		return Response.created(messageUri).entity(responseJson).build();
 	}
@@ -207,21 +256,21 @@ public final class LabelResource
 	 * Delete label
 	 * 
 	 * @param account
-	 * @param label
+	 * @param labelId
 	 * @return
 	 */
 	@DELETE
 	@Path("{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response deleteLabel(
-			@PathParam("user") final String user,
-			@PathParam("domain") final String domain,
-			@PathParam("id") Integer label)
+			@PathParam("user") String user,
+			@PathParam("domain") String domain,
+			@PathParam("id") Integer labelId)
 	{
 		Mailbox mailbox = new Mailbox(user, domain);
 
 		try {
-			labelDAO.delete(mailbox, label);
+			labelDAO.delete(mailbox, labelId);
 		} catch (IllegalLabelException ile) {
 			throw new BadRequestException(ile.getMessage());
 		} catch (Exception e) {

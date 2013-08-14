@@ -96,17 +96,17 @@ public final class CassandraLabelDAO implements LabelDAO
 	}
 
 	@Override
-	public int add(final Mailbox mailbox, String label)
+	public int add(Mailbox mailbox, Label label)
 	{
-		Integer labelId;
-
 		// get all existing labels
 		LabelMap existingLabels = AccountPersistence.getLabels(mailbox.getId());
 
-		LabelUtils.validateLabelName(label, existingLabels);
+		LabelUtils.validateLabelName(label.getName(), existingLabels);
 
 		try {
-			labelId = LabelUtils.getNewLabelId(existingLabels.getIds());
+			// generate new label id
+			int labelId = LabelUtils.getNewLabelId(existingLabels.getIds());
+			label.setId(labelId);
 		} catch (IllegalLabelException ile) {
 			// log and rethrow
 			logger.warn("{} reached max random label id attempts with {} labels",
@@ -115,47 +115,46 @@ public final class CassandraLabelDAO implements LabelDAO
 		}
 
 		// begin batch operation
-		Mutator<String> m = createMutator(keyspace, strSe);
+		Mutator<String> mutator = createMutator(keyspace, strSe);
 
 		// add new label
-		AccountPersistence.setLabelName(m, mailbox.getId(), labelId, label);
+		AccountPersistence.putLabel(mutator, mailbox.getId(), label);
 
 		// commit batch operation
-		m.execute();
+		mutator.execute();
 
-		return labelId;
+		return label.getId();
 	}
 	
 	@Override
-	public void rename(final Mailbox mailbox, final Integer labelId, String label)
-			throws IOException
+	public void update(Mailbox mailbox, Label label) throws IOException
 	{
 		// get all existing labels
 		LabelMap existingLabels = AccountPersistence.getLabels(mailbox.getId());
 
 		// validate only if name is changed (skips letter case changes)
-		if (!existingLabels.containsName(label)) {
-			LabelUtils.validateLabelName(label, existingLabels);
+		if (label.getName() != null && !existingLabels.containsName(label.getName())) {
+			LabelUtils.validateLabelName(label.getName(), existingLabels);
 		}
 
 		// check if label id reserved
-		if(ReservedLabels.contains(labelId)) {
+		if (ReservedLabels.contains(label.getId())) {
 			throw new ExistingLabelException("This is reserved label and can't be modified");
 		}
 
 		// check if label id exists
-		if(!existingLabels.containsId(labelId)) {
+		if (!existingLabels.containsId(label.getId())) {
 			throw new IllegalLabelException("Label does not exist");
 		}
 
 		// begin batch operation
-		Mutator<String> m = createMutator(keyspace, strSe);
+		Mutator<String> mutator = createMutator(keyspace, strSe);
 
 		// set new name
-		AccountPersistence.setLabelName(m, mailbox.getId(), labelId, label);
+		AccountPersistence.putLabel(mutator, mailbox.getId(), label);
 		
 		// commit batch operation
-		m.execute();
+		mutator.execute();
 	}
 
 	@Override

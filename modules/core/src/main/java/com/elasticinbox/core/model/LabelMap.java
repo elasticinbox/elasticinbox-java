@@ -48,6 +48,7 @@ public final class LabelMap
 
 	private final static String JSON_NAME = "name";
 	private final static String JSON_SIZE = "size";
+	private final static String JSON_ATTRIBUTES = "attributes";
 	private final static String JSON_MESSAGES_TOTAL = "total";
 	private final static String JSON_MESSAGES_UNREAD = "unread";
 
@@ -169,6 +170,12 @@ public final class LabelMap
 				if (labelId == ReservedLabels.ALL_MAILS.getId()) {
 					metadata.get(labelId).put(JSON_SIZE, 0);
 				}
+			}
+
+			// add attributes if any
+			if (label.getAttributes() != null && !label.getAttributes().isEmpty())
+			{
+				metadata.get(labelId).put(JSON_ATTRIBUTES, label.getAttributes());
 			}
 		}
 

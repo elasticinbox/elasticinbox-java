@@ -31,6 +31,7 @@ package com.elasticinbox.core;
 import java.io.IOException;
 import java.util.Map;
 
+import com.elasticinbox.core.model.Label;
 import com.elasticinbox.core.model.LabelMap;
 import com.elasticinbox.core.model.Mailbox;
 
@@ -69,7 +70,7 @@ public interface LabelDAO
 	 * @throws IOException
 	 * @throws IllegalLabelException
 	 */
-	public int add(Mailbox mailbox, String label) throws IOException, IllegalLabelException;
+	public int add(Mailbox mailbox, Label label) throws IOException, IllegalLabelException;
 
 	/**
 	 * Rename existing label
@@ -82,7 +83,7 @@ public interface LabelDAO
 	 * @throws IOException
 	 * @throws IllegalLabelException
 	 */
-	public void rename(Mailbox mailbox, Integer labelId, String label) throws IOException, IllegalLabelException;
+	public void update(Mailbox mailbox, Label label) throws IOException, IllegalLabelException;
 
 	/**
 	 * Delete existing label

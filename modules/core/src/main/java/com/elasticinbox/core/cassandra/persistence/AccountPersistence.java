@@ -35,8 +35,10 @@ import static com.elasticinbox.core.cassandra.CassandraDAOFactory.CF_ACCOUNTS;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import com.elasticinbox.common.utils.Assert;
+import com.elasticinbox.core.IllegalLabelException;
 import com.elasticinbox.core.cassandra.CassandraDAOFactory;
 import com.elasticinbox.core.cassandra.utils.BatchConstants;
 import com.elasticinbox.core.model.Label;
@@ -80,7 +82,7 @@ public final class AccountPersistence
 		// execute
 		QueryResult<ColumnSlice<String, byte[]>> r = q.execute();
 
-		// read message ids from the result
+		// read attributes from the result
 		Map<String, Object> attributes = new HashMap<String, Object>();
 		for (HColumn<String, byte[]> c : r.get().getColumns()) { 
 			if( (c != null) && (c.getValue() != null)) {
@@ -99,10 +101,14 @@ public final class AccountPersistence
 	 */
 	public static <V> void set(Mutator<String> mutator, final String mailbox, final Map<String, V> attributes)
 	{
-		for (Map.Entry<String, V> a : attributes.entrySet()) {
-			mutator.addInsertion(mailbox, CF_ACCOUNTS,
-					createColumn(a.getKey(), a.getValue(), strSe,
-							SerializerTypeInferer.getSerializer(a.getValue())));
+		if (!attributes.isEmpty())
+		{
+			for (Map.Entry<String, V> a : attributes.entrySet())
+			{
+				mutator.addInsertion(mailbox, CF_ACCOUNTS,
+						createColumn(a.getKey(), a.getValue(), strSe,
+								SerializerTypeInferer.getSerializer(a.getValue())));
+			}
 		}
 	}
 
@@ -135,9 +141,32 @@ public final class AccountPersistence
 		{
 			if (a.getKey().startsWith(CN_LABEL_NAME_PREFIX))
 			{
+				// set label name
 				Integer labelId = Integer.parseInt(a.getKey().split(CN_SEPARATOR)[1]);
-				Label label = new Label(labelId, (String) a.getValue());
-				labels.put(label);
+				String labelName = (String) a.getValue();
+				
+				if (labels.containsId(labelId)) {
+					labels.get(labelId).setName(labelName);
+				} else {
+					Label label = new Label(labelId, labelName); 
+					labels.put(label);
+				}
+			}
+			else if (a.getKey().startsWith(CN_LABEL_ATTRIBUTE_PREFIX))
+			{
+				// set label custom attribute
+				String[] attrKeys = a.getKey().split(CN_SEPARATOR);
+				Integer labelId = Integer.parseInt(attrKeys[1]);
+				String attrName = attrKeys[2];
+				String attrValue = (String) a.getValue();
+				
+				if (labels.containsId(labelId)) {
+					labels.get(labelId).addAttribute(attrName, attrValue);
+				} else {
+					Label label = new Label(labelId);
+					label.addAttribute(attrName, attrValue);
+					labels.put(label);
+				}
 			}
 		}
 
@@ -152,19 +181,45 @@ public final class AccountPersistence
 	}
 
 	/**
-	 * Inserts new label or updates name of the existing label.
+	 * Inserts new or updates existing label.
 	 *
 	 * @param mutator
 	 * @param mailbox
-	 * @param labelId
-	 * @param labelName
+	 * @param label
 	 */
-	public static void setLabelName(Mutator<String> mutator, final String mailbox, int labelId,
-			final String labelName)
+	public static void putLabel(Mutator<String> mutator, final String mailbox, Label label)
 	{
-		String labelKey = getLabelNameKey(labelId);
+		String labelKey = getLabelNameKey(label.getId());
 		Map<String, String> attributes = new HashMap<String, String>(1);
-		attributes.put(labelKey, labelName);
+		
+		// upsert label name
+		if (label.getName() != null)
+		{
+			attributes.put(labelKey, label.getName());
+		}
+
+		// upsert custom label attributes (delete if value is null or empty)
+		if (label.getAttributes() != null)
+		{
+			for (Entry<String, String> labelAttr : label.getAttributes().entrySet())
+			{
+				// custom label attribute should not contain separator char
+				if (labelAttr.getKey().contains(CN_SEPARATOR)) {
+					throw new IllegalLabelException("Invalid character detected in the custom label attribute name.");
+				}
+
+				String labelAttrKey = getLabelAttributeKey(label.getId(), labelAttr.getKey());
+				
+				if (labelAttr.getValue() != null && !labelAttr.getValue().isEmpty()) {
+					// upsert attribute
+					attributes.put(labelAttrKey, labelAttr.getValue());
+				} else {
+					// delete if value is empty 
+					mutator.addDeletion(mailbox, CF_ACCOUNTS, labelAttrKey, strSe);	
+				}
+			}
+		}
+
 		AccountPersistence.set(mutator, mailbox, attributes);
 	}
 
@@ -177,14 +232,28 @@ public final class AccountPersistence
 	 */
 	public static void deleteLabel(Mutator<String> mutator, final String mailbox, int labelId)
 	{
-		String labelKey = getLabelNameKey(labelId);
-		mutator.addDeletion(mailbox, CF_ACCOUNTS, labelKey, strSe);
+		String labelNameKey = getLabelNameKey(labelId);
+		String labelAttrPrefix = getLabelAttributeKey(labelId, ""); // label attributes prefix
+		
+		// delete label name
+		mutator.addDeletion(mailbox, CF_ACCOUNTS, labelNameKey, strSe);
+
+		// delete all attributes
+		Map<String, Object> attributes = getAll(mailbox);
+		
+		for (String labelAttrKey : attributes.keySet())
+		{
+			if (labelAttrKey.startsWith(labelAttrPrefix))
+			{
+				mutator.addDeletion(mailbox, CF_ACCOUNTS, labelAttrKey, strSe);
+			}
+		}
 	}
 
 	/**
 	 * Generates key for custom label attribute.
 	 * <p>
-	 * Example <code>"label:123:attr:MyAttribute"</code>
+	 * Example <code>"lattr:123:MyAttribute"</code>
 	 * 
 	 * @param labelId
 	 * @param attributeName Custom attribute name

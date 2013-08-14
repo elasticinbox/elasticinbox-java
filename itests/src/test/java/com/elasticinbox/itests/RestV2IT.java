@@ -203,6 +203,89 @@ public class RestV2IT extends AbstractIntegrationTest
 
 		logger.info("Delete label test OK");
 	}
+	
+	@Test
+	public void labelCustomAttributesAddUpdateDeleteTest()
+	{
+		initAccount();
+		
+		final String labelA = "MyLabel";
+		final String labelB = "MyAnotherLabel";
+
+		// add label with attributes
+		Response response =
+			given().
+				pathParam("labelName", labelA).
+				request().
+					body("{\"name\" : \"" + labelB + "\", \"attributes\": { \"order\" : \"3\", \"color\" : \"red\"} }").
+					contentType(ContentType.JSON).
+			expect().
+				statusCode(201).
+			when().
+				post(REST_PATH + "/mailbox/label?name={labelName}");
+
+		int labelId = with(response.asString()).getInt("id");
+		
+		// check added label
+		expect().
+			statusCode(200).and().
+			body("'" + labelId + "'.name",				equalTo(labelB)).
+			body("'" + labelId + "'.attributes.order",	equalTo("3")).
+			body("'" + labelId + "'.attributes.color",	equalTo("red")).
+		when().
+			get(REST_PATH + "/mailbox?metadata=true");
+
+		// update label and delete some attributes
+		given().
+			pathParam("labelId", labelId).
+			request().
+				body("{\"name\" : \"" + labelA + "\", \"attributes\": { \"order\" : \"22\", \"icon\" : \"qutab.png\", \"color\" : \"\"} }").
+				contentType(ContentType.JSON).
+		expect().
+			statusCode(204).
+		when().
+			put(REST_PATH + "/mailbox/label/{labelId}");
+
+		// check label updates
+		expect().
+			statusCode(200).and().
+			body("'" + labelId + "'.name",				equalTo(labelA)).
+			body("'" + labelId + "'.attributes.order",	equalTo("22")).
+			body("'" + labelId + "'.attributes.icon",	equalTo("qutab.png")).
+			body("'" + labelId + "'.attributes",		not(hasItems("color"))).
+		when().
+			get(REST_PATH + "/mailbox?metadata=true");
+
+		// delete attributes
+		given().
+			pathParam("labelId", labelId).
+			request().
+				body("{\"attributes\": { \"order\" : null, \"icon\" : \"\" } }").
+				contentType(ContentType.JSON).
+		expect().
+			statusCode(204).
+		when().
+			put(REST_PATH + "/mailbox/label/{labelId}");
+
+		// check label updates
+		expect().
+			statusCode(200).and().
+			body("'" + labelId + "'.attributes", not(hasItems("order", "icon", "color"))).
+		when().
+			get(REST_PATH + "/mailbox?metadata=true");
+		
+		// add invalid attribute name
+		given().
+			pathParam("labelId", labelId).
+			request().
+				body("{\"attributes\": { \"new:attr\" : \"bad\"} }").
+				contentType(ContentType.JSON).
+		expect().
+			statusCode(400).
+		when().
+			put(REST_PATH + "/mailbox/label/{labelId}");
+
+	}
 
 	@SuppressWarnings("unchecked")
 	@Test

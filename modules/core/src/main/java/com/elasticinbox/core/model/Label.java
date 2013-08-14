@@ -28,16 +28,21 @@
 
 package com.elasticinbox.core.model;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import com.elasticinbox.common.utils.Assert;
 
 public class Label
 {
-	private int id;
+	private Integer id;
 	private String name;
 	private LabelCounters counters;
 	private Map<String, String> attributes;
+
+	public Label() {
+		// required for JSON deserialization 
+	}
 
 	public Label(int id) {
 		this.id = id;
@@ -48,7 +53,7 @@ public class Label
 		this.name = name;
 	}
 
-	public int getId() {
+	public Integer getId() {
 		return id;
 	}
 
@@ -81,6 +86,24 @@ public class Label
 
 	public Label setAttributes(Map<String, String> attributes) {
 		this.attributes = attributes;
+		return this;
+	}
+
+	/**
+	 * Add attribute
+	 * 
+	 * @param name
+	 * @param value
+	 * @return
+	 */
+	public Label addAttribute(String name, String value)
+	{
+		if (this.attributes == null) {
+			this.attributes = new HashMap<String, String>(1);
+		}
+		
+		this.attributes.put(name, value);
+
 		return this;
 	}
 

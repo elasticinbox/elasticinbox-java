@@ -195,6 +195,27 @@
 	    <version>${bundle.javamail.version}</version>
 		<scope>provided</scope>
 	</dependency>
+	<dependency>
+		<groupId>com.fasterxml.jackson.core</groupId>
+		<artifactId>jackson-annotations</artifactId>
+		<version>${bundle.jackson.version}</version>
+		<type>bundle</type>
+		<scope>provided</scope>
+	</dependency>
+	<dependency>
+		<groupId>com.fasterxml.jackson.core</groupId>
+		<artifactId>jackson-core</artifactId>
+		<version>${bundle.jackson.version}</version>
+		<type>bundle</type>
+		<scope>provided</scope>
+	</dependency>
+	<dependency>
+		<groupId>com.fasterxml.jackson.core</groupId>
+		<artifactId>jackson-databind</artifactId>
+		<version>${bundle.jackson.version}</version>
+		<type>bundle</type>
+		<scope>provided</scope>
+	</dependency>
 
 	<!-- Guava -->
 	<dependency>
