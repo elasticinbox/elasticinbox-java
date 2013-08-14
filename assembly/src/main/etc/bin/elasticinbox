@@ -4,7 +4,7 @@ curdir=`dirname $0`
 libdir="${curdir}/../lib"
 umask 066
 
-MEM=384
+MEM=512
 TMP_DIR="/var/tmp"
 CONSOLE=""
 
