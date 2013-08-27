@@ -84,7 +84,14 @@ public final class CassandraLabelDAO implements LabelDAO
 
 		for (int labelId : counters.keySet())
 		{
-			labels.get(labelId).setCounters(counters.get(labelId));
+			if (labels.containsId(labelId) && counters.containsKey(labelId)) {
+				labels.get(labelId).setCounters(counters.get(labelId));
+			} else if (labels.containsId(labelId) && !counters.containsKey(labelId)) {
+				// assume zeros for all counters if not yet initialised
+				labels.get(labelId).setCounters(new LabelCounters());
+			} else if (!labels.containsId(labelId) && counters.containsKey(labelId)) {
+				logger.warn("Found counters for label {}, but label does not exist.", labelId);
+			}
 		}
 
 		return labels;
