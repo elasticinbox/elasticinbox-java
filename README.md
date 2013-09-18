@@ -10,7 +10,7 @@ in each mailbox.
 ## Requirements
 
  * Java >= 1.6
- * Apache Cassandra >= 0.8.0 (see http://cassandra.apache.org/)
+ * Apache Cassandra >= 1.1 (see http://cassandra.apache.org/)
 
 ## Getting started
 
