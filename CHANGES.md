@@ -1,3 +1,13 @@
+0.4.0, 2013-09-18
+-----------------
+
+  * Improved batch operation performance and reliability. #46, #47
+  * Added label index rebuilding feature. #40
+  * Added support for custom label attributes. #39
+  * Added hybrid storage support. #32 (see https://github.com/elasticinbox/elasticinbox/wiki/Blob-Storage#hybrid-storage)
+  * Added POP3 support. #6, #33 (see https://github.com/elasticinbox/elasticinbox/wiki/POP3-and-IMAP)
+  * Added blob encryption support. #25 (see https://github.com/elasticinbox/elasticinbox/wiki/Encryption)
+
 0.3.0, 2012-07-22
 -----------------
 
