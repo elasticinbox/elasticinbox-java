@@ -90,7 +90,7 @@ public final class CassandraLabelDAO implements LabelDAO
 				// assume zeros for all counters if not yet initialised
 				labels.get(labelId).setCounters(new LabelCounters());
 			} else if (!labels.containsId(labelId) && counters.containsKey(labelId)) {
-				logger.warn("Found counters for label {}, but label does not exist.", labelId);
+				logger.warn("Found counters for label {}/{}, but label does not exist.", mailbox.getId(), labelId);
 			}
 		}
 
