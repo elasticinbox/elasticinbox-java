@@ -7,6 +7,7 @@
   * Added hybrid storage support. #32 (see https://github.com/elasticinbox/elasticinbox/wiki/Blob-Storage#hybrid-storage)
   * Added POP3 support. #6, #33 (see https://github.com/elasticinbox/elasticinbox/wiki/POP3-and-IMAP)
   * Added blob encryption support. #25 (see https://github.com/elasticinbox/elasticinbox/wiki/Encryption)
+  * API v1 endpoints are removed.
 
 0.3.0, 2012-07-22
 -----------------
