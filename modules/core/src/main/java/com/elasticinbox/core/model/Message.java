@@ -37,6 +37,8 @@ import java.util.Map;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 import com.elasticinbox.core.blob.BlobURI;
 
@@ -52,6 +54,7 @@ import com.elasticinbox.core.blob.BlobURI;
  * @see {@link MimePart}
  * @see <a href="http://tools.ietf.org/html/rfc3501#section-6.4.5">RFC3501</a>
  */
+@JsonInclude(Include.NON_NULL)
 public class Message
 {
 	private AddressList from;

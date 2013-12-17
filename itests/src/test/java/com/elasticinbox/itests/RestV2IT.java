@@ -341,6 +341,7 @@ public class RestV2IT extends AbstractIntegrationTest
 			body(messageId + ".from.address", hasItems(containsString("@"))).
 			body(messageId + ".to.address", hasItems(containsString("@"))).
 			body(messageId + ".subject", is(notNullValue())).
+			body(messageId, not(hasKey("bcc"))).
 		when().
 			get(REST_PATH + "/mailbox/label/{labelId}?metadata=true&count=2&start={messageId}");
 
