@@ -120,10 +120,12 @@ public interface MessageDAO
 	 *            Number of message IDs to retrieve.
 	 * @param reverse
 	 *            Defines order of the retrieval.
+	 * @param includeBody
+	 *            If true, return plainBody and htmlBody as a part of metadata.           
 	 * @return
 	 */
-	public Map<UUID, Message> getMessageIdsWithHeaders(Mailbox mailbox, int labelId,
-			UUID start, int count, boolean reverse);
+	public Map<UUID, Message> getMessageIdsWithMetadata(Mailbox mailbox, int labelId,
+			UUID start, int count, boolean reverse, boolean includeBody);
 
 	/**
 	 * Modify message labels and markers.

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2013 Optimax Software Ltd.
+ * Copyright (c) 2011-2014 Optimax Software Ltd.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -342,12 +342,28 @@ public class RestV2IT extends AbstractIntegrationTest
 			body(messageId + ".to.address", hasItems(containsString("@"))).
 			body(messageId + ".replyTo.address", hasItems(containsString("@"))).
 			body(messageId + ".messageId", containsString("@elasticinbox")).
-			body(messageId + ".subject", is(notNullValue())).
+			body(messageId + ".subject", not(isEmptyOrNullString())).
+			body(messageId, not(hasKey("htmlBody"))).
+			body(messageId, not(hasKey("plainBody"))).
 			body(messageId, not(hasKey("bcc"))).
 		when().
 			get(REST_PATH + "/mailbox/label/{labelId}?metadata=true&count=2&start={messageId}");
 
 		logger.info("Message List with Metadata Test OK");
+
+		// check message list with bodies
+		messageId = messages.get("headers").toString();
+		given().
+			pathParam("labelId", labelId).
+			pathParam("messageId", messageId).
+		expect().
+			statusCode(200).and().
+			body(messageId + ".htmlBody", not(isEmptyOrNullString())).
+			body(messageId + ".plainBody", not(isEmptyOrNullString())).
+		when().
+			get(REST_PATH + "/mailbox/label/{labelId}?metadata=true&includebody=true&count=2&start={messageId}");
+
+		logger.info("Message List with Metadata & Bodies Test OK");
 
 		// check parsed message
 		messageId = messages.get("headers").toString();

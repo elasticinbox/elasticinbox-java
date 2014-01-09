@@ -111,13 +111,13 @@ public final class CassandraMessageDAO extends AbstractMessageDAO implements Mes
 	}
 
 	@Override
-	public Map<UUID, Message> getMessageIdsWithHeaders(final Mailbox mailbox,
-			final int labelId, final UUID start, final int count, boolean reverse)
+	public Map<UUID, Message> getMessageIdsWithMetadata(final Mailbox mailbox,
+			final int labelId, final UUID start, final int count, boolean reverse, boolean includeBody)
 	{
 		List<UUID> messageIds = 
 				getMessageIds(mailbox, labelId, start, count, reverse);
 
-		return MessagePersistence.fetch(mailbox.getId(), messageIds, false);
+		return MessagePersistence.fetch(mailbox.getId(), messageIds, includeBody);
 	}
 
 	@Override

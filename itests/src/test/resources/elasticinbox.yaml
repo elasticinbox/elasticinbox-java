@@ -38,7 +38,7 @@ database_driver: cassandra
 # Note: When no HTML message body available in HTML store mode, ElasticInbox
 # will automatically fallback to PLAIN text mode and store available PLAIN text.  
 store_html_message: true
-store_plain_message: false
+store_plain_message: true
 
 # Maximum blob size in bytes which can be stored in the database.
 # Blobs larger than this value will be stored with the deafult blob profile (blobstore_write_profile).

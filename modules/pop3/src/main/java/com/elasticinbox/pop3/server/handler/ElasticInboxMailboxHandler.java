@@ -153,8 +153,8 @@ public class ElasticInboxMailboxHandler implements org.apache.james.protocols.po
 	private List<MessageMetaData> getPOP3MessageList()
 	{
 		// get list of messages
-		Map<UUID, Message> messages = dao.getMessageIdsWithHeaders(
-				mailbox, ReservedLabels.POP3.getId(), null, MAX_POP3_SESSION_MESSAGES, true);
+		Map<UUID, Message> messages = dao.getMessageIdsWithMetadata(
+				mailbox, ReservedLabels.POP3.getId(), null, MAX_POP3_SESSION_MESSAGES, true, false);
 
 		// convert to James Protocols list
 		List<MessageMetaData> list = new ArrayList<MessageMetaData>(messages.size());

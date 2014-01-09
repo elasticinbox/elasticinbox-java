@@ -105,6 +105,7 @@ public final class LabelResource
 			@PathParam("domain") String domain,
 			@PathParam("id") Integer labelId,
 			@QueryParam("metadata") @DefaultValue("false") boolean withMetadata,
+			@QueryParam("includebody") @DefaultValue("false") boolean includeBody,
 			@QueryParam("reverse") @DefaultValue("true") boolean reverse,
 			@QueryParam("start") UUID start,
 			@QueryParam("count") @DefaultValue("50") int count)
@@ -114,8 +115,8 @@ public final class LabelResource
 		
 		try {
 			if (withMetadata) {
-				response = JSONUtils.fromObject(messageDAO.getMessageIdsWithHeaders(mailbox,
-						labelId, start, count, reverse));
+				response = JSONUtils.fromObject(messageDAO.getMessageIdsWithMetadata(mailbox,
+						labelId, start, count, reverse, includeBody));
 			} else {
 				response = JSONUtils.fromObject(messageDAO.getMessageIds(mailbox,
 						labelId, start, count, reverse));
