@@ -48,7 +48,7 @@ public final class MessageIdBuilder
 	/**
 	 * Set <code>date</code> header from email
 	 * 
-	 * @param messageId
+	 * @param date
 	 * @return
 	 */
 	public MessageIdBuilder setSentDate(Date date) {

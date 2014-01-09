@@ -340,6 +340,8 @@ public class RestV2IT extends AbstractIntegrationTest
 			body(messageId + ".size", equalTo((int) fileSizeA)).
 			body(messageId + ".from.address", hasItems(containsString("@"))).
 			body(messageId + ".to.address", hasItems(containsString("@"))).
+			body(messageId + ".replyTo.address", hasItems(containsString("@"))).
+			body(messageId + ".messageId", containsString("@elasticinbox")).
 			body(messageId + ".subject", is(notNullValue())).
 			body(messageId, not(hasKey("bcc"))).
 		when().
@@ -358,6 +360,8 @@ public class RestV2IT extends AbstractIntegrationTest
 			body("message.size", equalTo((int) fileSizeA)).
 			body("message.from.address", hasItems(containsString("@"))).
 			body("message.to.address", hasItems(containsString("@"))).
+			body("message.replyTo.address", hasItems(containsString("@"))).
+			body("message.messageId", containsString("@elasticinbox")).
 			body("message.subject", is(notNullValue())).
 			body("message.htmlBody", is(notNullValue())).
 			body("message.textBody", is(nullValue())).

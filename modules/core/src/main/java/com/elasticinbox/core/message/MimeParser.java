@@ -127,6 +127,7 @@ public final class MimeParser
 			this.message.setBcc(getAddressList(mimeMessage.getRecipients(RecipientType.BCC)));
 			this.message.setSubject(mimeMessage.getSubject());
 			this.message.setMessageId(mimeMessage.getMessageID());
+			this.message.setReplyTo(getAddressList(mimeMessage.getReplyTo()));
 			this.message.setDate(mimeMessage.getSentDate());
 			//this.message.setSize((long) mimeMessage.getSize());
 

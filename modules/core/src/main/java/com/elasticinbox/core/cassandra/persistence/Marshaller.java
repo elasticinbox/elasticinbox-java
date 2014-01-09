@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2012 Optimax Software Ltd.
+ * Copyright (c) 2011-2014 Optimax Software Ltd.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -61,6 +61,8 @@ public final class Marshaller
 	public final static String CN_TO = "to";
 	public final static String CN_CC = "cc";
 	public final static String CN_BCC = "bcc";
+	public final static String CN_REPLY_TO = "replyto";
+	public final static String CN_MESSAGE_ID = "mid";
 	public final static String CN_SUBJECT = "subject";
 	public final static String CN_HTML_BODY = "html";
 	public final static String CN_PLAIN_BODY = "plain";
@@ -93,8 +95,8 @@ public final class Marshaller
 
 		for (HColumn<String, byte[]> c : columns)
 		{
-			if( (c != null) && (c.getValue() != null)) {
-
+			if (c != null && c.getValue() != null)
+			{
 				// map columns to Message object
 				if (c.getName().equals(CN_DATE)) {
 					message.setDate(dateSe.fromBytes(c.getValue()));
@@ -102,6 +104,8 @@ public final class Marshaller
 					message.setSize(longSe.fromBytes(c.getValue()));
 				} else if (c.getName().equals(CN_SUBJECT)) {
 					message.setSubject(strSe.fromBytes(c.getValue()));
+				} else if (c.getName().equals(CN_MESSAGE_ID)) {
+					message.setMessageId(strSe.fromBytes(c.getValue()));
 				} else if (c.getName().equals(CN_FROM)) {
 					message.setFrom(unserializeAddress(c.getValue()));
 				} else if (c.getName().equals(CN_TO)) {
@@ -110,6 +114,8 @@ public final class Marshaller
 					message.setCc(unserializeAddress(c.getValue()));
 				} else if (c.getName().equals(CN_BCC)) {
 					message.setBcc(unserializeAddress(c.getValue()));
+				} else if (c.getName().equals(CN_REPLY_TO)) {
+					message.setReplyTo(unserializeAddress(c.getValue()));
 				} else if (c.getName().equals(CN_BRI)) {
 					message.setLocation(URI.create(
 							strSe.fromBytes(c.getValue())));
@@ -182,13 +188,20 @@ public final class Marshaller
 			columns.put(CN_BCC, serializeAddress(m.getBcc()));
 		}
 
+		if (m.getReplyTo() != null) {
+			columns.put(CN_REPLY_TO, serializeAddress(m.getReplyTo()));
+		}
+
+		if (m.getMessageId() != null) {
+			columns.put(CN_MESSAGE_ID, m.getMessageId());
+		}
+
 		if (m.getSubject() != null) {
 			columns.put(CN_SUBJECT, m.getSubject());
 		}
 
 		if (m.getLocation() != null) {
 			columns.put(CN_BRI, m.getLocation().toString());
-
 		}
 
 		if (m.getParts() != null) {
@@ -196,19 +209,21 @@ public final class Marshaller
 		}
 
 		// add markers
-		if (!m.getMarkers().isEmpty()) {
-			for (Marker marker : m.getMarkers()) {
-				String cn = new StringBuilder(CN_MARKER_PREFIX)
-						.append(marker.toInt()).toString();
+		if (!m.getMarkers().isEmpty())
+		{
+			for (Marker marker : m.getMarkers())
+			{
+				String cn = CN_MARKER_PREFIX + marker.toInt();
 				columns.put(cn, new byte[0]);
 			}
 		}
 
 		// add labels
-		if (!m.getLabels().isEmpty()) {
-			for (Integer labelId : m.getLabels()) {
-				String cn = new StringBuilder(CN_LABEL_PREFIX)
-						.append(labelId).toString();
+		if (!m.getLabels().isEmpty())
+		{
+			for (Integer labelId : m.getLabels())
+			{
+				String cn = CN_LABEL_PREFIX + labelId;
 				columns.put(cn, new byte[0]);
 			}
 		}
@@ -242,7 +257,8 @@ public final class Marshaller
 	{
 		List<String[]> result = new ArrayList<String[]>();
 
-		for(Address address : addresses) {
+		for (Address address : addresses)
+		{
 			result.add(new String[]{
 					(address.getName() == null ? "" : address.getName()),
 					(address.getAddress() == null ? "" : address.getAddress()) });
@@ -264,7 +280,7 @@ public final class Marshaller
 		List<List<String>> addresses = null;
 		addresses = JSONUtils.toObject(val, addresses);
 
-		for(List<String> address : addresses) {
+		for (List<String> address : addresses) {
 			result.add(new Address(address.get(0), address.get(1)));
 		}
 
@@ -284,7 +300,8 @@ public final class Marshaller
 		List<HColumn<String, byte[]>> columns = 
 			new ArrayList<HColumn<String, byte[]>>(map.size());
 
-		for (Map.Entry<String, Object> a : map.entrySet()) {
+		for (Map.Entry<String, Object> a : map.entrySet())
+		{
 			columns.add(createColumn(a.getKey(), SerializerTypeInferer
 					.getSerializer(a.getValue()).toBytes(a.getValue()),
 					strSe, byteSe));

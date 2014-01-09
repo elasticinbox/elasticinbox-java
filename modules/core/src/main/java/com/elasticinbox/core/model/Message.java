@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2012 Optimax Software Ltd.
+ * Copyright (c) 2011-2014 Optimax Software Ltd.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,10 @@ import com.elasticinbox.core.blob.BlobURI;
 @JsonInclude(Include.NON_NULL)
 public class Message
 {
+	private URI location;
+	private Long size;
+
+	// Message headers
 	private AddressList from;
 	private AddressList to;
 	private AddressList cc;
@@ -64,10 +68,9 @@ public class Message
 	private String subject;
 	private Date date;
 	private String messageId;
-	private Long size;
-	private URI location;
-	private String encryptionKey;
+	private AddressList replyTo;
 
+	// Message content
 	private String plainBody;
 	private String htmlBody;
 
@@ -92,6 +95,12 @@ public class Message
 	@JsonIgnore
 	private Map<String, String> minorHeaders = new HashMap<String, String>(1);
 	
+	/**
+	 * Returns the value of the "From" header fields. If this 
+     * header field is absent, the "Sender" header field is used.
+     * 
+	 * @return
+	 */
 	public AddressList getFrom() {
 		return from;
 	}
@@ -100,6 +109,11 @@ public class Message
 		this.from = from;
 	}
 
+	/**
+	 * Returns the value of the "To" header fields.
+	 * 
+	 * @return
+	 */
 	public AddressList getTo() {
 		return to;
 	}
@@ -108,6 +122,11 @@ public class Message
 		this.to = to;
 	}
 
+	/**
+	 * Returns the value of the "CC" header fields.
+	 * 
+	 * @return
+	 */
 	public AddressList getCc() {
 		return cc;
 	}
@@ -116,6 +135,11 @@ public class Message
 		this.cc = cc;
 	}
 
+	/**
+	 * Returns the value of the "BCC" header fields.
+	 * 
+	 * @return
+	 */
 	public AddressList getBcc() {
 		return bcc;
 	}
@@ -124,6 +148,11 @@ public class Message
 		this.bcc = bcc;
 	}
 
+	/**
+	 * Returns the value of the "Subject" header field.
+	 * 
+	 * @return
+	 */
 	public String getSubject() {
 		return subject;
 	}
@@ -132,6 +161,11 @@ public class Message
 		this.subject = subject;
 	}
 
+	/**
+	 * Returns the value of the "Date" header field.
+	 * 
+	 * @return
+	 */
 	public Date getDate() {
 		return date;
 	}
@@ -140,6 +174,11 @@ public class Message
 		this.date = date;
 	}
 
+	/**
+	 * Returns the value of the "Message-ID" header field.
+	 * 
+	 * @return
+	 */
 	public String getMessageId() {
 		return messageId;
 	}
@@ -148,6 +187,24 @@ public class Message
 		this.messageId = messageId;
 	}
 
+	/**
+	 * Returns the value of the "Reply-To" header field.
+	 * 
+	 * @return
+	 */
+	public AddressList getReplyTo() {
+		return replyTo;
+	}
+
+	public void setReplyTo(AddressList replyTo) {
+		this.replyTo = replyTo;
+	}
+
+	/**
+	 * Return the size of the content of this message in bytes.
+	 * 
+	 * @return
+	 */
 	public Long getSize() {
 		return size;
 	}
@@ -156,6 +213,11 @@ public class Message
 		this.size = size;
 	}
 
+	/**
+	 * Returns blob URI containing raw message content
+	 * 
+	 * @return
+	 */
 	public URI getLocation() {
 		return location;
 	}
@@ -168,6 +230,11 @@ public class Message
 		this.location = uri;
 	}
 
+	/**
+	 * Returns plain text message body if available.
+	 *  
+	 * @return
+	 */
 	public String getPlainBody() {
 		return plainBody;
 	}
@@ -176,6 +243,11 @@ public class Message
 		this.plainBody = plainBody;
 	}
 
+	/**
+	 * Returns HTML message body if available.
+	 * 
+	 * @return
+	 */
 	public String getHtmlBody() {
 		return htmlBody;
 	}
@@ -184,6 +256,11 @@ public class Message
 		this.htmlBody = htmlBody;
 	}
 
+	/**
+	 * Returns information about all message attachments (MIME parts)
+	 * 
+	 * @return
+	 */
 	public Map<String, MimePart> getParts() {
 		return this.parts.isEmpty() ? null : parts;
 	}
@@ -203,6 +280,11 @@ public class Message
 		}
 	}
 
+	/**
+	 * Returns binary content for the given MIME part ID.
+	 * 
+	 * @param partId
+	 */
 	@JsonIgnore
 	public MimePart getPart(String partId)
 	{
@@ -213,6 +295,12 @@ public class Message
 		return this.parts.get(partId);
 	}
 
+	/**
+	 * Returns binary content for the given MIME Content-ID.
+	 * 
+	 * @param contentId
+	 * @return
+	 */
 	@JsonIgnore
 	public MimePart getPartByContentId(String contentId)
 	{
@@ -234,6 +322,11 @@ public class Message
 //		return false;
 //	}
 
+	/**
+	 * Returns all labels assigned to the message.
+	 * 
+	 * @return
+	 */
 	public Set<Integer> getLabels() {
 		return this.labels;
 	}
@@ -247,6 +340,11 @@ public class Message
 		this.labels.add(labelId);
 	}
 
+	/**
+	 * Returns all markers assigned to the message.
+	 * 
+	 * @return
+	 */
 	public Set<Marker> getMarkers() {
 		return this.markers;
 	}
@@ -258,11 +356,6 @@ public class Message
 	@JsonIgnore
 	public void addMarker(Marker marker) {
 		this.markers.add(marker);
-	}
-
-	@JsonIgnore
-	public boolean isEncrypted() {
-		return this.encryptionKey != null;
 	}
 
 	/**
